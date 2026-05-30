@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "eV6nC7vGPM2Q3B-uiHsXs"
+uri = "file://artifacts/controlling-center/public/avatars/maria.png"
+type = "image"
+title = "Maria Keller avatar"
+
+[[generated]]
+id = "uX3IgfZ3NBJuxed_UryTj"
+uri = "file://artifacts/controlling-center/public/avatars/daniel.png"
+type = "image"
+title = "Daniel Weber avatar"
+
+[[generated]]
+id = "Pnw9UAuHKlV3vbIp8hAnz"
+uri = "file://artifacts/controlling-center/public/avatars/sofia.png"
+type = "image"
+title = "Sofia Martin avatar"
+
+[[generated]]
+id = "3xTILymPjR30nzKHyYfHm"
+uri = "file://artifacts/controlling-center/public/avatars/lucas.png"
+type = "image"
+title = "Lucas Braun avatar"
+
+[[generated]]
+id = "216tQAKGY4gGovuZYsruv"
+uri = "file://artifacts/controlling-center/public/avatars/clara.png"
+type = "image"
+title = "Clara Hoffmann avatar"

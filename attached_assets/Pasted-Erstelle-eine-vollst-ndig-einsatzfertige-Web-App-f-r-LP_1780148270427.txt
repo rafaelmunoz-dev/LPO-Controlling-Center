@@ -1,0 +1,548 @@
+Erstelle eine vollständig einsatzfertige Web-App für LPO Group mit dem Namen:
+
+LPO CONTROLLING CENTER
+
+Untertitel:
+Transparenz. Kontrolle. Zukunft.
+
+Ziel der App:
+Die App soll LPO als externe Controller-Einheit dabei unterstützen, die MiGu Group finanziell, operativ und strategisch zu überwachen.
+
+Wichtig:
+LPO ist der Controller.
+MiGu Group ist die zu kontrollierende Unternehmensgruppe.
+Die MiGu Group besteht aus folgenden Entitäten:
+
+- IMP
+- C&A
+- MKT
+- CPE
+- COSM
+
+Die App muss eine Gesamtansicht für die MiGu Group haben und zusätzlich separate Ansichten je Entität.
+
+Oben in der App muss es ein großes Dropdown/Register geben:
+
+Ansicht:
+- MiGu Group Gesamt
+- IMP
+- C&A
+- MKT
+- CPE
+- COSM
+
+Wenn eine Ansicht ausgewählt wird, müssen sich alle Zahlen, Diagramme, Tabellen, Uploads, Risiken, Inventarlisten, Mitarbeiter, Kaufanfragen und Prognosen automatisch auf diese Ansicht beziehen.
+
+Die App soll direkt einsatzfertig wirken, nicht wie ein leeres Demo-Tool.
+
+SPRACHEN:
+Die App braucht einen Sprachschalter mit:
+- Deutsch
+- Englisch
+- Spanisch
+
+Alle Menüs, Buttons, Labels, Erklärungen, Tooltips und Statusmeldungen müssen übersetzbar sein.
+
+DESIGN:
+Die App soll zu den bisherigen LPO-Apps passen:
+
+- heller weißer Hintergrund
+- sehr professionell
+- aufgeräumt
+- Apple-like
+- dezentes Liquid Glass Design
+- leichte Glas-Effekte bei Karten und Dropdowns
+- abgerundete Cards
+- weiche Schatten
+- klare Tabellen
+- Navy-Blau als Hauptfarbe
+- dezente Brass/Gold-Akzente
+- keine überladene Optik
+- kein CRM-Look
+- eindeutig Controlling-, Finance- und Management-Tool
+
+Wichtig:
+Nicht zu verspielt.
+Liquid Glass nur hochwertig und zurückhaltend einsetzen.
+
+TOPBAR:
+- LPO Logo
+- Titel: CONTROLLING CENTER
+- Untertitel: Transparenz. Kontrolle. Zukunft.
+- Entitätsauswahl: MiGu Group Gesamt / IMP / C&A / MKT / CPE / COSM
+- Suchfeld
+- Zeitraumfilter
+- Sprachschalter DE / EN / ES
+- Benachrichtigungen
+- Exportieren
+- Bericht erstellen
+- Benutzerprofil
+
+BENUTZERPROFILE:
+Bitte vollständige Benutzerprofile mit generierten Profilbildern/Avatar-Bildern anlegen.
+
+Beispielprofile:
+1. Maria Keller
+Rolle: Senior Controller
+Organisation: LPO Group
+Zugriff: alle Entitäten
+
+2. Daniel Weber
+Rolle: Finance Analyst
+Organisation: LPO Group
+Zugriff: MiGu Group Gesamt, IMP, C&A
+
+3. Sofia Martín
+Rolle: Procurement Manager
+Organisation: LPO Group
+Zugriff: Einkauf, Lieferanten, Kaufanfragen
+
+4. Lucas Braun
+Rolle: Inventory Manager
+Organisation: LPO Group
+Zugriff: Inventar, Geräte, Etiketten
+
+5. Clara Hoffmann
+Rolle: Management Reviewer
+Organisation: MiGu Group
+Zugriff: Reports, Strategie, Risiken
+
+Jedes Profil braucht:
+- Name
+- Rolle
+- Organisation
+- E-Mail
+- Sprache
+- Avatar/Profilbild
+- Rechte/Rollen
+- letzte Aktivität
+- zugewiesene Aufgaben
+
+ROLLEN & RECHTE:
+Bitte ein Rollenmodell einbauen:
+
+- Admin
+- Controller
+- Finance Analyst
+- Procurement Manager
+- Inventory Manager
+- Management Viewer
+- Entity Manager
+
+Je Rolle sollen unterschiedliche Menüpunkte sichtbar oder bearbeitbar sein.
+
+HAUPTNAVIGATION LINKS:
+- Dashboard
+- Finanzen
+- Upload Center
+- Einkauf
+- Inventar
+- Mitarbeiter & Geräte
+- Freigaben
+- Prognosen
+- Risiko & Pre-Mortem
+- Strategie Bewertung
+- Entitäten
+- Reports
+- Microsoft Integration
+- Benutzer & Rollen
+- Einstellungen
+
+DASHBOARD:
+Das Dashboard soll sehr aufgeräumt sein.
+
+Oben KPI-Karten:
+
+- Umsatz gesamt (Revenue)
+- Gewinn vor Zinsen, Steuern und Abschreibungen (EBITDA)
+- Gewinnspanne vor Zinsen, Steuern und Abschreibungen (EBITDA-Marge)
+- Nettoergebnis nach allen Kosten (Net Profit)
+- Verfügbares Geld / liquide Mittel (Cash & Liquidity)
+- Reichweite des Geldes in Monaten (Cash Runway)
+- Offene Rechnungen (Open Invoices)
+- Risiko-Level (Risk Level)
+
+Jede KPI-Karte braucht:
+- Wert
+- Veränderung zum Vormonat
+- Mini-Diagramm
+- Tooltip mit einfacher Erklärung
+
+Beispiel:
+EBITDA bedeutet: Gewinn vor Zinsen, Steuern und Abschreibungen. Es zeigt, wie stark das operative Geschäft läuft.
+
+DASHBOARD-BEREICHE:
+1. Finanzielle Entwicklung
+Diagramm:
+- Umsatz
+- Kosten
+- Gewinn
+- EBITDA
+
+2. Cashflow
+Einfach erklärt:
+Geld rein, Geld raus, Geld übrig.
+
+3. Budget vs. Ist
+Tabelle:
+- Kategorie
+- Budget
+- Ist-Wert
+- Unterschied €
+- Unterschied %
+- Status
+
+4. Entitäten-Vergleich
+Tabelle:
+- IMP
+- C&A
+- MKT
+- CPE
+- COSM
+
+Spalten:
+- Umsatz
+- Kosten
+- Gewinn
+- EBITDA
+- Liquidität
+- Risiko-Level
+- Entwicklung
+
+5. Liquiditätsprognose
+13-Wochen-Prognose mit Best Case, Realistic Case und Worst Case.
+
+6. Offene Risiken
+- Risiko
+- Entität
+- Auswirkung
+- Wahrscheinlichkeit
+- Verantwortliche Person
+- Status
+
+FINANZEN:
+Unterseiten:
+- Ergebnisrechnung (Profit & Loss / P&L)
+- Bilanz (Balance Sheet)
+- Cashflow
+- Budget vs. Ist
+- Konsolidierung
+- Intercompany
+
+Jeder Fachbegriff muss einfach erklärt werden.
+
+UPLOAD CENTER:
+Die App braucht einen professionellen Upload-Bereich für:
+
+- Buchhaltungs-Monatsberichte
+- Einkaufslisten
+- Inventurlisten
+- Rechnungslisten
+- Bankübersichten
+- Budgetdateien
+- Lieferantenlisten
+- Mitarbeiterlisten
+
+Formate:
+- Excel
+- CSV
+- PDF
+- Word
+- Bilder/Scans
+
+Nach Upload:
+- Datei speichern
+- Entität zuweisen
+- Monat/Jahr zuweisen
+- Dokumenttyp erkennen
+- Status anzeigen
+- Daten in Tabellen übernehmen
+- Fehler anzeigen
+- Upload-Historie führen
+
+Status:
+- Neu
+- In Prüfung
+- Verarbeitet
+- Fehler
+- Archiviert
+
+EINKAUF:
+Funktionen:
+- Kaufanfrage erstellen
+- Lieferant auswählen
+- Betrag erfassen
+- Entität zuweisen
+- Kategorie auswählen
+- Begründung erfassen
+- Dokument anhängen
+- Freigabeprozess starten
+
+Status:
+- Entwurf
+- Eingereicht
+- In Prüfung
+- Freigegeben
+- Abgelehnt
+- Bestellt
+- Erhalten
+- Bezahlt
+
+MICROSOFT FORMS INTEGRATION:
+Die App soll vorbereitet sein, Antworten aus Microsoft Forms einzulesen.
+
+Beispiel:
+Ein Mitarbeiter füllt ein Einkaufsformular aus.
+Die Antwort erscheint automatisch als Kaufanfrage in der App.
+
+Bitte eine Mock-Integration bauen:
+- Formularantworten anzeigen
+- Antwort in Kaufanfrage umwandeln
+- Status setzen
+- Freigabe starten
+
+MICROSOFT API VORBEREITUNG:
+Bitte Adapter-Struktur für Microsoft Graph vorbereiten:
+
+- Microsoft Forms
+- SharePoint
+- Teams
+- Outlook
+- Planner
+- Excel Online
+
+Solange keine API Keys vorhanden sind, soll alles mit realistischen Mock-Daten funktionieren.
+
+INVENTAR:
+Inventar-Modul für:
+- Laptops
+- Monitore
+- Handys
+- Tablets
+- Möbel
+- Maschinen
+- Fahrzeuge
+- Software-Lizenzen
+- sonstige Gegenstände
+
+Inventar-Tabelle:
+- Inventarnummer
+- Barcode/QR-Code
+- Artikelname
+- Kategorie
+- Entität
+- Standort
+- verantwortliche Person
+- Zustand
+- Kaufdatum
+- Kaufpreis
+- aktueller Wert
+- Abschreibung
+- Garantie bis
+- Status
+- Notizen
+
+Status:
+- verfügbar
+- zugewiesen
+- in Reparatur
+- verloren
+- ausgemustert
+- verkauft
+
+BARCODE- UND ETIKETTEN-TOOL:
+Bitte ein vollständiges Tool einbauen:
+
+- automatische Inventarnummer
+- QR-Code generieren
+- Barcode generieren
+- Etikettenvorschau
+- Etikett als PDF exportieren
+- mehrere Etiketten gleichzeitig drucken
+- A4-Bogen mit mehreren Etiketten
+- kleines Geräteetikett
+- großes Lageretikett
+- LPO Logo
+- Entität
+- Artikelname
+- Inventarnummer
+- QR-Code
+
+MITARBEITER & GERÄTE:
+Mitarbeiterverwaltung mit Profilen.
+
+Mitarbeiter-Tabelle:
+- Name
+- Avatar/Profilbild
+- E-Mail
+- Entität
+- Abteilung
+- Position
+- Startdatum
+- Status
+- Standort
+- zugewiesene Geräte
+- offene Rückgaben
+- Notizen
+
+Gerätezuweisung:
+- Mitarbeiter auswählen
+- Gerät auswählen
+- Ausgabedatum
+- Rückgabedatum
+- Zustand bei Ausgabe
+- Zustand bei Rückgabe
+- Übergabeprotokoll hochladen
+- digitale Bestätigung dokumentieren
+
+FREIGABEN:
+Freigabeprozesse für:
+- Kaufanfragen
+- Rechnungen
+- Budgetüberschreitungen
+- neue Lieferanten
+- Inventar-Ausmusterung
+- größere Investitionen
+- Strategieentscheidungen
+
+Jede Freigabe muss dokumentieren:
+- Wer hat angefragt?
+- Wer hat geprüft?
+- Wer hat freigegeben?
+- Wann?
+- Warum?
+- Welche Dokumente?
+- Welche Risiken?
+
+PROGNOSEN:
+Prognosen für:
+- Umsatz
+- Kosten
+- Liquidität
+- Personalbedarf
+- Einkauf
+- Inventarbedarf
+- Investitionen
+
+Szenarien:
+- Best Case
+- Realistic Case
+- Worst Case
+
+RISIKO & PRE-MORTEM:
+Pre-Mortem bedeutet:
+Man stellt sich vor, ein Projekt ist in der Zukunft gescheitert und analysiert vorab, warum.
+
+Pre-Mortem Formular:
+- Projekt / Entscheidung
+- Entität
+- Ziel
+- erwarteter Nutzen
+- Annahmen
+- was könnte schiefgehen?
+- wahrscheinlichstes Risiko
+- gefährlichstes Risiko
+- Frühwarnsignale
+- Gegenmaßnahmen
+- Verantwortliche Person
+- Review-Datum
+
+STRATEGIE BEWERTUNG:
+Strategische Entscheidungen sollen gespeichert und später bewertet werden.
+
+Felder:
+- Titel
+- Entität
+- Ziel
+- erwarteter Effekt
+- Budget
+- Risiko
+- Verantwortliche Person
+- Startdatum
+- Review-Datum
+- erwartete Kennzahlen
+- tatsächliche Kennzahlen
+- Bewertung
+- Learnings
+
+REPORTS:
+Berichte:
+- Monatsbericht
+- Quartalsbericht
+- Jahresbericht
+- Entitätsbericht
+- Einkaufsbericht
+- Inventarbericht
+- Risiko-Bericht
+- Strategie-Bericht
+- Freigabe-Bericht
+
+Export:
+- PDF
+- Excel
+- CSV
+
+AI COPILOT:
+Ein AI Copilot soll einfache Fragen beantworten können:
+
+- Warum steigen unsere Kosten?
+- Welche Entität hat das höchste Risiko?
+- Welche Kaufanfragen sind offen?
+- Welche Geräte sind wem zugeordnet?
+- Welche Uploads fehlen?
+- Welche Strategieentscheidung muss überprüft werden?
+- Wo weichen Ist-Zahlen vom Budget ab?
+- Welche Risiken entstehen im nächsten Monat?
+
+Der Copilot soll einfach sprechen und Fachbegriffe erklären.
+
+TECHNIK:
+React + TypeScript + Vite + TailwindCSS + shadcn/ui + lucide-react + Recharts.
+
+Bitte mit Mock-Daten vollständig lauffähig bauen.
+
+Projektstruktur:
+- components
+- pages
+- data
+- types
+- services
+- integrations
+- utils
+- i18n
+- assets
+- mock
+
+Mock-Daten für:
+- MiGu Group Gesamt
+- IMP
+- C&A
+- MKT
+- CPE
+- COSM
+- Finanzkennzahlen
+- Budgetdaten
+- Cashflow
+- Uploads
+- Inventar
+- QR-Codes
+- Mitarbeiter
+- Gerätezuweisungen
+- Kaufanfragen
+- Freigaben
+- Risiken
+- Strategieentscheidungen
+- Forecasts
+- Benutzerprofile
+- Rollen & Rechte
+- Microsoft Forms Antworten
+
+WICHTIG:
+Die App soll einsatzfertig aussehen.
+Keine leeren Seiten.
+Keine kaputten Buttons.
+Keine Platzhalter ohne Funktion.
+Wenn echte Integration noch nicht möglich ist, bitte mit professionellen Mock-Prozessen darstellen.
+
+Ziel:
+Eine professionelle, hochwertige, verständliche und sofort präsentierbare LPO Controlling Center App für die Steuerung und Überwachung der MiGu Group und ihrer Entitäten IMP, C&A, MKT, CPE und COSM.

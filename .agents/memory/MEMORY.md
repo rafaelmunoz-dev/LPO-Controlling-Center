@@ -1,0 +1,1 @@
+- [i18next init](i18next-init.md) — the i18n module must be imported at the app entry (main.tsx) or init() never runs and you get NO_I18NEXT_INSTANCE with raw keys showing.

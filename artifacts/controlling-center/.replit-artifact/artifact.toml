@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "LPO Controlling Center"
+version = "1.0.0"
+id = "artifacts/controlling-center"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18877
+
+[services.development]
+run = "pnpm --filter @workspace/controlling-center run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/controlling-center", "run", "build" ]
+publicDir = "artifacts/controlling-center/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18877"
+BASE_PATH = "/"
