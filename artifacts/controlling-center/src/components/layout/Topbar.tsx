@@ -28,7 +28,6 @@ import lpoLogo from "@assets/image_1780570561463.png";
 
 export function Topbar() {
   const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities } = useAppStore();
-  const selectedMeta = entities.find((e) => e.code === selectedEntity);
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
@@ -70,17 +69,12 @@ export function Topbar() {
 
         <Select value={selectedEntity} onValueChange={(val) => setEntity(val as ViewKey)}>
           <SelectTrigger className="w-[210px] bg-white/60 border-slate-200/80 text-primary font-medium" data-testid="select-entity">
-            <div className="flex items-center gap-2">
-              {selectedEntity === "MiGu Group Gesamt"
-                ? <EntityAvatar isGroup logo={lpoLogo} size={22} />
-                : <EntityAvatar entity={selectedMeta} label={selectedEntity} size={22} />}
-              <SelectValue />
-            </div>
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="MiGu Group Gesamt" textValue={t("all_entities")} data-testid="entity-option-MiGu Group Gesamt">
               <div className="flex items-center gap-2">
-                <EntityAvatar isGroup logo={lpoLogo} size={22} />
+                <EntityAvatar isGroup size={22} />
                 {t("all_entities")}
               </div>
             </SelectItem>

@@ -19,6 +19,7 @@ import Prognosen from "@/pages/Prognosen";
 import Risiko from "@/pages/Risiko";
 import Strategie from "@/pages/Strategie";
 import Entitaeten from "@/pages/Entitaeten";
+import GewinnVerlust from "@/pages/GewinnVerlust";
 import Reports from "@/pages/Reports";
 import Einstellungen from "@/pages/Einstellungen";
 import NotFound from "@/pages/not-found";
@@ -57,6 +58,7 @@ function Router() {
         <Route path="/risiko">{() => <Guarded navKey="risiko" component={Risiko} />}</Route>
         <Route path="/strategie">{() => <Guarded navKey="strategie" component={Strategie} />}</Route>
         <Route path="/entitaeten">{() => <Guarded navKey="entitaeten" component={Entitaeten} />}</Route>
+        <Route path="/gewinn-verlust">{() => <Guarded navKey="gewinnverlust" component={GewinnVerlust} />}</Route>
         <Route path="/reports">{() => <Guarded navKey="reports" component={Reports} />}</Route>
         <Route path="/einstellungen">{() => <Guarded navKey="einstellungen" component={Einstellungen} />}</Route>
         <Route component={NotFound} />

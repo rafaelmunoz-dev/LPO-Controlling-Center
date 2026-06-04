@@ -12,12 +12,12 @@ import {
   TrendingUp,
   ShieldAlert,
   Target,
-  Building2,
+  Coins,
+  Scale,
   FileText,
   Settings,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface NavItem {
   href: string;
@@ -35,7 +35,8 @@ const GROUPS: { group: string; items: NavItem[] }[] = [
     group: "nav_finance",
     items: [
       { href: "/finanzen", key: "finanzen", label: "finanzen", icon: PieChart },
-      { href: "/entitaeten", key: "entitaeten", label: "entitaeten", icon: Building2 },
+      { href: "/entitaeten", key: "entitaeten", label: "umsatz", icon: Coins },
+      { href: "/gewinn-verlust", key: "gewinnverlust", label: "gewinnverlust", icon: Scale },
       { href: "/prognosen", key: "prognosen", label: "prognosen", icon: TrendingUp },
       { href: "/reports", key: "reports", label: "reports", icon: FileText },
     ],
@@ -116,16 +117,6 @@ export function Sidebar() {
           </button>
         </div>
       </nav>
-      <div className="p-4">
-        <Button
-          data-testid="button-open-copilot"
-          className="w-full flex items-center justify-start gap-2 brass-gradient text-white border-none shadow-md hover:opacity-90"
-          onClick={() => setCopilotOpen(true)}
-        >
-          <Sparkles className="h-4 w-4" />
-          {t("ai_analyse")}
-        </Button>
-      </div>
     </aside>
   );
 }

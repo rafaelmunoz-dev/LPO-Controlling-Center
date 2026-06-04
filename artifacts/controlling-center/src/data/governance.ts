@@ -80,6 +80,7 @@ export const NAV_KEYS = [
   "dashboard",
   "finanzen",
   "entitaeten",
+  "gewinnverlust",
   "einkauf",
   "inventar",
   "mitarbeiter",
@@ -94,12 +95,12 @@ export type NavKey = (typeof NAV_KEYS)[number];
 
 export const ROLE_PERMISSIONS: Record<Role, NavKey[]> = {
   Admin: [...NAV_KEYS],
-  Controller: ["dashboard", "finanzen", "entitaeten", "einkauf", "freigaben", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
-  "Finance Analyst": ["dashboard", "finanzen", "entitaeten", "prognosen", "reports", "einstellungen"],
+  Controller: ["dashboard", "finanzen", "entitaeten", "gewinnverlust", "einkauf", "freigaben", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
+  "Finance Analyst": ["dashboard", "finanzen", "entitaeten", "gewinnverlust", "prognosen", "reports", "einstellungen"],
   "Procurement Manager": ["dashboard", "einkauf", "freigaben", "reports", "einstellungen"],
   "Inventory Manager": ["dashboard", "inventar", "mitarbeiter", "freigaben", "reports", "einstellungen"],
-  "Management Viewer": ["dashboard", "finanzen", "entitaeten", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
-  "Entity Manager": ["dashboard", "finanzen", "einkauf", "inventar", "mitarbeiter", "freigaben", "risiko", "reports", "einstellungen"],
+  "Management Viewer": ["dashboard", "finanzen", "entitaeten", "gewinnverlust", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
+  "Entity Manager": ["dashboard", "finanzen", "gewinnverlust", "einkauf", "inventar", "mitarbeiter", "freigaben", "risiko", "reports", "einstellungen"],
 };
 
 export const APPROVER_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
