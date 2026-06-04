@@ -79,6 +79,7 @@ export interface RoleDef {
 export const NAV_KEYS = [
   "dashboard",
   "finanzen",
+  "umsatz",
   "entitaeten",
   "gewinnverlust",
   "einkauf",
@@ -88,6 +89,7 @@ export const NAV_KEYS = [
   "prognosen",
   "risiko",
   "strategie",
+  "audit",
   "reports",
   "einstellungen",
 ] as const;
@@ -95,12 +97,12 @@ export type NavKey = (typeof NAV_KEYS)[number];
 
 export const ROLE_PERMISSIONS: Record<Role, NavKey[]> = {
   Admin: [...NAV_KEYS],
-  Controller: ["dashboard", "finanzen", "entitaeten", "gewinnverlust", "einkauf", "freigaben", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
-  "Finance Analyst": ["dashboard", "finanzen", "entitaeten", "gewinnverlust", "prognosen", "reports", "einstellungen"],
+  Controller: ["dashboard", "finanzen", "umsatz", "entitaeten", "gewinnverlust", "einkauf", "freigaben", "prognosen", "risiko", "strategie", "audit", "reports", "einstellungen"],
+  "Finance Analyst": ["dashboard", "finanzen", "umsatz", "entitaeten", "gewinnverlust", "prognosen", "reports", "einstellungen"],
   "Procurement Manager": ["dashboard", "einkauf", "freigaben", "reports", "einstellungen"],
   "Inventory Manager": ["dashboard", "inventar", "mitarbeiter", "freigaben", "reports", "einstellungen"],
-  "Management Viewer": ["dashboard", "finanzen", "entitaeten", "gewinnverlust", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
-  "Entity Manager": ["dashboard", "finanzen", "gewinnverlust", "einkauf", "inventar", "mitarbeiter", "freigaben", "risiko", "reports", "einstellungen"],
+  "Management Viewer": ["dashboard", "finanzen", "umsatz", "entitaeten", "gewinnverlust", "prognosen", "risiko", "strategie", "audit", "reports", "einstellungen"],
+  "Entity Manager": ["dashboard", "finanzen", "umsatz", "gewinnverlust", "einkauf", "inventar", "mitarbeiter", "freigaben", "risiko", "reports", "einstellungen"],
 };
 
 export const APPROVER_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
@@ -108,6 +110,35 @@ export const CREATE_PR_ROLES: Role[] = ["Admin", "Controller", "Procurement Mana
 export const INVENTORY_EDIT_ROLES: Role[] = ["Admin", "Inventory Manager", "Entity Manager"];
 export const ENTITY_EDIT_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
 export const ENTITY_ADMIN_ROLES: Role[] = ["Admin"];
+
+export type Capability =
+  | "risiko:create" | "risiko:edit" | "risiko:delete"
+  | "lieferant:create" | "lieferant:edit" | "lieferant:delete"
+  | "mitarbeiter:create" | "mitarbeiter:edit" | "mitarbeiter:delete"
+  | "inventar:create" | "inventar:edit" | "inventar:delete"
+  | "strategie:create" | "strategie:edit" | "strategie:delete";
+
+const ALL_CAPS: Capability[] = [
+  "risiko:create", "risiko:edit", "risiko:delete",
+  "lieferant:create", "lieferant:edit", "lieferant:delete",
+  "mitarbeiter:create", "mitarbeiter:edit", "mitarbeiter:delete",
+  "inventar:create", "inventar:edit", "inventar:delete",
+  "strategie:create", "strategie:edit", "strategie:delete",
+];
+
+export const ROLE_CAPABILITIES: Record<Role, Capability[]> = {
+  Admin: [...ALL_CAPS],
+  Controller: ["risiko:create", "risiko:edit", "risiko:delete", "strategie:create", "strategie:edit", "strategie:delete"],
+  "Finance Analyst": [],
+  "Procurement Manager": ["lieferant:create", "lieferant:edit", "lieferant:delete"],
+  "Inventory Manager": ["inventar:create", "inventar:edit", "inventar:delete", "mitarbeiter:create", "mitarbeiter:edit", "mitarbeiter:delete"],
+  "Management Viewer": [],
+  "Entity Manager": ["risiko:create", "risiko:edit", "risiko:delete", "inventar:create", "inventar:edit", "inventar:delete", "mitarbeiter:create", "mitarbeiter:edit", "mitarbeiter:delete", "lieferant:edit"],
+};
+
+export function can(role: Role, cap: Capability): boolean {
+  return ROLE_CAPABILITIES[role]?.includes(cap) ?? false;
+}
 
 export const ROLE_DEFS: RoleDef[] = [
   { role: "Admin", description: "Voller Zugriff auf alle Module und Einstellungen.", permissions: ["Alle Module", "Benutzerverwaltung", "Systemeinstellungen"] },

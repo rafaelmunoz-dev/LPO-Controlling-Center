@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAppStore, USERS, PERIODS } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
-import { Bell, Search, Download, FilePlus2, Globe, ChevronDown, CalendarDays, X } from "lucide-react";
+import { Bell, Search, Download, FilePlus2, Globe, ChevronDown, CalendarDays, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,7 +27,7 @@ import { searchAll, type SearchResult, type ViewKey } from "@/data";
 import lpoLogo from "@assets/image_1780570561463.png";
 
 export function Topbar() {
-  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities } = useAppStore();
+  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities, logout } = useAppStore();
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
@@ -223,6 +223,10 @@ export function Topbar() {
                 </div>
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => logout()} className="text-destructive focus:text-destructive" data-testid="button-logout">
+              <LogOut className="h-4 w-4 mr-2" /> {t("logout")}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

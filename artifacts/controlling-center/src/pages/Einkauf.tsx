@@ -8,28 +8,67 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, StatusBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { scopeByEntity, SUPPLIERS, FORM_RESPONSES, ENTITY_CODES, formatCurrency } from "@/data";
-import type { EntityCode, PurchaseRequest } from "@/data/types";
-import { ShoppingCart, Plus, Star, CheckCircle2, XCircle, FileInput } from "lucide-react";
+import { scopeByEntity, FORM_RESPONSES, ENTITY_CODES, formatCurrency } from "@/data";
+import { can, CREATE_PR_ROLES, APPROVER_ROLES } from "@/data/governance";
+import type { EntityCode, PurchaseRequest, Supplier } from "@/data/types";
+import { ShoppingCart, Plus, Star, CheckCircle2, XCircle, FileInput, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { CREATE_PR_ROLES, APPROVER_ROLES } from "@/data/governance";
 import { useTranslation } from "react-i18next";
+
+type SupplierForm = Omit<Supplier, "id" | "rating"> & { rating: string };
+const emptySupplier = (): SupplierForm => ({ name: "", category: "", country: "", rating: "4.0" });
 
 export default function Einkauf() {
   const { t } = useTranslation();
-  const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser } = useAppStore();
+  const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser, suppliers, addSupplier, updateSupplier, removeSupplier, logAction } = useAppStore();
   const prs = scopeByEntity(purchaseRequests, selectedEntity);
   const forms = scopeByEntity(FORM_RESPONSES, selectedEntity);
   const canCreatePR = CREATE_PR_ROLES.includes(currentUser.role);
   const canApprovePR = APPROVER_ROLES.includes(currentUser.role);
+  const canSupCreate = can(currentUser.role, "lieferant:create");
+  const canSupEdit = can(currentUser.role, "lieferant:edit");
+  const canSupDelete = can(currentUser.role, "lieferant:delete");
   const [open, setOpen] = useState(false);
   const [convertedIds, setConvertedIds] = useState<string[]>([]);
-  const [form, setForm] = useState({ title: "", supplier: SUPPLIERS[0].name, amount: "", category: "IT-Hardware", justification: "", entity: (selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity) as EntityCode });
+  const [form, setForm] = useState({ title: "", supplier: suppliers[0]?.name ?? "", amount: "", category: "IT-Hardware", justification: "", entity: (selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity) as EntityCode });
+
+  const [supOpen, setSupOpen] = useState(false);
+  const [supEditId, setSupEditId] = useState<string | null>(null);
+  const [supDeleteId, setSupDeleteId] = useState<string | null>(null);
+  const [supForm, setSupForm] = useState<SupplierForm>(emptySupplier());
+
+  const openSupCreate = () => { setSupEditId(null); setSupForm(emptySupplier()); setSupOpen(true); };
+  const openSupEdit = (s: Supplier) => { setSupEditId(s.id); setSupForm({ name: s.name, category: s.category, country: s.country, rating: String(s.rating) }); setSupOpen(true); };
+  const saveSupplier = () => {
+    if (supEditId ? !canSupEdit : !canSupCreate) { toast.error(t("no_permission")); return; }
+    if (!supForm.name.trim()) { toast.error(t("name")); return; }
+    const payload = { ...supForm, rating: Number(supForm.rating) || 0 };
+    if (supEditId) {
+      updateSupplier(supEditId, payload);
+      logAction(t("sup_edit"), supForm.name);
+      toast.success(t("sup_edit"));
+    } else {
+      addSupplier({ ...payload, id: `SUP-${Math.floor(Math.random() * 9000 + 1000)}` });
+      logAction(t("sup_create"), supForm.name);
+      toast.success(t("sup_create"));
+    }
+    setSupOpen(false);
+  };
+  const confirmSupDelete = () => {
+    if (!supDeleteId) return;
+    if (!canSupDelete) { toast.error(t("no_permission")); return; }
+    const s = suppliers.find((x) => x.id === supDeleteId);
+    removeSupplier(supDeleteId);
+    logAction(t("common_delete"), s?.name ?? supDeleteId);
+    toast.success(t("common_delete"));
+    setSupDeleteId(null);
+  };
 
   const create = () => {
     if (!canCreatePR) { toast.error(t("no_permission")); return; }
@@ -95,7 +134,7 @@ export default function Einkauf() {
                   <div className="space-y-1.5"><Label>{t("supplier")}</Label>
                     <Select value={form.supplier} onValueChange={(v) => setForm({ ...form, supplier: v })}>
                       <SelectTrigger data-testid="select-supplier"><SelectValue /></SelectTrigger>
-                      <SelectContent>{SUPPLIERS.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                      <SelectContent>{suppliers.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5"><Label>{t("einkauf_amount_eur")}</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} data-testid="input-pr-amount" /></div>
@@ -121,7 +160,7 @@ export default function Einkauf() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{formatCurrency(volume)}</div><div className="text-sm text-muted-foreground mt-1">{t("einkauf_volume")}</div></CardContent></Card>
         <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{open_count}</div><div className="text-sm text-muted-foreground mt-1">{t("einkauf_open_requests")}</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{SUPPLIERS.length}</div><div className="text-sm text-muted-foreground mt-1">{t("einkauf_active_suppliers")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{suppliers.length}</div><div className="text-sm text-muted-foreground mt-1">{t("einkauf_active_suppliers")}</div></CardContent></Card>
       </div>
 
       <AiInsight context="einkauf" />
@@ -174,19 +213,33 @@ export default function Einkauf() {
 
         <TabsContent value="suppliers">
           <Card className="glass-card">
-            <CardHeader><CardTitle>{t("einkauf_tab_suppliers")}</CardTitle></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>{t("einkauf_tab_suppliers")}</CardTitle>
+                {canSupCreate && <Button size="sm" onClick={openSupCreate} data-testid="button-add-supplier"><Plus className="h-4 w-4 mr-1.5" /> {t("sup_create")}</Button>}
+              </div>
+            </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>{t("name")}</TableHead><TableHead>{t("category")}</TableHead><TableHead>{t("common_country")}</TableHead><TableHead>{t("einkauf_rating")}</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>{t("name")}</TableHead><TableHead>{t("category")}</TableHead><TableHead>{t("common_country")}</TableHead><TableHead>{t("einkauf_rating")}</TableHead>{(canSupEdit || canSupDelete) && <TableHead className="text-right">{t("common_action")}</TableHead>}</TableRow></TableHeader>
                 <TableBody>
-                  {SUPPLIERS.map((s) => (
+                  {suppliers.map((s) => (
                     <TableRow key={s.id} data-testid={`row-supplier-${s.id}`}>
                       <TableCell className="font-medium">{s.name}</TableCell>
                       <TableCell>{s.category}</TableCell>
                       <TableCell className="text-muted-foreground">{s.country}</TableCell>
                       <TableCell><span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {s.rating.toFixed(1)}</span></TableCell>
+                      {(canSupEdit || canSupDelete) && (
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end">
+                            {canSupEdit && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openSupEdit(s)} data-testid={`button-edit-supplier-${s.id}`}><Pencil className="h-3.5 w-3.5" /></Button>}
+                            {canSupDelete && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setSupDeleteId(s.id)} data-testid={`button-delete-supplier-${s.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
+                  {suppliers.length === 0 && <TableRow><TableCell colSpan={canSupEdit || canSupDelete ? 5 : 4} className="text-center text-muted-foreground py-8">—</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
@@ -221,6 +274,34 @@ export default function Einkauf() {
           <UploadPanel docTypes={["Einkaufsliste", "Lieferantenliste"]} defaultDocType="Einkaufsliste" />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={supOpen} onOpenChange={setSupOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{supEditId ? t("sup_edit") : t("sup_create")}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5"><Label>{t("name")}</Label><Input value={supForm.name} onChange={(e) => setSupForm({ ...supForm, name: e.target.value })} data-testid="input-supplier-name" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("category")}</Label><Input value={supForm.category} onChange={(e) => setSupForm({ ...supForm, category: e.target.value })} data-testid="input-supplier-category" /></div>
+              <div className="space-y-1.5"><Label>{t("common_country")}</Label><Input value={supForm.country} onChange={(e) => setSupForm({ ...supForm, country: e.target.value })} data-testid="input-supplier-country" /></div>
+            </div>
+            <div className="space-y-1.5"><Label>{t("einkauf_rating")}</Label><Input type="number" step="0.1" min="0" max="5" value={supForm.rating} onChange={(e) => setSupForm({ ...supForm, rating: e.target.value })} data-testid="input-supplier-rating" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSupOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={saveSupplier} data-testid="button-save-supplier">{t("common_save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!supDeleteId} onOpenChange={(o) => !o && setSupDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{t("common_delete_confirm_title")}</AlertDialogTitle><AlertDialogDescription>{t("common_delete_confirm_desc")}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSupDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-supplier">{t("common_delete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,18 +1,24 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Approval,
   AppUser,
+  AuditEntry,
   DeviceAssignment,
+  Employee,
   EntityCode,
   EntityMeta,
+  InventoryItem,
   PurchaseRequest,
   Risk,
+  StrategyDecision,
+  Supplier,
   UploadItem,
   ViewKey,
 } from "@/data/types";
 import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
-import { RISKS } from "@/data/governance";
-import { APPROVALS, DEVICE_ASSIGNMENTS, PURCHASE_REQUESTS, UPLOADS } from "@/data/operations";
+import { RISKS, STRATEGY_DECISIONS } from "@/data/governance";
+import { APPROVALS, DEVICE_ASSIGNMENTS, EMPLOYEES, INVENTORY, PURCHASE_REQUESTS, SUPPLIERS, UPLOADS } from "@/data/operations";
 import { setFormatLocale, ENTITIES } from "@/data";
 import type { CopilotContext } from "@/data/copilot";
 
@@ -127,6 +133,10 @@ interface AppState {
   currentUser: AppUser;
   setCurrentUser: (user: AppUser) => void;
 
+  isAuthenticated: boolean;
+  login: (user: AppUser) => void;
+  logout: () => void;
+
   entities: EntityMeta[];
   addEntity: (meta: EntityMeta) => void;
   updateEntity: (code: EntityCode, patch: Partial<Omit<EntityMeta, "code">>) => void;
@@ -158,8 +168,33 @@ interface AppState {
   deviceAssignments: DeviceAssignment[];
   addDeviceAssignment: (d: DeviceAssignment) => void;
 
+  suppliers: Supplier[];
+  addSupplier: (s: Supplier) => void;
+  updateSupplier: (id: string, patch: Partial<Omit<Supplier, "id">>) => void;
+  removeSupplier: (id: string) => void;
+
+  employees: Employee[];
+  addEmployee: (e: Employee) => void;
+  updateEmployee: (id: string, patch: Partial<Omit<Employee, "id">>) => void;
+  removeEmployee: (id: string) => void;
+
+  inventory: InventoryItem[];
+  addInventoryItem: (i: InventoryItem) => void;
+  updateInventoryItem: (id: string, patch: Partial<Omit<InventoryItem, "id">>) => void;
+  removeInventoryItem: (id: string) => void;
+
+  strategyDecisions: StrategyDecision[];
+  addStrategyDecision: (d: StrategyDecision) => void;
+  updateStrategyDecision: (id: string, patch: Partial<Omit<StrategyDecision, "id">>) => void;
+  removeStrategyDecision: (id: string) => void;
+
   risks: Risk[];
   addRisk: (r: Risk) => void;
+  updateRisk: (id: string, patch: Partial<Omit<Risk, "id">>) => void;
+  removeRisk: (id: string) => void;
+
+  auditLog: AuditEntry[];
+  logAction: (action: string, detail: string) => void;
 
   tasks: AppTask[];
   addTask: (title: string, context: string) => void;
@@ -171,7 +206,11 @@ interface AppState {
 
 setFormatLocale("de");
 
-export const useAppStore = create<AppState>((set, get) => ({
+const nowStamp = () => new Date().toISOString().slice(0, 16).replace("T", " ");
+
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
   selectedEntity: "MiGu Group Gesamt",
   setEntity: (entity) => set({ selectedEntity: entity }),
   period: "Mai 2026",
@@ -183,6 +222,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   currentUser: USERS[0],
   setCurrentUser: (user) => set({ currentUser: user }),
+
+  isAuthenticated: false,
+  login: (user) => {
+    setFormatLocale(user.language);
+    set((s) => ({
+      currentUser: user,
+      isAuthenticated: true,
+      language: user.language,
+      auditLog: [
+        { id: `AL-${Date.now()}`, timestamp: nowStamp(), user: user.name, role: user.role, action: "auth:login", detail: `${user.name} angemeldet (${user.role})` },
+        ...s.auditLog,
+      ],
+    }));
+  },
+  logout: () => {
+    const u = get().currentUser;
+    set((s) => ({
+      isAuthenticated: false,
+      auditLog: [
+        { id: `AL-${Date.now()}`, timestamp: nowStamp(), user: u.name, role: u.role, action: "auth:logout", detail: `${u.name} abgemeldet` },
+        ...s.auditLog,
+      ],
+    }));
+  },
 
   entities: ENTITIES.map((e) => ({ ...e })),
   addEntity: (meta) => set((s) => ({ entities: [...s.entities, meta] })),
@@ -228,8 +291,39 @@ export const useAppStore = create<AppState>((set, get) => ({
   deviceAssignments: DEVICE_ASSIGNMENTS,
   addDeviceAssignment: (d) => set((s) => ({ deviceAssignments: [d, ...s.deviceAssignments] })),
 
-  risks: RISKS,
+  suppliers: SUPPLIERS.map((s) => ({ ...s })),
+  addSupplier: (s) => set((st) => ({ suppliers: [s, ...st.suppliers] })),
+  updateSupplier: (id, patch) => set((st) => ({ suppliers: st.suppliers.map((s) => (s.id === id ? { ...s, ...patch } : s)) })),
+  removeSupplier: (id) => set((st) => ({ suppliers: st.suppliers.filter((s) => s.id !== id) })),
+
+  employees: EMPLOYEES.map((e) => ({ ...e })),
+  addEmployee: (e) => set((st) => ({ employees: [e, ...st.employees] })),
+  updateEmployee: (id, patch) => set((st) => ({ employees: st.employees.map((e) => (e.id === id ? { ...e, ...patch } : e)) })),
+  removeEmployee: (id) => set((st) => ({ employees: st.employees.filter((e) => e.id !== id) })),
+
+  inventory: INVENTORY.map((i) => ({ ...i })),
+  addInventoryItem: (i) => set((st) => ({ inventory: [i, ...st.inventory] })),
+  updateInventoryItem: (id, patch) => set((st) => ({ inventory: st.inventory.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
+  removeInventoryItem: (id) => set((st) => ({ inventory: st.inventory.filter((i) => i.id !== id) })),
+
+  strategyDecisions: STRATEGY_DECISIONS.map((d) => ({ ...d })),
+  addStrategyDecision: (d) => set((st) => ({ strategyDecisions: [d, ...st.strategyDecisions] })),
+  updateStrategyDecision: (id, patch) => set((st) => ({ strategyDecisions: st.strategyDecisions.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
+  removeStrategyDecision: (id) => set((st) => ({ strategyDecisions: st.strategyDecisions.filter((d) => d.id !== id) })),
+
+  risks: RISKS.map((r) => ({ ...r })),
   addRisk: (r) => set((s) => ({ risks: [r, ...s.risks] })),
+  updateRisk: (id, patch) => set((s) => ({ risks: s.risks.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
+  removeRisk: (id) => set((s) => ({ risks: s.risks.filter((r) => r.id !== id) })),
+
+  auditLog: [],
+  logAction: (action, detail) =>
+    set((s) => ({
+      auditLog: [
+        { id: `AL-${Date.now()}`, timestamp: nowStamp(), user: s.currentUser.name, role: s.currentUser.role, action, detail },
+        ...s.auditLog,
+      ].slice(0, 500),
+    })),
 
   tasks: INITIAL_TASKS,
   addTask: (title, context) =>
@@ -243,4 +337,34 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((s) => ({
       reportDrafts: [{ id: `RD-${Date.now()}`, title, type, entity, createdAt: new Date().toISOString().slice(0, 10) }, ...s.reportDrafts],
     })),
-}));
+    }),
+    {
+      name: "lpo-cc-store",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (s) => ({
+        selectedEntity: s.selectedEntity,
+        period: s.period,
+        language: s.language,
+        currentUser: s.currentUser,
+        isAuthenticated: s.isAuthenticated,
+        entities: s.entities,
+        uploads: s.uploads,
+        purchaseRequests: s.purchaseRequests,
+        approvals: s.approvals,
+        deviceAssignments: s.deviceAssignments,
+        suppliers: s.suppliers,
+        employees: s.employees,
+        inventory: s.inventory,
+        strategyDecisions: s.strategyDecisions,
+        risks: s.risks,
+        auditLog: s.auditLog,
+        tasks: s.tasks,
+        reportDrafts: s.reportDrafts,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) setFormatLocale(state.language);
+      },
+    }
+  )
+);

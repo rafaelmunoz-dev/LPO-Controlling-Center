@@ -2,3 +2,4 @@
 - [Controlling Center theming](controlling-center-theming.md) — accent driven by one --brass token (named 'brass', now teal); sweep color literals in spaced/underscore/no-space forms.
 - [Controlling Center entities](controlling-center-entities.md) — entities are mutable store state; every list/compare/search/select consumer must read the store, not static ENTITIES/ENTITY_CODES.
 - [Radix Select avatar gotcha](radix-select-value-rendering.md) — SelectValue re-renders the selected SelectItem's full children; don't also render an icon in the trigger or it doubles.
+- [Controlling Center CRUD gating](controlling-center-crud-gating.md) — capability can() checks must guard BOTH the rendered buttons AND inside save/delete handlers; UI-only gating is a client-side bypass.

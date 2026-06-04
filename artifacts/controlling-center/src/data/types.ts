@@ -339,3 +339,12 @@ export interface ReportDef {
   period: string;
   type: string;
 }
+
+export interface AuditEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  role: Role;
+  action: string;
+  detail: string;
+}

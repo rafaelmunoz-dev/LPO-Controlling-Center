@@ -3,21 +3,24 @@ import { useAppStore } from "@/hooks/use-app-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { scopeByEntity, INVENTORY, formatCurrency, formatNumber } from "@/data";
-import type { InventoryItem } from "@/data/types";
-import { Boxes, QrCode, Search, TrendingDown, ClipboardCheck, CheckCircle2, AlertTriangle, HelpCircle, RotateCcw } from "lucide-react";
+import { scopeByEntity, ENTITY_CODES, formatCurrency, formatNumber } from "@/data";
+import type { InventoryItem, EntityCode, InventoryCategory, InventoryStatus } from "@/data/types";
+import { Boxes, QrCode, Search, TrendingDown, ClipboardCheck, CheckCircle2, AlertTriangle, HelpCircle, RotateCcw, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { INVENTORY_EDIT_ROLES } from "@/data/governance";
+import { INVENTORY_EDIT_ROLES, can } from "@/data/governance";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
@@ -43,15 +46,62 @@ const COUNT_TONE: Record<CountState, string> = {
   fehlt: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
+const CATEGORIES: InventoryCategory[] = ["Laptop", "Monitor", "Handy", "Tablet", "Möbel", "Maschine", "Fahrzeug", "Software-Lizenz", "Sonstiges"];
+const STATUSES: InventoryStatus[] = ["verfügbar", "zugewiesen", "in Reparatur", "verloren", "ausgemustert", "verkauft"];
+
+type InvForm = Omit<InventoryItem, "id" | "purchasePrice" | "currentValue" | "depreciation"> & { purchasePrice: string; currentValue: string };
+const emptyInv = (entity: EntityCode): InvForm => ({
+  inventoryNumber: "", name: "", category: "Laptop", entity, location: "", assignedTo: "", condition: "Neuwertig",
+  purchaseDate: new Date().toISOString().slice(0, 10), warrantyUntil: "", status: "verfügbar", purchasePrice: "", currentValue: "",
+});
+
 export default function Inventar() {
   const { t } = useTranslation();
-  const { selectedEntity, currentUser } = useAppStore();
+  const { selectedEntity, currentUser, inventory, addInventoryItem, updateInventoryItem, removeInventoryItem, logAction } = useAppStore();
   const canEditInv = INVENTORY_EDIT_ROLES.includes(currentUser.role);
-  const all = scopeByEntity(INVENTORY, selectedEntity);
+  const canCreate = can(currentUser.role, "inventar:create");
+  const canEdit = can(currentUser.role, "inventar:edit");
+  const canDelete = can(currentUser.role, "inventar:delete");
+  const all = scopeByEntity(inventory, selectedEntity);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("alle");
   const [selected, setSelected] = useState<string[]>([]);
   const [counts, setCounts] = useState<Record<string, CountState>>({});
+
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [form, setForm] = useState<InvForm>(emptyInv("IMP"));
+
+  const openCreate = () => { setEditId(null); setForm(emptyInv(selectedEntity === "MiGu Group Gesamt" ? "IMP" : (selectedEntity as EntityCode))); setOpen(true); };
+  const openEdit = (i: InventoryItem) => { setEditId(i.id); setForm({ ...i, purchasePrice: String(i.purchasePrice), currentValue: String(i.currentValue) }); setOpen(true); };
+  const save = () => {
+    if (editId ? !canEdit : !canCreate) { toast.error(t("no_permission")); return; }
+    if (!form.name.trim() || !form.inventoryNumber.trim()) { toast.error(t("common_inv_no")); return; }
+    const pp = Number(form.purchasePrice) || 0;
+    const cv = Number(form.currentValue) || 0;
+    const depreciation = pp > 0 ? Math.round(((pp - cv) / pp) * 100) : 0;
+    const payload = { ...form, purchasePrice: pp, currentValue: cv, depreciation };
+    if (editId) {
+      updateInventoryItem(editId, payload);
+      logAction(t("inv_edit"), `${form.name} (${form.inventoryNumber})`);
+      toast.success(t("inv_edit"));
+    } else {
+      addInventoryItem({ ...payload, id: `INV-${Math.floor(Math.random() * 9000 + 1000)}` });
+      logAction(t("inv_create"), `${form.name} (${form.inventoryNumber})`);
+      toast.success(t("inv_create"));
+    }
+    setOpen(false);
+  };
+  const confirmDelete = () => {
+    if (!deleteId) return;
+    if (!canDelete) { toast.error(t("no_permission")); return; }
+    const i = inventory.find((x) => x.id === deleteId);
+    removeInventoryItem(deleteId);
+    logAction(t("common_delete"), i?.name ?? deleteId);
+    toast.success(t("common_delete"));
+    setDeleteId(null);
+  };
 
   const list = all.filter((i) => {
     const matchSearch = `${i.name} ${i.inventoryNumber} ${i.assignedTo}`.toLowerCase().includes(search.toLowerCase());
@@ -67,7 +117,7 @@ export default function Inventar() {
 
   const generateLabels = async () => {
     if (!canEditInv) { toast.error(t("no_permission")); return; }
-    const items = INVENTORY.filter((i) => selected.includes(i.id));
+    const items = inventory.filter((i) => selected.includes(i.id));
     if (items.length === 0) { toast.error("Bitte mindestens ein Gerät auswählen."); return; }
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const labelW = 90, labelH = 50, marginX = 12, marginY = 14, gapY = 6;
@@ -116,7 +166,12 @@ export default function Inventar() {
         title={t("inventar")}
         subtitle={t("inv_subtitle")}
         icon={<Boxes className="h-5 w-5" />}
-        actions={<Button onClick={generateLabels} disabled={!canEditInv || selected.length === 0} data-testid="button-labels"><QrCode className="h-4 w-4 mr-1.5" /> {t("labels")} ({selected.length})</Button>}
+        actions={
+          <div className="flex gap-2">
+            {canCreate && <Button variant="outline" onClick={openCreate} data-testid="button-add-inventory"><Plus className="h-4 w-4 mr-1.5" /> {t("inv_create")}</Button>}
+            <Button onClick={generateLabels} disabled={!canEditInv || selected.length === 0} data-testid="button-labels"><QrCode className="h-4 w-4 mr-1.5" /> {t("labels")} ({selected.length})</Button>
+          </div>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-4">
@@ -177,7 +232,7 @@ export default function Inventar() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8"></TableHead><TableHead>{t("common_inv_no")}</TableHead><TableHead>{t("common_device")}</TableHead><TableHead>{t("category")}</TableHead>
-                    <TableHead>{t("entity")}</TableHead><TableHead>{t("inv_assigned")}</TableHead><TableHead className="text-right">{t("value")}</TableHead><TableHead>{t("inv_depreciation_short")}</TableHead><TableHead>{t("status")}</TableHead>
+                    <TableHead>{t("entity")}</TableHead><TableHead>{t("inv_assigned")}</TableHead><TableHead className="text-right">{t("value")}</TableHead><TableHead>{t("inv_depreciation_short")}</TableHead><TableHead>{t("status")}</TableHead>{(canEdit || canDelete) && <TableHead className="text-right">{t("common_action")}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -192,9 +247,17 @@ export default function Inventar() {
                       <TableCell className="text-right">{formatCurrency(i.currentValue)}</TableCell>
                       <TableCell className="text-muted-foreground">{i.depreciation}%</TableCell>
                       <TableCell><Badge variant="outline" className={STATUS_TONE[i.status] ?? ""}>{i.status}</Badge></TableCell>
+                      {(canEdit || canDelete) && (
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end">
+                            {canEdit && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(i)} data-testid={`button-edit-inventory-${i.id}`}><Pencil className="h-3.5 w-3.5" /></Button>}
+                            {canDelete && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(i.id)} data-testid={`button-delete-inventory-${i.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
-                  {list.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">{t("inv_empty_devices")}</TableCell></TableRow>}
+                  {list.length === 0 && <TableRow><TableCell colSpan={canEdit || canDelete ? 10 : 9} className="text-center text-muted-foreground py-8">{t("inv_empty_devices")}</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
@@ -258,6 +321,63 @@ export default function Inventar() {
           <UploadPanel docTypes={["Inventurliste"]} defaultDocType="Inventurliste" />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editId ? t("inv_edit") : t("inv_create")}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("common_inv_no")}</Label><Input value={form.inventoryNumber} onChange={(e) => setForm({ ...form, inventoryNumber: e.target.value })} data-testid="input-inventory-number" /></div>
+              <div className="space-y-1.5"><Label>{t("common_device")}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-inventory-name" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("category")}</Label>
+                <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v as InventoryCategory })}>
+                  <SelectTrigger data-testid="select-inventory-category"><SelectValue /></SelectTrigger>
+                  <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label>{t("entity")}</Label>
+                <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode })}>
+                  <SelectTrigger data-testid="select-inventory-entity"><SelectValue /></SelectTrigger>
+                  <SelectContent>{ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("mit_location")}</Label><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>{t("inv_assigned")}</Label><Input value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("inv_purchase_price")}</Label><Input type="number" value={form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })} data-testid="input-inventory-purchase" /></div>
+              <div className="space-y-1.5"><Label>{t("inv_current_value")}</Label><Input type="number" value={form.currentValue} onChange={(e) => setForm({ ...form, currentValue: e.target.value })} data-testid="input-inventory-value" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("condition")}</Label><Input value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>{t("status")}</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as InventoryStatus })}>
+                  <SelectTrigger data-testid="select-inventory-status"><SelectValue /></SelectTrigger>
+                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={save} data-testid="button-save-inventory">{t("common_save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{t("common_delete_confirm_title")}</AlertDialogTitle><AlertDialogDescription>{t("common_delete_confirm_desc")}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-inventory">{t("common_delete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

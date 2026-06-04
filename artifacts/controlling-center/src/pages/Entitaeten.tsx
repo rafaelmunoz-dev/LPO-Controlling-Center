@@ -5,19 +5,14 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, RiskBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
-import { getEntityComparison, getFinance, formatCompact, formatCurrency } from "@/data";
+import { getEntityComparison, getFinance, formatCompact } from "@/data";
 import { Building2, MapPin, Users, ArrowRight, CheckCircle2 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from "recharts";
-
-const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(190 80% 42%)";
 
 export default function Entitaeten() {
   const { t } = useTranslation();
   const { setEntity, selectedEntity, entities } = useAppStore();
   const comparison = getEntityComparison(entities);
   const group = getFinance("MiGu Group Gesamt");
-  const chartData = comparison.map((c) => ({ name: c.code, Umsatz: c.revenue, EBITDA: c.ebitda }));
 
   return (
     <div className="space-y-6">
@@ -30,25 +25,6 @@ export default function Entitaeten() {
       </div>
 
       <AiInsight context="entitaeten" />
-
-      <Card className="glass-card">
-        <CardHeader><CardTitle>{t("ent_revenue_ebitda")}</CardTitle></CardHeader>
-        <CardContent className="pl-0">
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} />
-                <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => formatCompact(v)} width={60} />
-                <RTooltip formatter={(v: number) => formatCurrency(v)} />
-                <Legend />
-                <Bar dataKey="Umsatz" fill={NAVY} radius={[6, 6, 0, 0]} />
-                <Bar dataKey="EBITDA" fill={BRASS} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {entities.map((e) => {

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, Link, Router as WouterRouter } from "wouter";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,8 +10,10 @@ import { ShieldAlert } from "lucide-react";
 import { useAppStore } from "@/hooks/use-app-context";
 import type { NavKey } from "@/data/governance";
 import { AppLayout } from "@/components/layout/AppLayout";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Finanzen from "@/pages/Finanzen";
+import Umsatz from "@/pages/Umsatz";
 import Einkauf from "@/pages/Einkauf";
 import Inventar from "@/pages/Inventar";
 import Mitarbeiter from "@/pages/Mitarbeiter";
@@ -20,6 +23,7 @@ import Risiko from "@/pages/Risiko";
 import Strategie from "@/pages/Strategie";
 import Entitaeten from "@/pages/Entitaeten";
 import GewinnVerlust from "@/pages/GewinnVerlust";
+import AuditLog from "@/pages/AuditLog";
 import Reports from "@/pages/Reports";
 import Einstellungen from "@/pages/Einstellungen";
 import NotFound from "@/pages/not-found";
@@ -50,6 +54,7 @@ function Router() {
       <Switch>
         <Route path="/">{() => <Guarded navKey="dashboard" component={Dashboard} />}</Route>
         <Route path="/finanzen">{() => <Guarded navKey="finanzen" component={Finanzen} />}</Route>
+        <Route path="/umsatz">{() => <Guarded navKey="umsatz" component={Umsatz} />}</Route>
         <Route path="/einkauf">{() => <Guarded navKey="einkauf" component={Einkauf} />}</Route>
         <Route path="/inventar">{() => <Guarded navKey="inventar" component={Inventar} />}</Route>
         <Route path="/mitarbeiter">{() => <Guarded navKey="mitarbeiter" component={Mitarbeiter} />}</Route>
@@ -59,6 +64,7 @@ function Router() {
         <Route path="/strategie">{() => <Guarded navKey="strategie" component={Strategie} />}</Route>
         <Route path="/entitaeten">{() => <Guarded navKey="entitaeten" component={Entitaeten} />}</Route>
         <Route path="/gewinn-verlust">{() => <Guarded navKey="gewinnverlust" component={GewinnVerlust} />}</Route>
+        <Route path="/audit">{() => <Guarded navKey="audit" component={AuditLog} />}</Route>
         <Route path="/reports">{() => <Guarded navKey="reports" component={Reports} />}</Route>
         <Route path="/einstellungen">{() => <Guarded navKey="einstellungen" component={Einstellungen} />}</Route>
         <Route component={NotFound} />
@@ -67,12 +73,25 @@ function Router() {
   );
 }
 
+function Root() {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const language = useAppStore((s) => s.language);
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    if (i18n.language !== language) i18n.changeLanguage(language);
+  }, [language, i18n]);
+
+  if (!isAuthenticated) return <Login />;
+  return <Router />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <Root />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

@@ -1,11 +1,22 @@
+import { useState } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { scopeByEntity, STRATEGY_DECISIONS, formatCurrency } from "@/data";
-import { Target, CheckCircle2, TrendingUp, AlertTriangle, Circle } from "lucide-react";
+import { scopeByEntity, ENTITY_CODES, formatCurrency } from "@/data";
+import { can } from "@/data/governance";
+import type { EntityCode, StrategyDecision } from "@/data/types";
+import { Target, CheckCircle2, TrendingUp, AlertTriangle, Circle, Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 const EVAL: Record<string, { tone: string; icon: React.ReactNode }> = {
@@ -15,14 +26,75 @@ const EVAL: Record<string, { tone: string; icon: React.ReactNode }> = {
   "Offen": { tone: "bg-slate-500/10 text-slate-600 border-slate-500/20", icon: <Circle className="h-3.5 w-3.5" /> },
 };
 
+const RISK_LEVELS = ["Niedrig", "Mittel", "Hoch"] as const;
+const EVALS = ["Offen", "Übertroffen", "Erfüllt", "Verfehlt"] as const;
+
+type FormState = Omit<StrategyDecision, "id" | "budget"> & { budget: string };
+
+const emptyForm = (entity: EntityCode): FormState => ({
+  title: "", entity, goal: "", expectedEffect: "", budget: "", risk: "Mittel", owner: "",
+  startDate: new Date().toISOString().slice(0, 10), reviewDate: "", expectedKpi: "", actualKpi: "", evaluation: "Offen", learnings: "",
+});
+
 export default function Strategie() {
   const { t } = useTranslation();
-  const { selectedEntity } = useAppStore();
-  const decisions = scopeByEntity(STRATEGY_DECISIONS, selectedEntity);
+  const { selectedEntity, strategyDecisions, currentUser, addStrategyDecision, updateStrategyDecision, removeStrategyDecision, logAction } = useAppStore();
+  const decisions = scopeByEntity(strategyDecisions, selectedEntity);
+  const canCreate = can(currentUser.role, "strategie:create");
+  const canEdit = can(currentUser.role, "strategie:edit");
+  const canDelete = can(currentUser.role, "strategie:delete");
+
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm(selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity));
+
+  const openCreate = () => {
+    setEditId(null);
+    setForm(emptyForm(selectedEntity === "MiGu Group Gesamt" ? "IMP" : (selectedEntity as EntityCode)));
+    setOpen(true);
+  };
+  const openEdit = (d: StrategyDecision) => {
+    setEditId(d.id);
+    setForm({ ...d, budget: String(d.budget) });
+    setOpen(true);
+  };
+
+  const save = () => {
+    if (editId ? !canEdit : !canCreate) { toast.error(t("no_permission")); return; }
+    if (!form.title.trim()) { toast.error(t("common_title")); return; }
+    const payload = { ...form, budget: Number(form.budget) || 0 };
+    if (editId) {
+      updateStrategyDecision(editId, payload);
+      logAction(t("strat_edit"), `${form.title} (${form.entity})`);
+      toast.success(t("strat_edit"));
+    } else {
+      const d: StrategyDecision = { ...payload, id: `SD-${Math.floor(Math.random() * 9000 + 1000)}` };
+      addStrategyDecision(d);
+      logAction(t("strat_create"), `${form.title} (${form.entity})`);
+      toast.success(t("strat_create"));
+    }
+    setOpen(false);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteId) return;
+    if (!canDelete) { toast.error(t("no_permission")); return; }
+    const d = strategyDecisions.find((x) => x.id === deleteId);
+    removeStrategyDecision(deleteId);
+    logAction(t("common_delete"), `${d?.title ?? deleteId}`);
+    toast.success(t("common_delete"));
+    setDeleteId(null);
+  };
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("strat_title")} subtitle={t("strat_subtitle")} icon={<Target className="h-5 w-5" />} />
+      <PageHeader
+        title={t("strat_title")}
+        subtitle={t("strat_subtitle")}
+        icon={<Target className="h-5 w-5" />}
+        actions={canCreate ? <Button onClick={openCreate} data-testid="button-add-strategy"><Plus className="h-4 w-4 mr-1.5" /> {t("strat_create")}</Button> : undefined}
+      />
 
       <AiInsight context="strategie" />
 
@@ -41,7 +113,11 @@ export default function Strategie() {
                   <CardTitle className="text-base">{d.title}</CardTitle>
                   <p className="text-sm text-muted-foreground mt-0.5">{d.goal}</p>
                 </div>
-                <Badge variant="outline" className={`gap-1 ${EVAL[d.evaluation].tone}`}>{EVAL[d.evaluation].icon} {d.evaluation}</Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className={`gap-1 ${EVAL[d.evaluation].tone}`}>{EVAL[d.evaluation].icon} {d.evaluation}</Badge>
+                  {canEdit && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(d)} data-testid={`button-edit-strategy-${d.id}`}><Pencil className="h-3.5 w-3.5" /></Button>}
+                  {canDelete && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(d.id)} data-testid={`button-delete-strategy-${d.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -78,6 +154,66 @@ export default function Strategie() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editId ? t("strat_edit") : t("strat_create")}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5"><Label>{t("strat_decision")}</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} data-testid="input-strategy-title" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("entity")}</Label>
+                <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode })}>
+                  <SelectTrigger data-testid="select-strategy-entity"><SelectValue /></SelectTrigger>
+                  <SelectContent>{ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label>{t("budget")}</Label><Input type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} data-testid="input-strategy-budget" /></div>
+            </div>
+            <div className="space-y-1.5"><Label>{t("risk_goal")}</Label><Textarea value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>{t("strat_expected_effect")}</Label><Input value={form.expectedEffect} onChange={(e) => setForm({ ...form, expectedEffect: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("strat_expected_kpi")}</Label><Input value={form.expectedKpi} onChange={(e) => setForm({ ...form, expectedKpi: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>{t("strat_actual_kpi")}</Label><Input value={form.actualKpi} onChange={(e) => setForm({ ...form, actualKpi: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("owner")}</Label><Input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>{t("strat_start")}</Label><Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("strat_review")}</Label><Input type="date" value={form.reviewDate} onChange={(e) => setForm({ ...form, reviewDate: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>{t("risk_impact")}</Label>
+                <Select value={form.risk} onValueChange={(v) => setForm({ ...form, risk: v as typeof RISK_LEVELS[number] })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{RISK_LEVELS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>{t("strat_evaluation")}</Label>
+                <Select value={form.evaluation} onValueChange={(v) => setForm({ ...form, evaluation: v as typeof EVALS[number] })}>
+                  <SelectTrigger data-testid="select-strategy-eval"><SelectValue /></SelectTrigger>
+                  <SelectContent>{EVALS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5"><Label>{t("strat_learnings")}</Label><Textarea value={form.learnings} onChange={(e) => setForm({ ...form, learnings: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={save} data-testid="button-save-strategy">{t("common_save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{t("common_delete_confirm_title")}</AlertDialogTitle><AlertDialogDescription>{t("common_delete_confirm_desc")}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-strategy">{t("common_delete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
