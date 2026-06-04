@@ -37,7 +37,7 @@ import {
 } from "recharts";
 
 const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(40 48% 56%)";
+const BRASS = "hsl(190 80% 42%)";
 const RED = "hsl(0 84% 60%)";
 const GREY = "hsl(215 16% 47%)";
 const PIE_COLORS = [NAVY, BRASS, GREY, RED, "hsl(216 40% 40%)"];

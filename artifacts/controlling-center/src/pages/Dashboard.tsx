@@ -41,7 +41,7 @@ import {
 } from "recharts";
 
 const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(40 48% 56%)";
+const BRASS = "hsl(190 80% 42%)";
 const GREY = "hsl(215 16% 47%)";
 const RED = "hsl(0 84% 60%)";
 
@@ -86,7 +86,12 @@ function Kpi({
         <CardTitle className="text-sm font-medium text-muted-foreground">
           <Term k={glossary}>{title}</Term>
         </CardTitle>
-        <span className="text-muted-foreground/60" style={{ color }}>{icon}</span>
+        <span
+          className="flex h-9 w-9 items-center justify-center rounded-full"
+          style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }}
+        >
+          {icon}
+        </span>
       </CardHeader>
       <CardContent>
         <div className={`text-2xl font-bold ${valueClass ?? ""}`} data-testid={`value-${glossary}`}>{value}</div>

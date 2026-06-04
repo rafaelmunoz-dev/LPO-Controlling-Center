@@ -443,7 +443,10 @@ export default function Einstellungen() {
                 <Label>{t("set_accent_color")}</Label>
                 <div className="flex gap-2">
                   <div className="h-9 w-9 rounded-lg ring-2 ring-offset-2 ring-primary" style={{ background: "hsl(216 65% 11%)" }} title="Navy" />
-                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(40 48% 56%)" }} title="Brass" />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(190 80% 42%)" }} title="Teal" />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(217 80% 58%)" }} title="Blau" />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(38 92% 52%)" }} title="Orange" />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(160 70% 42%)" }} title="Grün" />
                 </div>
                 <p className="text-xs text-muted-foreground">{t("set_accent_desc")}</p>
               </div>

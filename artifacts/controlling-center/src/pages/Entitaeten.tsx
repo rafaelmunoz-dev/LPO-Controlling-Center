@@ -9,7 +9,7 @@ import { Building2, MapPin, Users, ArrowRight, CheckCircle2 } from "lucide-react
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from "recharts";
 
 const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(40 48% 56%)";
+const BRASS = "hsl(190 80% 42%)";
 
 export default function Entitaeten() {
   const { t } = useTranslation();
@@ -54,14 +54,14 @@ export default function Entitaeten() {
           const c = comparison.find((x) => x.code === e.code)!;
           const active = selectedEntity === e.code;
           return (
-            <Card key={e.code} className={`glass-card flex flex-col transition-shadow ${active ? "ring-2 ring-[hsl(40_48%_56%)] shadow-lg" : ""}`} data-testid={`card-entity-${e.code}`}>
+            <Card key={e.code} className={`glass-card flex flex-col transition-shadow ${active ? "ring-2 ring-brass shadow-lg" : ""}`} data-testid={`card-entity-${e.code}`}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <div className="rounded-lg bg-primary/10 text-primary font-bold px-2.5 py-1 text-sm">{e.code}</div>
                     <RiskBadge level={c.riskLevel} />
                   </div>
-                  {active && <span className="inline-flex items-center gap-1 text-xs font-medium text-[hsl(40_48%_46%)]"><CheckCircle2 className="h-3.5 w-3.5" /> {t("ent_active_view")}</span>}
+                  {active && <span className="inline-flex items-center gap-1 text-xs font-medium text-brass"><CheckCircle2 className="h-3.5 w-3.5" /> {t("ent_active_view")}</span>}
                 </div>
                 <CardTitle className="text-base mt-2">{e.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">{e.description}</p>

@@ -12,7 +12,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Resp
 import { useTranslation } from "react-i18next";
 
 const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(40 48% 56%)";
+const BRASS = "hsl(190 80% 42%)";
 const RED = "hsl(0 84% 60%)";
 
 export default function Prognosen() {

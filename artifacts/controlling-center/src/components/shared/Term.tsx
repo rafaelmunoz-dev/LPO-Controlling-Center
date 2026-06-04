@@ -10,7 +10,6 @@ export function Term({ k, children }: { k: GlossaryKey; children?: React.ReactNo
       <TooltipTrigger asChild>
         <span
           className="cursor-help underline decoration-dotted decoration-brass/70 underline-offset-4"
-          style={{ textDecorationColor: "rgba(199,161,90,0.7)" }}
           data-testid={`term-${k}`}
         >
           {children ?? entry.term}
