@@ -1,6 +1,7 @@
 import { INVENTORY, PURCHASE_REQUESTS, SUPPLIERS, EMPLOYEES } from "./operations";
 import { RISKS, STRATEGY_DECISIONS, REPORTS } from "./governance";
 import { ENTITIES } from "./finance";
+import type { EntityMeta } from "./types";
 
 export type SearchResultType = "Modul" | "Inventar" | "Einkauf" | "Lieferant" | "Mitarbeiter" | "Risiko" | "Strategie" | "Entität" | "Report";
 
@@ -32,7 +33,7 @@ export const SEARCH_MODULES: ModuleEntry[] = [
   { labelKey: "einstellungen", href: "/einstellungen", keywords: "einstellungen settings benutzer rollen microsoft sprache design sicherheit" },
 ];
 
-export function searchAll(query: string, tModule: (k: string) => string): SearchResult[] {
+export function searchAll(query: string, tModule: (k: string) => string, entities: EntityMeta[] = ENTITIES): SearchResult[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const out: SearchResult[] = [];
@@ -67,7 +68,7 @@ export function searchAll(query: string, tModule: (k: string) => string): Search
     if (`${s.title} ${s.goal}`.toLowerCase().includes(q))
       out.push({ type: "Strategie", label: s.title, sub: s.entity, href: "/strategie" });
   }
-  for (const e of ENTITIES) {
+  for (const e of entities) {
     if (`${e.code} ${e.name} ${e.location}`.toLowerCase().includes(q))
       out.push({ type: "Entität", label: `${e.code} – ${e.name}`, sub: e.location, href: "/entitaeten" });
   }

@@ -17,11 +17,11 @@ import type {
 export const ENTITY_CODES: EntityCode[] = ["IMP", "C&A", "MKT", "CPE", "COSM"];
 
 export const ENTITIES: EntityMeta[] = [
-  { code: "IMP", name: "MiGu Import GmbH", description: "Import & Handel von Industriegütern", location: "Hamburg", employees: 84 },
-  { code: "C&A", name: "MiGu Construction & Assembly", description: "Bau, Montage & technische Dienstleistungen", location: "Dortmund", employees: 142 },
-  { code: "MKT", name: "MiGu Marketing AG", description: "Marketing, Werbung & Kreativdienste", location: "Berlin", employees: 46 },
-  { code: "CPE", name: "MiGu Capital Equipment", description: "Maschinen, Anlagen & Vermietung", location: "München", employees: 67 },
-  { code: "COSM", name: "MiGu Cosmetics GmbH", description: "Kosmetik & Konsumgüter", location: "Düsseldorf", employees: 53 },
+  { code: "IMP", name: "MiGu Import GmbH", description: "Import & Handel von Industriegütern", location: "Hamburg", employees: 84, color: "#3b82f6" },
+  { code: "C&A", name: "MiGu Construction & Assembly", description: "Bau, Montage & technische Dienstleistungen", location: "Dortmund", employees: 142, color: "#f59e0b" },
+  { code: "MKT", name: "MiGu Marketing AG", description: "Marketing, Werbung & Kreativdienste", location: "Berlin", employees: 46, color: "#8b5cf6" },
+  { code: "CPE", name: "MiGu Capital Equipment", description: "Maschinen, Anlagen & Vermietung", location: "München", employees: 67, color: "#10b981" },
+  { code: "COSM", name: "MiGu Cosmetics GmbH", description: "Kosmetik & Konsumgüter", location: "Düsseldorf", employees: 53, color: "#f43f5e" },
 ];
 
 interface EntityProfile {
@@ -107,9 +107,45 @@ function groupProfile(): EntityProfile {
   };
 }
 
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+// Deterministic placeholder financials for entities created at runtime that
+// have no curated profile, so dashboards stay populated instead of crashing.
+function fallbackProfile(code: string): EntityProfile {
+  const h = hashString(code || "new");
+  const pick = (min: number, max: number, salt: number) => {
+    const v = ((h >> (salt % 24)) & 0xff) / 255;
+    return min + v * (max - min);
+  };
+  const revenue = Math.round(pick(4, 18, 1)) * 1_000_000;
+  return {
+    revenue,
+    ebitdaMargin: pick(0.08, 0.18, 3),
+    netMargin: pick(0.04, 0.1, 5),
+    cash: Math.round(pick(1, 4, 7) * 1_000_000),
+    cashRunway: pick(8, 16, 9),
+    openInvoices: Math.round(revenue * pick(0.04, 0.09, 11)),
+    openInvoicesCount: Math.round(pick(10, 40, 13)),
+    riskLevel: "Niedrig",
+    revenueChange: pick(-2, 12, 15),
+    ebitdaChange: pick(-3, 10, 17),
+    marginChange: pick(-1, 1.5, 19),
+    netChange: pick(-3, 9, 21),
+    cashChange: pick(-2, 7, 23),
+  };
+}
+
+function profileFor(code: ViewKey): EntityProfile {
+  return PROFILES[code] ?? fallbackProfile(code);
+}
+
 export function getFinance(view: ViewKey): EntityFinance {
   if (view === "MiGu Group Gesamt") return profileToFinance(view, groupProfile());
-  return profileToFinance(view, PROFILES[view]);
+  return profileToFinance(view, profileFor(view));
 }
 
 export interface EntityComparisonRow {
@@ -124,9 +160,9 @@ export interface EntityComparisonRow {
   trend: number;
 }
 
-export function getEntityComparison(): EntityComparisonRow[] {
-  return ENTITIES.map((e) => {
-    const p = PROFILES[e.code];
+export function getEntityComparison(entities: EntityMeta[] = ENTITIES): EntityComparisonRow[] {
+  return entities.map((e) => {
+    const p = profileFor(e.code);
     const f = profileToFinance(e.code, p);
     return {
       code: e.code,

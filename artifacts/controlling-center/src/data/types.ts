@@ -1,4 +1,4 @@
-export type EntityCode = "IMP" | "C&A" | "MKT" | "CPE" | "COSM";
+export type EntityCode = "IMP" | "C&A" | "MKT" | "CPE" | "COSM" | (string & {});
 export type ViewKey = "MiGu Group Gesamt" | EntityCode;
 
 export type RiskLevel = "Niedrig" | "Mittel" | "Hoch";
@@ -10,6 +10,8 @@ export interface EntityMeta {
   description: string;
   location: string;
   employees: number;
+  color: string;
+  logo?: string;
 }
 
 export interface MonthPoint {

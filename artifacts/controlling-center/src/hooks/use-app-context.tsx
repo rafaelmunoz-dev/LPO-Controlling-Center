@@ -3,6 +3,8 @@ import type {
   Approval,
   AppUser,
   DeviceAssignment,
+  EntityCode,
+  EntityMeta,
   PurchaseRequest,
   Risk,
   UploadItem,
@@ -11,7 +13,7 @@ import type {
 import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
 import { RISKS } from "@/data/governance";
 import { APPROVALS, DEVICE_ASSIGNMENTS, PURCHASE_REQUESTS, UPLOADS } from "@/data/operations";
-import { setFormatLocale } from "@/data";
+import { setFormatLocale, ENTITIES } from "@/data";
 import type { CopilotContext } from "@/data/copilot";
 
 type Language = "de" | "en" | "es";
@@ -96,6 +98,18 @@ export const USERS: AppUser[] = [
     lastActivity: "2026-05-29 14:05",
     tasks: ["Strategie Österreich freigeben", "Quartalsbericht sichten"],
   },
+  {
+    id: "6",
+    name: "Thomas Berger",
+    role: "Admin",
+    organisation: "LPO Group",
+    email: "t.berger@lpo-group.com",
+    language: "de",
+    avatar: "/avatars/thomas.png",
+    entityAccess: ["MiGu Group Gesamt", "IMP", "C&A", "MKT", "CPE", "COSM"],
+    lastActivity: "2026-05-30 09:40",
+    tasks: ["Benutzerrechte prüfen", "Neue Entität anlegen"],
+  },
 ];
 
 const INITIAL_TASKS: AppTask[] = [
@@ -112,6 +126,12 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   currentUser: AppUser;
   setCurrentUser: (user: AppUser) => void;
+
+  entities: EntityMeta[];
+  addEntity: (meta: EntityMeta) => void;
+  updateEntity: (code: EntityCode, patch: Partial<Omit<EntityMeta, "code">>) => void;
+  removeEntity: (code: EntityCode) => void;
+  setEntityLogo: (code: EntityCode, logo: string | null) => void;
 
   copilotOpen: boolean;
   setCopilotOpen: (open: boolean) => void;
@@ -163,6 +183,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   currentUser: USERS[0],
   setCurrentUser: (user) => set({ currentUser: user }),
+
+  entities: ENTITIES.map((e) => ({ ...e })),
+  addEntity: (meta) => set((s) => ({ entities: [...s.entities, meta] })),
+  updateEntity: (code, patch) =>
+    set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, ...patch } : e)) })),
+  removeEntity: (code) =>
+    set((s) => ({
+      entities: s.entities.filter((e) => e.code !== code),
+      selectedEntity: s.selectedEntity === code ? "MiGu Group Gesamt" : s.selectedEntity,
+    })),
+  setEntityLogo: (code, logo) =>
+    set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, logo: logo ?? undefined } : e)) })),
 
   copilotOpen: false,
   setCopilotOpen: (open) => set({ copilotOpen: open }),

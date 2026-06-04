@@ -73,7 +73,7 @@ function StatCard({ glossary, label, value, sub }: { glossary: GlossaryKey; labe
 }
 
 export default function Finanzen() {
-  const { selectedEntity } = useAppStore();
+  const { selectedEntity, entities } = useAppStore();
   const { t } = useTranslation();
   const { currency, compact, number } = useFormat();
   const pl = getProfitLoss(selectedEntity);
@@ -81,7 +81,7 @@ export default function Finanzen() {
   const bs = getBalanceSheet(selectedEntity);
   const cf = getCashflow(selectedEntity);
   const budget = getBudget(selectedEntity);
-  const comparison = getEntityComparison();
+  const comparison = getEntityComparison(entities);
   const group = getFinance("MiGu Group Gesamt");
 
   return (

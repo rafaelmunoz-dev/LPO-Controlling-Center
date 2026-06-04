@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, RiskBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { ENTITIES, getEntityComparison, getFinance, formatCompact, formatCurrency } from "@/data";
+import { EntityAvatar } from "@/components/shared/EntityAvatar";
+import { getEntityComparison, getFinance, formatCompact, formatCurrency } from "@/data";
 import { Building2, MapPin, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from "recharts";
 
@@ -13,8 +14,8 @@ const BRASS = "hsl(190 80% 42%)";
 
 export default function Entitaeten() {
   const { t } = useTranslation();
-  const { setEntity, selectedEntity } = useAppStore();
-  const comparison = getEntityComparison();
+  const { setEntity, selectedEntity, entities } = useAppStore();
+  const comparison = getEntityComparison(entities);
   const group = getFinance("MiGu Group Gesamt");
   const chartData = comparison.map((c) => ({ name: c.code, Umsatz: c.revenue, EBITDA: c.ebitda }));
 
@@ -23,9 +24,9 @@ export default function Entitaeten() {
       <PageHeader title={t("ent_title")} subtitle={t("ent_subtitle")} icon={<Building2 className="h-5 w-5" />} />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{ENTITIES.length}</div><div className="text-sm text-muted-foreground mt-1">{t("entitaeten")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{entities.length}</div><div className="text-sm text-muted-foreground mt-1">{t("entitaeten")}</div></CardContent></Card>
         <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{formatCompact(group.revenue)}</div><div className="text-sm text-muted-foreground mt-1">{t("ent_total_revenue")}</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{ENTITIES.reduce((a, e) => a + e.employees, 0)}</div><div className="text-sm text-muted-foreground mt-1">{t("ent_total_employees")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{entities.reduce((a, e) => a + e.employees, 0)}</div><div className="text-sm text-muted-foreground mt-1">{t("ent_total_employees")}</div></CardContent></Card>
       </div>
 
       <AiInsight context="entitaeten" />
@@ -50,7 +51,7 @@ export default function Entitaeten() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {ENTITIES.map((e) => {
+        {entities.map((e) => {
           const c = comparison.find((x) => x.code === e.code)!;
           const active = selectedEntity === e.code;
           return (
@@ -58,6 +59,7 @@ export default function Entitaeten() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
+                    <EntityAvatar entity={e} size={36} />
                     <div className="rounded-lg bg-primary/10 text-primary font-bold px-2.5 py-1 text-sm">{e.code}</div>
                     <RiskBadge level={c.riskLevel} />
                   </div>

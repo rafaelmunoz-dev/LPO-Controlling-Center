@@ -1,2 +1,3 @@
 - [i18next init](i18next-init.md) — the i18n module must be imported at the app entry (main.tsx) or init() never runs and you get NO_I18NEXT_INSTANCE with raw keys showing.
 - [Controlling Center theming](controlling-center-theming.md) — accent driven by one --brass token (named 'brass', now teal); sweep color literals in spaced/underscore/no-space forms.
+- [Controlling Center entities](controlling-center-entities.md) — entities are mutable store state; every list/compare/search/select consumer must read the store, not static ENTITIES/ENTITY_CODES.

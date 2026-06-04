@@ -105,6 +105,8 @@ export const ROLE_PERMISSIONS: Record<Role, NavKey[]> = {
 export const APPROVER_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
 export const CREATE_PR_ROLES: Role[] = ["Admin", "Controller", "Procurement Manager", "Entity Manager"];
 export const INVENTORY_EDIT_ROLES: Role[] = ["Admin", "Inventory Manager", "Entity Manager"];
+export const ENTITY_EDIT_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
+export const ENTITY_ADMIN_ROLES: Role[] = ["Admin"];
 
 export const ROLE_DEFS: RoleDef[] = [
   { role: "Admin", description: "Voller Zugriff auf alle Module und Einstellungen.", permissions: ["Alle Module", "Benutzerverwaltung", "Systemeinstellungen"] },

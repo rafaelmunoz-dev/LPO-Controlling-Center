@@ -19,32 +19,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { searchAll, type SearchResult, type ViewKey } from "@/data";
 import lpoLogo from "@assets/image_1780570561463.png";
 
-const ENTITY_DOT: Record<string, string> = {
-  "MiGu Group Gesamt": "bg-primary",
-  IMP: "bg-blue-500",
-  "C&A": "bg-amber-500",
-  MKT: "bg-violet-500",
-  CPE: "bg-emerald-500",
-  COSM: "bg-rose-500",
-};
-
-const ENTITIES: ViewKey[] = ["MiGu Group Gesamt", "IMP", "C&A", "MKT", "CPE", "COSM"];
-
 export function Topbar() {
-  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks } = useAppStore();
+  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities } = useAppStore();
+  const selectedMeta = entities.find((e) => e.code === selectedEntity);
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const results: SearchResult[] = query.trim() ? searchAll(query, (k) => t(k)) : [];
+  const results: SearchResult[] = query.trim() ? searchAll(query, (k) => t(k), entities) : [];
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -80,16 +71,24 @@ export function Topbar() {
         <Select value={selectedEntity} onValueChange={(val) => setEntity(val as ViewKey)}>
           <SelectTrigger className="w-[210px] bg-white/60 border-slate-200/80 text-primary font-medium" data-testid="select-entity">
             <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${ENTITY_DOT[selectedEntity]}`} />
+              {selectedEntity === "MiGu Group Gesamt"
+                ? <EntityAvatar isGroup logo={lpoLogo} size={22} />
+                : <EntityAvatar entity={selectedMeta} label={selectedEntity} size={22} />}
               <SelectValue />
             </div>
           </SelectTrigger>
           <SelectContent>
-            {ENTITIES.map((e) => (
-              <SelectItem key={e} value={e} data-testid={`entity-option-${e}`}>
+            <SelectItem value="MiGu Group Gesamt" textValue={t("all_entities")} data-testid="entity-option-MiGu Group Gesamt">
+              <div className="flex items-center gap-2">
+                <EntityAvatar isGroup logo={lpoLogo} size={22} />
+                {t("all_entities")}
+              </div>
+            </SelectItem>
+            {entities.map((e) => (
+              <SelectItem key={e.code} value={e.code} textValue={e.code} data-testid={`entity-option-${e.code}`}>
                 <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${ENTITY_DOT[e]}`} />
-                  {e === "MiGu Group Gesamt" ? t("all_entities") : e}
+                  <EntityAvatar entity={e} size={22} />
+                  {e.code}
                 </div>
               </SelectItem>
             ))}

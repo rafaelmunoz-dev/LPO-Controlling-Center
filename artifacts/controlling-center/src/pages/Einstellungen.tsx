@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { ENTITY_CODES, ENTITIES, getEntityComparison, MS_ADAPTERS } from "@/data";
+import { ENTITY_CODES, MS_ADAPTERS } from "@/data";
+import { EntitySettings } from "@/components/settings/EntitySettings";
 import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS } from "@/data/governance";
 import type { ViewKey, MsAdapter } from "@/data/types";
 import {
@@ -56,7 +57,8 @@ const EXTERNAL_APPS = [
 ];
 
 export default function Einstellungen() {
-  const { language, setLanguage, currentUser, setCurrentUser, selectedEntity, setEntity } = useAppStore();
+  const { language, setLanguage, currentUser, setCurrentUser, selectedEntity, setEntity, entities } = useAppStore();
+  const entityViews: ViewKey[] = ["MiGu Group Gesamt", ...entities.map((e) => e.code)];
   const { t, i18n } = useTranslation();
   const [notifications, setNotifications] = useState({ approvals: true, risks: true, reports: false, sync: true });
   const [adapters, setAdapters] = useState<AdapterState[]>(
@@ -65,7 +67,6 @@ export default function Einstellungen() {
   const [apps, setApps] = useState(EXTERNAL_APPS);
   const [security, setSecurity] = useState({ twoFactor: true, sso: false, auditLog: true, sessionTimeout: [30] });
   const [copilot, setCopilot] = useState({ proactive: true, autoSummary: true, suggestActions: true, tone: "Sachlich" });
-  const comparison = getEntityComparison();
 
   const changeLang = (code: "de" | "en" | "es") => {
     setLanguage(code);
@@ -275,7 +276,7 @@ export default function Einstellungen() {
                 <Label>{t("default_entity")}</Label>
                 <Select value={selectedEntity} onValueChange={(v) => { setEntity(v as typeof selectedEntity); toast.success(`Standard-Entität: ${v}`); }}>
                   <SelectTrigger data-testid="select-default-entity"><SelectValue /></SelectTrigger>
-                  <SelectContent>{ENTITY_VIEWS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+                  <SelectContent>{entityViews.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
@@ -287,33 +288,7 @@ export default function Einstellungen() {
 
         {/* ENTITÄTEN */}
         <TabsContent value="entitaeten">
-          <Card className="glass-card">
-            <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> {t("set_group_structure")}</CardTitle><p className="text-sm text-muted-foreground">{ENTITIES.length} {t("set_group_entities")}</p></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader><TableRow><TableHead>{t("set_code")}</TableHead><TableHead>{t("name")}</TableHead><TableHead>{t("mit_location")}</TableHead><TableHead className="text-right">{t("mit_employees")}</TableHead><TableHead>{t("risk_risk")}</TableHead><TableHead className="text-right">{t("common_action")}</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {ENTITIES.map((e) => {
-                    const c = comparison.find((x) => x.code === e.code);
-                    return (
-                      <TableRow key={e.code} data-testid={`row-setting-entity-${e.code}`} className={selectedEntity === e.code ? "bg-primary/5" : ""}>
-                        <TableCell><Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-semibold">{e.code}</Badge></TableCell>
-                        <TableCell><div className="font-medium">{e.name}</div><div className="text-xs text-muted-foreground">{e.description}</div></TableCell>
-                        <TableCell className="text-muted-foreground">{e.location}</TableCell>
-                        <TableCell className="text-right">{e.employees}</TableCell>
-                        <TableCell>{c ? <Badge variant="outline">{c.riskLevel}</Badge> : "—"}</TableCell>
-                        <TableCell className="text-right">
-                          {selectedEntity === e.code
-                            ? <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><UserCheck className="h-4 w-4" /> {t("mit_active")}</span>
-                            : <Button size="sm" variant="outline" onClick={() => { setEntity(e.code); toast.success(`Aktive Entität: ${e.name}`); }} data-testid={`button-activate-${e.code}`}>{t("set_activate")}</Button>}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <EntitySettings />
         </TabsContent>
 
         {/* MICROSOFT 365 */}
