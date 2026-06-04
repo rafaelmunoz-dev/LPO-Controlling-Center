@@ -1,0 +1,390 @@
+Überarbeite das bestehende LPO Controlling Center UI/UX grundlegend mit Fokus auf High-End Design, professionellere Farbwelt, bessere Navigation und sinnvollere AI-Copilot-Integration.
+
+WICHTIG:
+Bitte keine komplette neue App bauen, sondern die bestehende App verbessern, refactoren und hochwertiger machen.
+
+1. DESIGN & FARBSYSTEM
+
+Das aktuelle Design wirkt noch zu grau und teilweise zu technisch.
+Bitte entferne graue Flächen weitgehend.
+
+Stattdessen:
+- reinweißer Haupt-Hintergrund (#FFFFFF)
+- sehr helle, fast weiße Kartenflächen
+- Liquid Glass Optik nur hochwertig und dezent
+- keine grauen Panels
+- keine stumpfen grauen Sidebar-Flächen
+- keine billigen Schatten
+- keine überladenen Farben
+
+Das Ziel:
+High-End SaaS Dashboard für Controlling, passend zu LPO Group.
+
+Farbwelt:
+- Hauptfarbe: sehr dunkles Navy / LPO Dunkelblau
+- Sekundärfarbe: klares Business-Blau
+- Akzentfarbe: Brass/Gold-Verlauf
+- Erfolgsfarbe: elegantes Grün
+- Warnfarbe: hochwertiges Amber/Gold
+- Risiko/Falsch: klares, aber nicht grelles Rot
+
+Bitte verwende einen hochwertigen Gold-/Brass-Verlauf dort, wo es sinnvoll ist:
+- aktive Auswahl im Entity-Dropdown
+- wichtige Highlight-Karten
+- AI-Copilot Akzent
+- aktive Tabs
+- Premium Buttons
+- kleine Icons oder Linien
+- Status “Strategisch wichtig”
+
+Der Goldverlauf soll edel wirken, nicht kitschig.
+
+Beispiel-Farbwerte:
+- Navy: #071A33
+- Deep Navy: #020B18
+- Business Blue: #2563EB
+- Soft Blue: #EFF6FF
+- Brass Gold 1: #E5BB4F
+- Brass Gold 2: #F1DB75
+- Brass Gold 3: #96652B
+- Soft Gold Background: #FFF8E1
+- Success: #059669
+- Warning: #D97706
+- Danger: #DC2626
+
+Liquid Glass:
+Bitte als CSS-Klassen sauber umsetzen:
+- .glass-card
+- .glass-nav
+- .glass-dropdown
+- .glass-button
+- .gold-gradient
+- .premium-shadow
+
+Liquid Glass Eigenschaften:
+- weiß/transluzent
+- backdrop blur
+- dünne helle Border
+- sehr weicher Schatten
+- leichte Lichtkante oben
+- keine starke Transparenz, damit es professionell bleibt
+
+2. NAVIGATION VEREINFACHEN
+
+Aktuelle Navigation ist zu kleinteilig.
+Bitte deutlich aufräumen.
+
+Die linke Navigation soll nur noch folgende Hauptbereiche enthalten:
+
+- Dashboard
+- Finanzen
+- Entitäten
+- Einkauf
+- Inventar
+- Mitarbeiter & Geräte
+- Freigaben
+- Prognosen
+- Risiko & Pre-Mortem
+- Strategie
+- Reports
+- AI Copilot
+- Einstellungen
+
+Wichtig:
+Kein eigener Menüpunkt mehr für “Upload Center”.
+Uploads sollen dort eingebaut werden, wo die Daten fachlich hingehören.
+
+Kein eigener Menüpunkt mehr für “Microsoft Integration”.
+Microsoft, externe Apps, Sprache, Benutzer, Rollen und Systemkonfiguration sollen alle im Bereich “Einstellungen” liegen.
+
+3. UPLOADS FACHLICH INTEGRIEREN
+
+Bitte Uploads nicht mehr als eigenes Center führen.
+
+Stattdessen:
+
+Im Bereich Finanzen:
+- Button “Monatsbericht hochladen”
+- Button “Rechnungsliste hochladen”
+- Button “Bankübersicht hochladen”
+- Button “Budgetdatei hochladen”
+
+Im Bereich Einkauf:
+- Button “Einkaufsliste hochladen”
+- Button “Lieferantenliste hochladen”
+- Button “Microsoft Forms Antworten importieren”
+
+Im Bereich Inventar:
+- Button “Inventurliste hochladen”
+- Button “Geräteliste hochladen”
+- Button “Etiketten aus Liste erstellen”
+
+Im Bereich Mitarbeiter & Geräte:
+- Button “Mitarbeiterliste hochladen”
+- Button “Gerätezuweisungen importieren”
+
+Jeder Upload soll:
+- einer Entität zugeordnet werden
+- einem Zeitraum zugeordnet werden
+- einen Status erhalten
+- nach Upload in einer kleinen Historie im jeweiligen Bereich erscheinen
+
+Status:
+- Neu
+- In Prüfung
+- Verarbeitet
+- Fehler
+- Archiviert
+
+4. EINSTELLUNGEN NEU STRUKTURIEREN
+
+Der Bereich Einstellungen soll eine eigene Seite mit Tabs sein.
+
+Tabs:
+
+- Allgemein
+- Benutzer & Rollen
+- Sprache
+- Entitäten
+- Microsoft 365
+- Externe Apps
+- Datenimport
+- Sicherheit
+- Design
+- AI Copilot
+
+Microsoft 365 Tab:
+- Microsoft Forms
+- SharePoint
+- Teams
+- Outlook
+- Planner
+- Excel Online
+
+Externe Apps Tab:
+- Buchhaltungssystem
+- Bankdaten
+- Lieferantenportal
+- Inventarsystem
+- HR-System
+- Reporting-System
+
+Bitte alles als professionelle Mock-Konfiguration bauen, solange keine echten API Keys vorhanden sind.
+
+5. AI COPILOT SINNVOLL EINBAUEN
+
+Der AI Copilot soll nicht nur als dekorative Box unten links stehen.
+
+Bitte sinnvoll in die UX einbauen:
+
+A) Globaler AI Copilot Button
+In der Topbar oder Navigation:
+“AI Analyse öffnen”
+
+B) Kontextbezogene AI-Hinweise
+Auf jeder wichtigen Seite soll es kleine AI Insight Cards geben.
+
+Beispiele Dashboard:
+- “Kosten steigen schneller als Umsatz.”
+- “C&A zeigt erhöhtes Risiko durch Projektverzug.”
+- “Liquidität reicht aktuell 12,4 Monate.”
+- “MKT entwickelt sich positiv, aber Marketingkosten liegen über Plan.”
+
+Beispiele Finanzen:
+- “Wareneinsatz liegt 2,6 Mio. € über Budget.”
+- “EBITDA-Marge sinkt trotz Umsatzwachstum.”
+
+Beispiele Einkauf:
+- “Drei Lieferanten verursachen 62 % der Gesamtausgaben.”
+- “Zwei Kaufanfragen überschreiten das Monatsbudget.”
+
+Beispiele Inventar:
+- “14 Geräte sind keinem Mitarbeiter zugeordnet.”
+- “8 Geräte haben keine Inventarnummer.”
+- “5 Garantien laufen in den nächsten 30 Tagen ab.”
+
+Beispiele Risiko:
+- “Projektverzug Hafencity hat hohe Wirkung und hohe Wahrscheinlichkeit.”
+
+C) AI Copilot Panel
+Bitte ein ausklappbares Side Panel einbauen.
+Darin:
+- Fragefeld
+- vorgeschlagene Fragen
+- letzte Analysen
+- kontextbezogene Antwort
+- Button “Als Aufgabe speichern”
+- Button “Als Bericht übernehmen”
+- Button “Risiko erstellen”
+
+Beispiel-Fragen:
+- Warum steigen unsere Kosten?
+- Welche Entität hat das größte Risiko?
+- Welche Uploads fehlen diesen Monat?
+- Welche Kaufanfragen brauchen Freigabe?
+- Welche Inventargegenstände sind nicht zugewiesen?
+- Welche Abweichungen zum Budget sind kritisch?
+- Was sollte ich mir als Controller heute zuerst ansehen?
+
+Der Copilot soll Begriffe einfach erklären.
+Beispiel:
+“EBITDA bedeutet Gewinn vor Zinsen, Steuern und Abschreibungen. Vereinfacht gesagt: Es zeigt, wie gut das operative Geschäft läuft.”
+
+6. UX VERBESSERN
+
+Bitte die User Experience deutlich verbessern.
+
+Dashboard:
+- Weniger überladen
+- klare Prioritäten
+- oben nur wichtigste KPIs
+- darunter 2–3 Hauptbereiche
+- Details auf Unterseiten
+- jede Karte klickbar machen
+- jede Karte führt zur passenden Detailseite
+- aktive Entität klar anzeigen
+- Zeitraum klar anzeigen
+
+Topbar:
+- sauberer Abstand
+- Entitäts-Dropdown prominent
+- Suchfeld mittig
+- Sprache kompakt
+- Export und Bericht erstellen rechts
+- Profil klar
+
+Entity Dropdown:
+Bitte hochwertiger machen.
+Dropdown soll zeigen:
+- MiGu Group Gesamt
+- IMP
+- C&A
+- MKT
+- CPE
+- COSM
+
+Jede Entität kann kleine Farbe / Badge haben.
+Bei Auswahl ändern sich Dashboard-Zahlen und Tabellen.
+
+Tabs:
+Auf Detailseiten bitte Tabs verwenden statt zu viele Menüpunkte.
+
+Beispiel Finanzen Tabs:
+- Überblick
+- Ergebnisrechnung
+- Bilanz
+- Cashflow
+- Budget vs. Ist
+- Konsolidierung
+- Intercompany
+- Uploads
+
+Beispiel Einkauf Tabs:
+- Überblick
+- Kaufanfragen
+- Lieferanten
+- Ausgaben
+- Freigaben
+- Uploads
+
+Beispiel Inventar Tabs:
+- Überblick
+- Inventarliste
+- Mitarbeiter-Zuweisung
+- Barcode & Etiketten
+- Wartung
+- Uploads
+
+Beispiel Einstellungen Tabs:
+- Allgemein
+- Benutzer & Rollen
+- Sprache
+- Microsoft 365
+- Externe Apps
+- Sicherheit
+- Design
+- AI Copilot
+
+7. HIGH-END QUALITY DETAILS
+
+Bitte folgende Qualitätsdetails einbauen:
+
+- bessere Hover States
+- aktive Navigation eleganter hervorheben
+- Buttons hochwertiger gestalten
+- Tabellen mit klaren Zeilen, viel Weißraum und feiner Trennung
+- Status-Badges eleganter gestalten
+- leere Zustände professionell darstellen
+- Loading States
+- Toast Notifications
+- Modal Dialoge für Uploads und Freigaben
+- Side Panel für AI Copilot
+- bessere mobile/responsive Ansicht
+- klare Typografie
+- einheitliche Abstände
+- einheitliche Icon-Größen
+
+8. BEGRIFFE EINFACH ERKLÄREN
+
+Da die Nutzerin neu im Controlling ist, müssen Fachbegriffe immer verständlich erklärt werden.
+
+Bitte bei Fachbegriffen Tooltips einbauen:
+
+- Umsatz (Revenue): Geld, das durch Verkäufe oder Leistungen eingenommen wurde.
+- EBITDA: Gewinn vor Zinsen, Steuern und Abschreibungen.
+- EBITDA-Marge: Anteil des EBITDA am Umsatz.
+- Nettoergebnis (Net Profit): Gewinn nach allen Kosten.
+- Cashflow: tatsächlicher Geldfluss rein und raus.
+- Liquidität: verfügbares Geld.
+- Cash Runway: wie viele Monate das Unternehmen mit aktuellem Geld auskommt.
+- Budget vs. Ist: Vergleich zwischen geplantem und tatsächlichem Wert.
+- Konsolidierung: Zusammenfassung aller Entitäten zur Gesamtgruppe.
+- Intercompany: Geldbewegungen zwischen Firmen derselben Gruppe.
+- Pre-Mortem: Vorab-Analyse, warum ein Projekt scheitern könnte.
+
+9. REPORTING VERBESSERN
+
+Reports sollen hochwertig wirken.
+
+Im Reports-Bereich:
+- Monatsbericht
+- Quartalsbericht
+- Jahresbericht
+- Entitätsbericht
+- Einkaufsbericht
+- Inventarbericht
+- Risiko-Bericht
+- Strategie-Bericht
+
+Jeder Report soll:
+- Entität wählen
+- Zeitraum wählen
+- Inhalt auswählen
+- AI-Zusammenfassung hinzufügen
+- Export als PDF/Excel/CSV vorbereiten
+
+10. WICHTIGER TECHNISCHER HINWEIS
+
+Bitte bestehende Funktionen erhalten:
+- MiGu Group Gesamtansicht
+- Entitäten IMP, C&A, MKT, CPE, COSM
+- Sprachschalter DE / EN / ES
+- Profile mit Avataren
+- Rollenmodell
+- Finanzdaten
+- Prognosen
+- Risiken
+- Inventar
+- Mitarbeiter & Geräte
+- Kaufanfragen
+- Freigaben
+- Barcode / Etiketten
+- Microsoft Mock Integration
+- Reports
+- AI Copilot
+
+Bitte nichts entfernen, sondern nur besser organisieren und hochwertiger gestalten.
+
+Ziel:
+Das LPO Controlling Center soll wie ein hochwertiges, einsatzfertiges Executive-Controlling-Tool wirken:
+klar, weiß, ruhig, professionell, hochwertig, verständlich und intelligent.
