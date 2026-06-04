@@ -11,10 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
+import { AiInsight } from "@/components/shared/AiInsight";
+import { UploadPanel } from "@/components/shared/UploadPanel";
 import { scopeByEntity, EMPLOYEES, INVENTORY } from "@/data";
 import type { DeviceAssignment } from "@/data/types";
 import { Users, CheckCircle2, Laptop, FileSignature } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const EMP_STATUS: Record<string, string> = {
   Aktiv: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
@@ -23,6 +26,7 @@ const EMP_STATUS: Record<string, string> = {
 };
 
 export default function Mitarbeiter() {
+  const { t } = useTranslation();
   const { selectedEntity, deviceAssignments, addDeviceAssignment } = useAppStore();
   const employees = scopeByEntity(EMPLOYEES, selectedEntity);
   const empNames = employees.map((e) => e.name);
@@ -54,31 +58,34 @@ export default function Mitarbeiter() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Mitarbeiter & Geräte"
-        subtitle="Personal & Geräteausgabe"
+        title={t("mitarbeiter_geraete")}
+        subtitle={t("mit_subtitle")}
         icon={<Users className="h-5 w-5" />}
-        actions={<Button onClick={() => setOpen(true)} data-testid="button-assign-device"><Laptop className="h-4 w-4 mr-1.5" /> Gerät ausgeben</Button>}
+        actions={<Button onClick={() => setOpen(true)} data-testid="button-assign-device"><Laptop className="h-4 w-4 mr-1.5" /> {t("mit_assign_device")}</Button>}
       />
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{employees.length}</div><div className="text-sm text-muted-foreground mt-1">Mitarbeiter</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{employees.filter((e) => e.status === "Aktiv").length}</div><div className="text-sm text-muted-foreground mt-1">Aktiv</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{assignments.length}</div><div className="text-sm text-muted-foreground mt-1">Geräteausgaben</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-amber-500">{assignments.filter((a) => !a.confirmed).length}</div><div className="text-sm text-muted-foreground mt-1">Offene Bestätigungen</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{employees.length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_employees")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{employees.filter((e) => e.status === "Aktiv").length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_active")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{assignments.length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_assignments")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-amber-500">{assignments.filter((a) => !a.confirmed).length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_open_confirmations")}</div></CardContent></Card>
       </div>
+
+      <AiInsight context="mitarbeiter" />
 
       <Tabs defaultValue="employees">
         <TabsList>
-          <TabsTrigger value="employees" data-testid="tab-employees">Mitarbeiter</TabsTrigger>
-          <TabsTrigger value="assignments" data-testid="tab-assignments">Geräteausgaben</TabsTrigger>
+          <TabsTrigger value="employees" data-testid="tab-employees">{t("mit_employees")}</TabsTrigger>
+          <TabsTrigger value="assignments" data-testid="tab-assignments">{t("mit_assignments")}</TabsTrigger>
+          <TabsTrigger value="belege" data-testid="tab-belege">{t("tab_uploads")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="employees">
           <Card className="glass-card">
-            <CardHeader><CardTitle>Mitarbeiter</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("mit_employees")}</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Position</TableHead><TableHead>Abteilung</TableHead><TableHead>Entität</TableHead><TableHead>Standort</TableHead><TableHead>Geräte</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>{t("name")}</TableHead><TableHead>{t("mit_position")}</TableHead><TableHead>{t("mit_department")}</TableHead><TableHead>{t("entity")}</TableHead><TableHead>{t("mit_location")}</TableHead><TableHead>{t("mit_devices")}</TableHead><TableHead>{t("status")}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {employees.map((e) => (
                     <TableRow key={e.id} data-testid={`row-employee-${e.id}`}>
@@ -104,10 +111,10 @@ export default function Mitarbeiter() {
 
         <TabsContent value="assignments">
           <Card className="glass-card">
-            <CardHeader><CardTitle>Geräteausgabe-Protokolle</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("mit_assignment_logs")}</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Mitarbeiter</TableHead><TableHead>Gerät</TableHead><TableHead>Inv-Nr.</TableHead><TableHead>Ausgabe</TableHead><TableHead>Rückgabe</TableHead><TableHead>Zustand</TableHead><TableHead>Bestätigt</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>{t("mit_employee")}</TableHead><TableHead>{t("common_device")}</TableHead><TableHead>{t("common_inv_no")}</TableHead><TableHead>{t("mit_issue")}</TableHead><TableHead>{t("mit_return")}</TableHead><TableHead>{t("condition")}</TableHead><TableHead>{t("mit_confirmed")}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {assignments.map((a) => (
                     <TableRow key={a.id} data-testid={`row-assignment-${a.id}`}>
@@ -117,36 +124,40 @@ export default function Mitarbeiter() {
                       <TableCell className="text-muted-foreground">{a.issueDate}</TableCell>
                       <TableCell className="text-muted-foreground">{a.returnDate ?? "—"}</TableCell>
                       <TableCell>{a.conditionReturn ?? a.conditionIssue}</TableCell>
-                      <TableCell>{a.confirmed ? <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><CheckCircle2 className="h-4 w-4" /> Ja</span> : <span className="inline-flex items-center gap-1 text-amber-600 text-sm"><FileSignature className="h-4 w-4" /> Offen</span>}</TableCell>
+                      <TableCell>{a.confirmed ? <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><CheckCircle2 className="h-4 w-4" /> {t("common_yes")}</span> : <span className="inline-flex items-center gap-1 text-amber-600 text-sm"><FileSignature className="h-4 w-4" /> {t("open")}</span>}</TableCell>
                     </TableRow>
                   ))}
-                  {assignments.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Keine Geräteausgaben.</TableCell></TableRow>}
+                  {assignments.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t("mit_empty_assignments")}</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="belege">
+          <UploadPanel docTypes={["Mitarbeiterliste"]} defaultDocType="Mitarbeiterliste" />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Gerät ausgeben</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("mit_assign_device")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5"><Label>Mitarbeiter</Label>
-              <Select value={emp} onValueChange={setEmp}><SelectTrigger data-testid="select-employee"><SelectValue placeholder="Wählen" /></SelectTrigger>
+            <div className="space-y-1.5"><Label>{t("mit_employee")}</Label>
+              <Select value={emp} onValueChange={setEmp}><SelectTrigger data-testid="select-employee"><SelectValue placeholder={t("common_select")} /></SelectTrigger>
                 <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label>Verfügbares Gerät</Label>
-              <Select value={device} onValueChange={setDevice}><SelectTrigger data-testid="select-device"><SelectValue placeholder="Wählen" /></SelectTrigger>
-                <SelectContent>{devices.length ? devices.map((d) => <SelectItem key={d.id} value={d.inventoryNumber}>{d.name} ({d.inventoryNumber})</SelectItem>) : <div className="px-2 py-1.5 text-sm text-muted-foreground">Keine verfügbaren Geräte</div>}</SelectContent>
+            <div className="space-y-1.5"><Label>{t("mit_available_device")}</Label>
+              <Select value={device} onValueChange={setDevice}><SelectTrigger data-testid="select-device"><SelectValue placeholder={t("common_select")} /></SelectTrigger>
+                <SelectContent>{devices.length ? devices.map((d) => <SelectItem key={d.id} value={d.inventoryNumber}>{d.name} ({d.inventoryNumber})</SelectItem>) : <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("mit_no_devices")}</div>}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label>Zustand bei Ausgabe</Label><Input value={condition} onChange={(e) => setCondition(e.target.value)} data-testid="input-condition" /></div>
+            <div className="space-y-1.5"><Label>{t("mit_condition_issue")}</Label><Input value={condition} onChange={(e) => setCondition(e.target.value)} data-testid="input-condition" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Abbrechen</Button>
-            <Button onClick={assign} data-testid="button-submit-assign">Ausgeben</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={assign} data-testid="button-submit-assign">{t("mit_issue_btn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

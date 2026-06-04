@@ -1,22 +1,37 @@
 import { useState, useRef, useEffect } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
-import { X, Send, Bot, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { X, Send, Sparkles, ListTodo, FileText, ShieldAlert, Maximize2, Minimize2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 import { answerCopilot, getCopilotSuggestions } from "@/data";
+import type { EntityCode, Risk } from "@/data/types";
 
 interface Msg {
   role: "user" | "bot";
   text: string;
+  question?: string;
 }
 
 export function CopilotPanel() {
-  const { copilotOpen, setCopilotOpen, selectedEntity } = useAppStore();
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: "bot", text: "Hallo! Ich bin Ihr LPO Copilot. Ich analysiere die Daten der gewählten Entität. Stellen Sie mir eine Frage oder wählen Sie einen Vorschlag." },
-  ]);
+  const {
+    copilotOpen,
+    setCopilotOpen,
+    selectedEntity,
+    copilotContext,
+    copilotSeed,
+    clearCopilotSeed,
+    addTask,
+    addReportDraft,
+    addRisk,
+  } = useAppStore();
+  const { t } = useTranslation();
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,54 +42,118 @@ export function CopilotPanel() {
     const q = text.trim();
     if (!q) return;
     const reply = answerCopilot(q, selectedEntity);
-    setMessages((m) => [...m, { role: "user", text: q }, { role: "bot", text: reply }]);
+    setMessages((m) => [...m, { role: "user", text: q }, { role: "bot", text: reply, question: q }]);
+    setHistory((h) => [q, ...h.filter((x) => x !== q)].slice(0, 6));
     setInput("");
   };
 
+  // consume a seeded question coming from anywhere in the app
+  useEffect(() => {
+    if (copilotOpen && copilotSeed) {
+      send(copilotSeed);
+      clearCopilotSeed();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [copilotOpen, copilotSeed]);
+
   if (!copilotOpen) return null;
 
+  const saveTask = (m: Msg) => {
+    addTask(m.question ?? "Copilot-Analyse", `${t("ai_analysis")} · ${selectedEntity}`);
+    toast.success(t("task_saved"));
+  };
+  const toReport = (m: Msg) => {
+    addReportDraft(m.question ?? "Copilot-Analyse", t("ai_analysis"), selectedEntity);
+    toast.success(t("added_to_report"));
+  };
+  const toRisk = (m: Msg) => {
+    const entity: EntityCode = selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity;
+    const risk: Risk = {
+      id: `R-${Date.now()}`,
+      title: m.question ?? "Copilot-Risiko",
+      entity,
+      impact: "Mittel",
+      probability: "Mittel",
+      owner: "AI Copilot",
+      status: "Offen",
+      trend: "flat",
+    };
+    addRisk(risk);
+    toast.success(t("risk_created"));
+  };
+
   return (
-    <div className="w-96 border-l border-border bg-white dark:bg-slate-950 flex flex-col shadow-xl z-40 h-[calc(100vh-64px)]">
-      <div className="p-4 border-b border-border flex items-center justify-between bg-primary/5">
+    <div
+      className={`${expanded ? "w-[34rem]" : "w-96"} glass-panel border-l border-white/40 flex flex-col shadow-xl z-40 h-[calc(100vh-64px)] transition-all`}
+    >
+      <div className="p-4 border-b border-white/40 flex items-center justify-between">
         <div className="flex items-center gap-2 text-primary font-medium">
-          <div className="rounded-lg bg-primary/10 p-1.5">
-            <Bot className="h-4 w-4" />
+          <div className="rounded-lg brass-gradient p-1.5 text-white">
+            <Sparkles className="h-4 w-4" />
           </div>
           <div className="flex flex-col">
-            <span>AI Copilot</span>
-            <span className="text-[0.65rem] font-normal text-muted-foreground">{selectedEntity}</span>
+            <span>{t("copilot_title")}</span>
+            <span className="text-[0.65rem] font-normal text-muted-foreground">{t("copilot_subtitle")} · {selectedEntity}</span>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCopilotOpen(false)} data-testid="button-close-copilot">
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setExpanded((e) => !e)} data-testid="button-expand-copilot">
+            {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCopilotOpen(false)} data-testid="button-close-copilot">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-3">
+          {messages.length === 0 && (
+            <div className="rounded-2xl bg-white/60 border border-slate-200/70 p-3 text-sm">
+              {t("copilot_subtitle")}. {selectedEntity}.
+            </div>
+          )}
           {messages.map((m, i) => (
-            <div
-              key={i}
-              className={`text-sm p-3 rounded-2xl max-w-[90%] ${
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground ml-auto rounded-br-sm"
-                  : "bg-muted rounded-tl-sm"
-              }`}
-              data-testid={`msg-${m.role}-${i}`}
-            >
-              {m.text}
+            <div key={i} className="space-y-1.5">
+              <div
+                className={`text-sm p-3 rounded-2xl max-w-[92%] ${
+                  m.role === "user"
+                    ? "brass-gradient text-white ml-auto rounded-br-sm"
+                    : "bg-white/70 border border-slate-200/70 rounded-tl-sm"
+                }`}
+                data-testid={`msg-${m.role}-${i}`}
+              >
+                {m.text}
+              </div>
+              {m.role === "bot" && m.question && (
+                <div className="flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => saveTask(m)} data-testid={`action-task-${i}`}>
+                    <ListTodo className="h-3.5 w-3.5" />
+                    {t("save_as_task")}
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toReport(m)} data-testid={`action-report-${i}`}>
+                    <FileText className="h-3.5 w-3.5" />
+                    {t("add_to_report")}
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toRisk(m)} data-testid={`action-risk-${i}`}>
+                    <ShieldAlert className="h-3.5 w-3.5" />
+                    {t("create_risk")}
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
-          {messages.length <= 1 && (
+
+          {messages.length === 0 && (
             <div className="pt-2 space-y-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Sparkles className="h-3 w-3" /> Vorschläge
+                <Sparkles className="h-3 w-3" /> {t("suggested_questions")}
               </div>
-              {getCopilotSuggestions().map((s) => (
+              {getCopilotSuggestions(copilotContext).map((s) => (
                 <Button
                   key={s}
                   variant="outline"
-                  className="w-full text-xs justify-start h-auto py-2 whitespace-normal text-left"
+                  className="w-full text-xs justify-start h-auto py-2 whitespace-normal text-left bg-white/60"
                   onClick={() => send(s)}
                   data-testid={`button-suggestion-${s.slice(0, 10)}`}
                 >
@@ -83,15 +162,28 @@ export function CopilotPanel() {
               ))}
             </div>
           )}
+
+          {history.length > 0 && (
+            <div className="pt-3 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <History className="h-3 w-3" /> {t("recent_analyses")}
+              </div>
+              {history.map((h) => (
+                <button key={h} onClick={() => send(h)} className="block w-full truncate rounded-lg px-2 py-1 text-left text-xs text-muted-foreground hover:bg-white/60">
+                  {h}
+                </button>
+              ))}
+            </div>
+          )}
           <div ref={endRef} />
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-white/40">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Frage stellen..."
-            className="text-sm h-9"
+            placeholder={t("ask_placeholder")}
+            className="text-sm h-9 bg-white/60"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}

@@ -15,3 +15,9 @@ raw key string, so the UI shows things like "search_placeholder" instead of text
 **How to apply:** When wiring i18n, add the side-effect import at the entry file
 alongside `import "./index.css"`. Verify by checking the live UI shows translated
 labels, not keys.
+
+## Editing the locale file (controlling-center src/i18n/index.ts)
+The file holds THREE resource objects (DE, then EN, then ES) using UNQUOTED keys: `key: "value",`.
+The German source string for a label often appears verbatim as the EN/ES anchor too, so a blind
+`sed` replace on a label corrupts the other locales. When adding keys, edit each locale block
+separately and verify every new key appears exactly 3 times (one per locale).

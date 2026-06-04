@@ -218,6 +218,65 @@ export function getProfitLoss(view: ViewKey): PLRow[] {
   ];
 }
 
+export interface PLOverview {
+  revenue: number;
+  grossProfit: number;
+  grossMargin: number;
+  ebitda: number;
+  ebitdaMargin: number;
+  ebit: number;
+  netProfit: number;
+  netMargin: number;
+  cogs: number;
+  personnel: number;
+  otherCosts: number;
+  depreciation: number;
+  interest: number;
+  tax: number;
+  series: { month: string; revenue: number; profit: number; costs: number; ebitda: number }[];
+  costBreakdown: { name: string; value: number }[];
+}
+
+export function getPLOverview(view: ViewKey): PLOverview {
+  const f = getFinance(view);
+  const r = f.revenue;
+  const cogs = Math.round(r * 0.6);
+  const gross = r - cogs;
+  const personnel = Math.round(r * 0.185);
+  const other = Math.round(r * 0.115);
+  const ebitda = gross - personnel - other;
+  const depreciation = Math.round(r * 0.035);
+  const ebit = ebitda - depreciation;
+  const interest = Math.round(r * 0.012);
+  const ebt = ebit - interest;
+  const tax = Math.round(ebt * 0.28);
+  const net = ebt - tax;
+  return {
+    revenue: r,
+    grossProfit: gross,
+    grossMargin: (gross / r) * 100,
+    ebitda,
+    ebitdaMargin: (ebitda / r) * 100,
+    ebit,
+    netProfit: net,
+    netMargin: (net / r) * 100,
+    cogs,
+    personnel,
+    otherCosts: other,
+    depreciation,
+    interest,
+    tax,
+    series: f.series.map((m) => ({ month: m.month, revenue: m.revenue, profit: m.profit, costs: m.costs, ebitda: m.ebitda })),
+    costBreakdown: [
+      { name: "Warenkosten", value: cogs },
+      { name: "Personal", value: personnel },
+      { name: "Betriebskosten", value: other },
+      { name: "Abschreibungen", value: depreciation },
+      { name: "Zinsen & Steuern", value: interest + tax },
+    ],
+  };
+}
+
 export function getBalanceSheet(view: ViewKey): { assets: BalanceRow[]; liabilities: BalanceRow[] } {
   const f = getFinance(view);
   const r = f.revenue;

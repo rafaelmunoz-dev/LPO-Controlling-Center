@@ -5,7 +5,6 @@ import type { NavKey } from "@/data/governance";
 import {
   LayoutDashboard,
   PieChart,
-  UploadCloud,
   ShoppingCart,
   Package,
   Users,
@@ -15,10 +14,8 @@ import {
   Target,
   Building2,
   FileText,
-  Blocks,
-  UserCog,
   Settings,
-  Bot,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -38,19 +35,17 @@ const GROUPS: { group: string; items: NavItem[] }[] = [
     group: "nav_finance",
     items: [
       { href: "/finanzen", key: "finanzen", label: "finanzen", icon: PieChart },
-      { href: "/prognosen", key: "prognosen", label: "prognosen", icon: TrendingUp },
       { href: "/entitaeten", key: "entitaeten", label: "entitaeten", icon: Building2 },
+      { href: "/prognosen", key: "prognosen", label: "prognosen", icon: TrendingUp },
       { href: "/reports", key: "reports", label: "reports", icon: FileText },
     ],
   },
   {
     group: "nav_operations",
     items: [
-      { href: "/upload", key: "upload", label: "upload_center", icon: UploadCloud },
       { href: "/einkauf", key: "einkauf", label: "einkauf", icon: ShoppingCart },
       { href: "/inventar", key: "inventar", label: "inventar", icon: Package },
       { href: "/mitarbeiter", key: "mitarbeiter", label: "mitarbeiter_geraete", icon: Users },
-      { href: "/microsoft", key: "microsoft", label: "microsoft_integration", icon: Blocks },
     ],
   },
   {
@@ -63,10 +58,7 @@ const GROUPS: { group: string; items: NavItem[] }[] = [
   },
   {
     group: "nav_system",
-    items: [
-      { href: "/benutzer", key: "benutzer", label: "benutzer_rollen", icon: UserCog },
-      { href: "/einstellungen", key: "einstellungen", label: "einstellungen", icon: Settings },
-    ],
+    items: [{ href: "/einstellungen", key: "einstellungen", label: "einstellungen", icon: Settings }],
   },
 ];
 
@@ -77,7 +69,7 @@ export function Sidebar() {
   const allowed = allowedNav();
 
   return (
-    <div className="w-64 bg-sidebar border-r border-sidebar-border h-[calc(100vh-64px)] flex flex-col justify-between overflow-y-auto">
+    <aside className="w-64 glass-panel border-r border-white/40 h-[calc(100vh-64px)] flex flex-col justify-between overflow-y-auto thin-scroll">
       <nav className="p-3 space-y-5">
         {GROUPS.map((group) => {
           const items = group.items.filter((i) => allowed.includes(i.key));
@@ -95,13 +87,13 @@ export function Sidebar() {
                     key={item.href}
                     href={item.href}
                     data-testid={`link-nav-${item.key}`}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-primary/10 text-primary shadow-sm"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        ? "nav-item-active"
+                        : "text-sidebar-foreground/70 hover:bg-white/60 hover:text-foreground"
                     }`}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon className={`h-4 w-4 ${isActive ? "text-brass" : ""}`} />
                     {t(item.label)}
                   </Link>
                 );
@@ -109,18 +101,31 @@ export function Sidebar() {
             </div>
           );
         })}
+        <div className="space-y-1">
+          <p className="px-3 text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-1">
+            {t("nav_intelligence")}
+          </p>
+          <button
+            type="button"
+            data-testid="link-nav-copilot"
+            onClick={() => setCopilotOpen(true)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all text-sidebar-foreground/70 hover:bg-white/60 hover:text-foreground"
+          >
+            <Sparkles className="h-4 w-4 text-brass" />
+            {t("ai_copilot")}
+          </button>
+        </div>
       </nav>
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4">
         <Button
-          variant="outline"
           data-testid="button-open-copilot"
-          className="w-full flex items-center justify-start gap-2 border-primary/20 hover:bg-primary/5 text-primary"
+          className="w-full flex items-center justify-start gap-2 brass-gradient text-white border-none shadow-md hover:opacity-90"
           onClick={() => setCopilotOpen(true)}
         >
-          <Bot className="h-4 w-4" />
-          {t("ai_copilot")}
+          <Sparkles className="h-4 w-4" />
+          {t("ai_analyse")}
         </Button>
       </div>
-    </div>
+    </aside>
   );
 }

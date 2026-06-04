@@ -79,7 +79,7 @@ export interface RoleDef {
 export const NAV_KEYS = [
   "dashboard",
   "finanzen",
-  "upload",
+  "entitaeten",
   "einkauf",
   "inventar",
   "mitarbeiter",
@@ -87,23 +87,24 @@ export const NAV_KEYS = [
   "prognosen",
   "risiko",
   "strategie",
-  "entitaeten",
   "reports",
-  "microsoft",
-  "benutzer",
   "einstellungen",
 ] as const;
 export type NavKey = (typeof NAV_KEYS)[number];
 
 export const ROLE_PERMISSIONS: Record<Role, NavKey[]> = {
   Admin: [...NAV_KEYS],
-  Controller: ["dashboard", "finanzen", "upload", "einkauf", "freigaben", "prognosen", "risiko", "strategie", "entitaeten", "reports", "microsoft"],
-  "Finance Analyst": ["dashboard", "finanzen", "upload", "prognosen", "reports", "entitaeten"],
-  "Procurement Manager": ["dashboard", "einkauf", "freigaben", "microsoft", "reports", "upload"],
-  "Inventory Manager": ["dashboard", "inventar", "mitarbeiter", "freigaben", "reports", "upload"],
-  "Management Viewer": ["dashboard", "finanzen", "prognosen", "risiko", "strategie", "entitaeten", "reports"],
-  "Entity Manager": ["dashboard", "finanzen", "einkauf", "inventar", "mitarbeiter", "freigaben", "risiko", "reports"],
+  Controller: ["dashboard", "finanzen", "entitaeten", "einkauf", "freigaben", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
+  "Finance Analyst": ["dashboard", "finanzen", "entitaeten", "prognosen", "reports", "einstellungen"],
+  "Procurement Manager": ["dashboard", "einkauf", "freigaben", "reports", "einstellungen"],
+  "Inventory Manager": ["dashboard", "inventar", "mitarbeiter", "freigaben", "reports", "einstellungen"],
+  "Management Viewer": ["dashboard", "finanzen", "entitaeten", "prognosen", "risiko", "strategie", "reports", "einstellungen"],
+  "Entity Manager": ["dashboard", "finanzen", "einkauf", "inventar", "mitarbeiter", "freigaben", "risiko", "reports", "einstellungen"],
 };
+
+export const APPROVER_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
+export const CREATE_PR_ROLES: Role[] = ["Admin", "Controller", "Procurement Manager", "Entity Manager"];
+export const INVENTORY_EDIT_ROLES: Role[] = ["Admin", "Inventory Manager", "Entity Manager"];
 
 export const ROLE_DEFS: RoleDef[] = [
   { role: "Admin", description: "Voller Zugriff auf alle Module und Einstellungen.", permissions: ["Alle Module", "Benutzerverwaltung", "Systemeinstellungen"] },

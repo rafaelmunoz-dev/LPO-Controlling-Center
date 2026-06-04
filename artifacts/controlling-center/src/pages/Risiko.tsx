@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, RiskBadge } from "@/components/shared/page";
-import { scopeByEntity, RISKS, PREMORTEMS } from "@/data";
+import { AiInsight } from "@/components/shared/AiInsight";
+import { scopeByEntity, PREMORTEMS } from "@/data";
 import type { PreMortem } from "@/data/types";
 import { ShieldAlert, TrendingUp, TrendingDown, Minus, FlaskConical } from "lucide-react";
 
@@ -20,8 +22,9 @@ function TrendIcon({ trend }: { trend: string }) {
 }
 
 export default function Risiko() {
-  const { selectedEntity } = useAppStore();
-  const risks = scopeByEntity(RISKS, selectedEntity);
+  const { t } = useTranslation();
+  const { selectedEntity, risks: allRisks } = useAppStore();
+  const risks = scopeByEntity(allRisks, selectedEntity);
   const premortems = scopeByEntity(PREMORTEMS, selectedEntity);
   const [active, setActive] = useState<PreMortem | null>(null);
 
@@ -35,21 +38,23 @@ export default function Risiko() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Risiko & Pre-Mortem" subtitle="Risikoregister & Szenarien" icon={<ShieldAlert className="h-5 w-5" />} />
+      <PageHeader title={t("risiko_premortem")} subtitle={t("risk_subtitle")} icon={<ShieldAlert className="h-5 w-5" />} />
+
+      <AiInsight context="risiko" />
 
       <Tabs defaultValue="register">
         <TabsList>
-          <TabsTrigger value="register" data-testid="tab-register">Risikoregister</TabsTrigger>
-          <TabsTrigger value="matrix" data-testid="tab-matrix">Risikomatrix</TabsTrigger>
-          <TabsTrigger value="premortem" data-testid="tab-premortem">Pre-Mortem</TabsTrigger>
+          <TabsTrigger value="register" data-testid="tab-register">{t("risk_register")}</TabsTrigger>
+          <TabsTrigger value="matrix" data-testid="tab-matrix">{t("risk_matrix")}</TabsTrigger>
+          <TabsTrigger value="premortem" data-testid="tab-premortem">{t("risk_premortem_tab")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="register">
           <Card className="glass-card">
-            <CardHeader><CardTitle>Risikoregister</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("risk_register")}</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Risiko</TableHead><TableHead>Entität</TableHead><TableHead>Wirkung</TableHead><TableHead>Wahrscheinlichkeit</TableHead><TableHead>Verantwortlich</TableHead><TableHead>Trend</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>{t("risk_risk")}</TableHead><TableHead>{t("entity")}</TableHead><TableHead>{t("risk_impact")}</TableHead><TableHead>{t("risk_probability")}</TableHead><TableHead>{t("owner")}</TableHead><TableHead>{t("risk_trend")}</TableHead><TableHead>{t("status")}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {risks.map((r) => (
                     <TableRow key={r.id} data-testid={`row-risk-${r.id}`}>
@@ -62,7 +67,7 @@ export default function Risiko() {
                       <TableCell className="text-muted-foreground">{r.status}</TableCell>
                     </TableRow>
                   ))}
-                  {risks.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Keine Risiken.</TableCell></TableRow>}
+                  {risks.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t("risk_empty")}</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
@@ -71,7 +76,7 @@ export default function Risiko() {
 
         <TabsContent value="matrix">
           <Card className="glass-card">
-            <CardHeader><CardTitle>Risikomatrix</CardTitle><p className="text-sm text-muted-foreground">Wirkung (vertikal) gegen Eintrittswahrscheinlichkeit (horizontal).</p></CardHeader>
+            <CardHeader><CardTitle>{t("risk_matrix")}</CardTitle><p className="text-sm text-muted-foreground">{t("risk_matrix_desc")}</p></CardHeader>
             <CardContent>
               <div className="grid grid-cols-[auto_repeat(3,1fr)] gap-2">
                 <div></div>
@@ -91,9 +96,9 @@ export default function Risiko() {
                 ))}
               </div>
               <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500/40" /> Gering</span>
-                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-amber-500/40" /> Mittel</span>
-                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-destructive/40" /> Kritisch</span>
+                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500/40" /> {t("risk_legend_minor")}</span>
+                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-amber-500/40" /> {t("medium")}</span>
+                <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-destructive/40" /> {t("risk_legend_critical")}</span>
               </div>
             </CardContent>
           </Card>
@@ -111,13 +116,13 @@ export default function Risiko() {
                   <p className="text-sm text-muted-foreground">{p.goal}</p>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  <div><span className="text-muted-foreground">Gefährlichstes Risiko:</span> <span className="font-medium">{p.mostDangerousRisk}</span></div>
-                  <div><span className="text-muted-foreground">Frühwarnsignale:</span> {p.earlyWarnings}</div>
-                  <div className="text-xs text-primary pt-1">Details ansehen →</div>
+                  <div><span className="text-muted-foreground">{t("risk_most_dangerous")}:</span> <span className="font-medium">{p.mostDangerousRisk}</span></div>
+                  <div><span className="text-muted-foreground">{t("risk_early_warnings")}:</span> {p.earlyWarnings}</div>
+                  <div className="text-xs text-primary pt-1">{t("risk_view_details")}</div>
                 </CardContent>
               </Card>
             ))}
-            {premortems.length === 0 && <p className="text-center text-muted-foreground py-8 col-span-2">Keine Pre-Mortem-Analysen für diese Entität.</p>}
+            {premortems.length === 0 && <p className="text-center text-muted-foreground py-8 col-span-2">{t("risk_premortem_empty")}</p>}
           </div>
         </TabsContent>
       </Tabs>
@@ -129,15 +134,15 @@ export default function Risiko() {
               <DialogHeader><DialogTitle>{active.project} · {active.entity}</DialogTitle></DialogHeader>
               <div className="space-y-3 py-1 text-sm">
                 {[
-                  ["Ziel", active.goal], ["Erwarteter Nutzen", active.expectedBenefit], ["Annahmen", active.assumptions],
-                  ["Was könnte schiefgehen?", active.whatCouldGoWrong], ["Wahrscheinlichstes Risiko", active.mostLikelyRisk],
-                  ["Gefährlichstes Risiko", active.mostDangerousRisk], ["Frühwarnsignale", active.earlyWarnings],
-                  ["Gegenmaßnahmen", active.countermeasures],
+                  [t("risk_goal"), active.goal], [t("risk_expected_benefit"), active.expectedBenefit], [t("risk_assumptions"), active.assumptions],
+                  [t("risk_what_wrong"), active.whatCouldGoWrong], [t("risk_most_likely"), active.mostLikelyRisk],
+                  [t("risk_most_dangerous"), active.mostDangerousRisk], [t("risk_early_warnings"), active.earlyWarnings],
+                  [t("risk_countermeasures"), active.countermeasures],
                 ].map(([label, val]) => (
                   <div key={label}><div className="text-muted-foreground text-xs uppercase tracking-wide">{label}</div><p className="mt-0.5">{val}</p></div>
                 ))}
                 <Separator />
-                <div className="flex justify-between text-muted-foreground"><span>Verantwortlich: <span className="text-foreground font-medium">{active.owner}</span></span><span>Review: {active.reviewDate}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>{t("owner")}: <span className="text-foreground font-medium">{active.owner}</span></span><span>{t("strat_review")}: {active.reviewDate}</span></div>
               </div>
             </>
           )}
