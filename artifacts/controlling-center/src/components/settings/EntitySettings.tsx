@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/hooks/use-app-context";
 import { getEntityComparison } from "@/data";
-import { ENTITY_EDIT_ROLES, ENTITY_ADMIN_ROLES } from "@/data/governance";
+import { ENTITY_EDIT_ROLES, ENTITY_CREATE_ROLES, userManagesEntity } from "@/data/governance";
 import type { EntityMeta } from "@/data/types";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,11 +96,12 @@ const EMPTY_FORM: EntityForm = { code: "", name: "", description: "", location: 
 
 export function EntitySettings() {
   const { t } = useTranslation();
-  const { entities, currentUser, addEntity, updateEntity, removeEntity, setEntityLogo, selectedEntity, setEntity } = useAppStore();
+  const { entities, currentUser, addEntity, updateEntity, removeEntity, setEntityLogo, selectedEntity, setEntity, addManagedEntity } = useAppStore();
   const comparison = getEntityComparison(entities);
 
   const canEdit = ENTITY_EDIT_ROLES.includes(currentUser.role);
-  const canAdmin = ENTITY_ADMIN_ROLES.includes(currentUser.role);
+  const canCreate = ENTITY_CREATE_ROLES.includes(currentUser.role);
+  const canDeleteEntity = (e: EntityMeta) => userManagesEntity(currentUser, e.code);
 
   const [editForm, setEditForm] = useState<EntityForm | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -125,7 +126,7 @@ export function EntitySettings() {
   };
 
   const saveCreate = () => {
-    if (!canAdmin) { toast.error(t("no_permission")); return; }
+    if (!canCreate) { toast.error(t("no_permission")); return; }
     const code = createForm.code.trim().toUpperCase();
     if (!code) { toast.error(t("ent_code_required")); return; }
     if (!createForm.name.trim()) { toast.error(t("ent_name_required")); return; }
@@ -141,13 +142,15 @@ export function EntitySettings() {
       employees: Math.max(0, parseInt(createForm.employees, 10) || 0),
       color: createForm.color,
     });
+    // A Geschäftsführer's new company is auto-assigned to their own group so they can manage it.
+    if (currentUser.role === "Geschäftsführer") addManagedEntity(code);
     setCreateOpen(false);
     setCreateForm(EMPTY_FORM);
     toast.success(t("ent_created"));
   };
 
   const handleDelete = (e: EntityMeta) => {
-    if (!canAdmin) { toast.error(t("no_permission")); return; }
+    if (!canDeleteEntity(e)) { toast.error(t("no_permission")); return; }
     removeEntity(e.code);
     toast.success(t("ent_deleted"));
   };
@@ -160,7 +163,7 @@ export function EntitySettings() {
             <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> {t("set_group_structure")}</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">{entities.length} {t("set_group_entities")}</p>
           </div>
-          {canAdmin && (
+          {canCreate && (
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-2" data-testid="button-create-entity"><Plus className="h-4 w-4" /> {t("ent_create")}</Button>
@@ -210,7 +213,7 @@ export function EntitySettings() {
         </div>
       </CardHeader>
       <CardContent>
-        {!canEdit && <p className="mb-4 text-sm text-muted-foreground">{t("ent_readonly_note")}</p>}
+        {!canEdit && !canCreate && <p className="mb-4 text-sm text-muted-foreground">{t("ent_readonly_note")}</p>}
         <div className="grid gap-3 md:grid-cols-2">
           {entities.map((e) => {
             const c = comparison.find((x) => x.code === e.code);
@@ -233,22 +236,24 @@ export function EntitySettings() {
                   </div>
                 </div>
 
-                {canEdit && (
+                {(canEdit || canDeleteEntity(e)) && (
                   <div className="mt-3 space-y-2 border-t border-slate-200/70 pt-3">
-                    <LogoDropzone code={e.code} onUploaded={(dataUrl) => setEntityLogo(e.code, dataUrl)} />
+                    {canEdit && <LogoDropzone code={e.code} onUploaded={(dataUrl) => setEntityLogo(e.code, dataUrl)} />}
                     <div className="flex flex-wrap items-center gap-2">
-                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openEdit(e)} data-testid={`button-edit-entity-${e.code}`}>
-                        <Pencil className="h-3.5 w-3.5" /> {t("common_edit")}
-                      </Button>
-                      {e.logo && (
+                      {canEdit && (
+                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openEdit(e)} data-testid={`button-edit-entity-${e.code}`}>
+                          <Pencil className="h-3.5 w-3.5" /> {t("common_edit")}
+                        </Button>
+                      )}
+                      {canEdit && e.logo && (
                         <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground" onClick={() => { setEntityLogo(e.code, null); toast.success(t("ent_logo_removed")); }} data-testid={`button-remove-logo-${e.code}`}>
                           <ImageOff className="h-3.5 w-3.5" /> {t("ent_logo_remove")}
                         </Button>
                       )}
-                      {active
+                      {canEdit && (active
                         ? <Badge variant="outline" className="ml-auto text-emerald-600 border-emerald-500/30 bg-emerald-500/10">{t("mit_active")}</Badge>
-                        : <Button size="sm" variant="ghost" className="ml-auto" onClick={() => { setEntity(e.code); toast.success(`${t("set_activate")}: ${e.name}`); }} data-testid={`button-activate-${e.code}`}>{t("set_activate")}</Button>}
-                      {canAdmin && (
+                        : <Button size="sm" variant="ghost" className="ml-auto" onClick={() => { setEntity(e.code); toast.success(`${t("set_activate")}: ${e.name}`); }} data-testid={`button-activate-${e.code}`}>{t("set_activate")}</Button>)}
+                      {canDeleteEntity(e) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive" data-testid={`button-delete-entity-${e.code}`}>

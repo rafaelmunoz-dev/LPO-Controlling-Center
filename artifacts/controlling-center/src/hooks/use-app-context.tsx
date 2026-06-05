@@ -65,6 +65,7 @@ export const USERS: AppUser[] = [
     language: "de",
     avatar: "/avatars/thomas.png",
     entityAccess: ["MiGu Group Gesamt", "IMP", "C&A", "MKT", "CPE", "COSM"],
+    managedEntities: ["IMP", "C&A"],
     lastActivity: "2026-05-30 09:40",
     tasks: ["Strategie Österreich freigeben", "Quartalsbericht sichten"],
   },
@@ -108,6 +109,7 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   currentUser: AppUser;
   setCurrentUser: (user: AppUser) => void;
+  addManagedEntity: (code: EntityCode) => void;
 
   isAuthenticated: boolean;
   login: (user: AppUser) => void;
@@ -198,6 +200,12 @@ export const useAppStore = create<AppState>()(
   },
   currentUser: USERS[0],
   setCurrentUser: (user) => set({ currentUser: user }),
+  addManagedEntity: (code) =>
+    set((s) => {
+      const current = s.currentUser.managedEntities ?? [];
+      if (current.includes(code)) return {};
+      return { currentUser: { ...s.currentUser, managedEntities: [...current, code] } };
+    }),
 
   isAuthenticated: false,
   login: (user) => {

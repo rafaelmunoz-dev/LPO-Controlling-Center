@@ -1,4 +1,5 @@
 import type {
+  AppUser,
   EntityCode,
   PreMortem,
   ReportDef,
@@ -107,6 +108,9 @@ export const INVENTORY_EDIT_ROLES: Role[] = ["Controller", "Finanzbuchhalter"];
 export const SETTINGS_ADMIN_ROLES: Role[] = ["Controller"];
 export const ENTITY_EDIT_ROLES: Role[] = ["Controller"];
 export const ENTITY_ADMIN_ROLES: Role[] = ["Controller"];
+// Who may create a new company. Controller adds globally; a Geschäftsführer adds
+// into their own group (the new company is auto-assigned to that group).
+export const ENTITY_CREATE_ROLES: Role[] = ["Controller", "Geschäftsführer"];
 
 export type Capability =
   | "risiko:create" | "risiko:edit" | "risiko:delete"
@@ -127,13 +131,34 @@ const ALL_CAPS: Capability[] = [
 
 export const ROLE_CAPABILITIES: Record<Role, Capability[]> = {
   Controller: [...ALL_CAPS],
-  "Geschäftsführer": [],
+  // Geschäftsführer may add/delete employees, but only within their own group
+  // (enforced via canScoped / userManagesEntity).
+  "Geschäftsführer": ["mitarbeiter:create", "mitarbeiter:delete"],
   "Finanzbuchhalter": ["inventar:create", "inventar:edit", "inventar:delete"],
   "Mitarbeiter": [],
 };
 
 export function can(role: Role, cap: Capability): boolean {
   return ROLE_CAPABILITIES[role]?.includes(cap) ?? false;
+}
+
+// The set of companies a user may manage (add/delete employees & companies within).
+export function userGroupEntities(user: AppUser): EntityCode[] {
+  return user.managedEntities ?? [];
+}
+
+// True when the user may manage the given company: Controller is always global;
+// a Geschäftsführer only for companies inside their own group.
+export function userManagesEntity(user: AppUser, entity: EntityCode): boolean {
+  if (user.role === "Controller") return true;
+  if (user.role === "Geschäftsführer") return userGroupEntities(user).includes(entity);
+  return false;
+}
+
+// Scope-aware capability check: the user's role must hold the capability AND the
+// target company must be within the user's manageable group.
+export function canScoped(user: AppUser, cap: Capability, entity: EntityCode): boolean {
+  return can(user.role, cap) && userManagesEntity(user, entity);
 }
 
 export interface RoleDefMeta {

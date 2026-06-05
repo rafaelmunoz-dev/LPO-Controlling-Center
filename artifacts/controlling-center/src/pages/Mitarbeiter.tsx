@@ -14,8 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { scopeByEntity, ENTITY_CODES } from "@/data";
-import { can } from "@/data/governance";
+import { scopeByEntity } from "@/data";
+import { can, canScoped, userGroupEntities } from "@/data/governance";
 import type { DeviceAssignment, Employee, EntityCode, EmployeeStatus } from "@/data/types";
 import { Users, CheckCircle2, Laptop, FileSignature, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,15 +35,18 @@ const emptyEmp = (entity: EntityCode): EmpForm => ({
 
 export default function Mitarbeiter() {
   const { t } = useTranslation();
-  const { selectedEntity, deviceAssignments, addDeviceAssignment, employees: allEmployees, inventory, currentUser, addEmployee, updateEmployee, removeEmployee, logAction } = useAppStore();
+  const { selectedEntity, deviceAssignments, addDeviceAssignment, employees: allEmployees, inventory, currentUser, entities, addEmployee, updateEmployee, removeEmployee, logAction } = useAppStore();
   const employees = scopeByEntity(allEmployees, selectedEntity);
   const empNames = employees.map((e) => e.name);
   const assignments = deviceAssignments.filter((a) => selectedEntity === "MiGu Group Gesamt" || empNames.includes(a.employee));
   const devices = scopeByEntity(inventory, selectedEntity).filter((i) => i.status === "verfügbar");
 
-  const canCreate = can(currentUser.role, "mitarbeiter:create");
+  // Companies the current user may add employees to: Controller → all; Geschäftsführer → their group.
+  const manageableCodes: EntityCode[] = currentUser.role === "Controller" ? entities.map((e) => e.code) : userGroupEntities(currentUser);
+  const canCreate = can(currentUser.role, "mitarbeiter:create") && manageableCodes.length > 0;
   const canEdit = can(currentUser.role, "mitarbeiter:edit");
-  const canDelete = can(currentUser.role, "mitarbeiter:delete");
+  const canDeleteAny = can(currentUser.role, "mitarbeiter:delete") && manageableCodes.length > 0;
+  const canDeleteRow = (e: Employee) => canScoped(currentUser, "mitarbeiter:delete", e.entity);
   const canAssign = can(currentUser.role, "assignment:create");
 
   const [open, setOpen] = useState(false);
@@ -56,10 +59,18 @@ export default function Mitarbeiter() {
   const [empDeleteId, setEmpDeleteId] = useState<string | null>(null);
   const [empForm, setEmpForm] = useState<EmpForm>(emptyEmp("IMP"));
 
-  const openEmpCreate = () => { setEmpEditId(null); setEmpForm(emptyEmp(selectedEntity === "MiGu Group Gesamt" ? "IMP" : (selectedEntity as EntityCode))); setEmpOpen(true); };
+  const defaultCreateEntity = (): EntityCode => {
+    if (selectedEntity !== "MiGu Group Gesamt" && manageableCodes.includes(selectedEntity as EntityCode)) return selectedEntity as EntityCode;
+    return manageableCodes[0] ?? "IMP";
+  };
+  const openEmpCreate = () => { setEmpEditId(null); setEmpForm(emptyEmp(defaultCreateEntity())); setEmpOpen(true); };
   const openEmpEdit = (e: Employee) => { setEmpEditId(e.id); setEmpForm({ name: e.name, email: e.email, entity: e.entity, department: e.department, position: e.position, startDate: e.startDate, status: e.status, location: e.location }); setEmpOpen(true); };
   const saveEmp = () => {
-    if (empEditId ? !canEdit : !canCreate) { toast.error(t("no_permission")); return; }
+    if (empEditId) {
+      if (!canEdit) { toast.error(t("no_permission")); return; }
+    } else if (!canScoped(currentUser, "mitarbeiter:create", empForm.entity)) {
+      toast.error(t("no_permission")); return;
+    }
     if (!empForm.name.trim()) { toast.error(t("name")); return; }
     if (empEditId) {
       updateEmployee(empEditId, empForm);
@@ -75,10 +86,10 @@ export default function Mitarbeiter() {
   };
   const confirmEmpDelete = () => {
     if (!empDeleteId) return;
-    if (!canDelete) { toast.error(t("no_permission")); return; }
     const e = allEmployees.find((x) => x.id === empDeleteId);
+    if (!e || !canScoped(currentUser, "mitarbeiter:delete", e.entity)) { toast.error(t("no_permission")); return; }
     removeEmployee(empDeleteId);
-    logAction(t("common_delete"), e?.name ?? empDeleteId);
+    logAction(t("common_delete"), e.name);
     toast.success(t("common_delete"));
     setEmpDeleteId(null);
   };
@@ -136,7 +147,7 @@ export default function Mitarbeiter() {
             <CardHeader><CardTitle>{t("mit_employees")}</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>{t("name")}</TableHead><TableHead>{t("mit_position")}</TableHead><TableHead>{t("mit_department")}</TableHead><TableHead>{t("entity")}</TableHead><TableHead>{t("mit_location")}</TableHead><TableHead>{t("mit_devices")}</TableHead><TableHead>{t("status")}</TableHead>{(canEdit || canDelete) && <TableHead className="text-right">{t("common_action")}</TableHead>}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>{t("name")}</TableHead><TableHead>{t("mit_position")}</TableHead><TableHead>{t("mit_department")}</TableHead><TableHead>{t("entity")}</TableHead><TableHead>{t("mit_location")}</TableHead><TableHead>{t("mit_devices")}</TableHead><TableHead>{t("status")}</TableHead>{(canEdit || canDeleteAny) && <TableHead className="text-right">{t("common_action")}</TableHead>}</TableRow></TableHeader>
                 <TableBody>
                   {employees.map((e) => (
                     <TableRow key={e.id} data-testid={`row-employee-${e.id}`}>
@@ -152,17 +163,17 @@ export default function Mitarbeiter() {
                       <TableCell className="text-muted-foreground">{e.location}</TableCell>
                       <TableCell>{e.assignedDevices.length}</TableCell>
                       <TableCell><Badge variant="outline" className={EMP_STATUS[e.status]}>{e.status}</Badge></TableCell>
-                      {(canEdit || canDelete) && (
+                      {(canEdit || canDeleteAny) && (
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
                             {canEdit && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEmpEdit(e)} data-testid={`button-edit-employee-${e.id}`}><Pencil className="h-3.5 w-3.5" /></Button>}
-                            {canDelete && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setEmpDeleteId(e.id)} data-testid={`button-delete-employee-${e.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                            {canDeleteRow(e) && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setEmpDeleteId(e.id)} data-testid={`button-delete-employee-${e.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
                           </div>
                         </TableCell>
                       )}
                     </TableRow>
                   ))}
-                  {employees.length === 0 && <TableRow><TableCell colSpan={canEdit || canDelete ? 8 : 7} className="text-center text-muted-foreground py-8">—</TableCell></TableRow>}
+                  {employees.length === 0 && <TableRow><TableCell colSpan={canEdit || canDeleteAny ? 8 : 7} className="text-center text-muted-foreground py-8">—</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
@@ -238,7 +249,7 @@ export default function Mitarbeiter() {
               <div className="space-y-1.5"><Label>{t("entity")}</Label>
                 <Select value={empForm.entity} onValueChange={(v) => setEmpForm({ ...empForm, entity: v as EntityCode })}>
                   <SelectTrigger data-testid="select-employee-entity"><SelectValue /></SelectTrigger>
-                  <SelectContent>{ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{manageableCodes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>{t("mit_location")}</Label><Input value={empForm.location} onChange={(e) => setEmpForm({ ...empForm, location: e.target.value })} data-testid="input-employee-location" /></div>

@@ -113,6 +113,9 @@ export interface AppUser {
   language: "de" | "en" | "es";
   avatar: string;
   entityAccess: ViewKey[];
+  // Companies (group) a Geschäftsführer may manage (add/delete employees & companies).
+  // Undefined/empty for non-scoped roles; Controller is global regardless of this list.
+  managedEntities?: EntityCode[];
   lastActivity: string;
   tasks: string[];
 }
