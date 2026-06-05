@@ -209,6 +209,9 @@ export interface PurchaseRequest {
   document?: string;
   documents?: string[];
   source?: "Manuell" | "Microsoft Forms";
+  paidAt?: string;
+  bankTransactionId?: string;
+  inventoryItemId?: string;
 }
 
 export type ApprovalType =

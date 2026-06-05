@@ -2,6 +2,7 @@
 - [Controlling Center theming](controlling-center-theming.md) — accent driven by one --brass token (named 'brass', now teal); sweep color literals in spaced/underscore/no-space forms.
 - [Controlling Center entities](controlling-center-entities.md) — entities are mutable store state; every list/compare/search/select consumer must read the store, not static ENTITIES/ENTITY_CODES.
 - [Radix Select avatar gotcha](radix-select-value-rendering.md) — SelectValue re-renders the selected SelectItem's full children; don't also render an icon in the trigger or it doubles.
+- [PR lifecycle cross-links](pr-lifecycle-links.md) — PRs link to bank tx + inventory; delete paths must clear back-references or the PR orphans; stage gating reuses governance constants.
 - [Controlling Center CRUD gating](controlling-center-crud-gating.md) — capability can() checks must guard BOTH the rendered buttons AND inside save/delete handlers; UI-only gating is a client-side bypass.
 - [Controlling Center scoped permissions](controlling-center-scoped-permissions.md) — Geschäftsführer add/delete employees & companies only within their group (managedEntities); use canScoped/userManagesEntity vs target company, not just can(role).
 - [OpenAI AI server lib build](openai-ai-server-lib-build.md) — referencing lib/integrations-openai-ai-server triggers TS6305 until you tsc -b its declarations; its image/client.ts has pre-existing null errors that block the build.

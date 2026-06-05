@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader, StatusBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
+import { PurchaseRequestLifecycle } from "@/components/shared/PurchaseRequestLifecycle";
 import { scopeByEntity, FORM_RESPONSES, ENTITY_CODES, formatCurrency } from "@/data";
 import { can, CREATE_PR_ROLES, APPROVER_ROLES } from "@/data/governance";
 import type { EntityCode, PurchaseRequest, Supplier } from "@/data/types";
@@ -243,12 +244,15 @@ export default function Einkauf() {
                       <TableCell>{p.source === "Microsoft Forms" ? <Badge variant="outline" className="text-xs">MS Forms</Badge> : <span className="text-muted-foreground text-xs">{p.source}</span>}</TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell className="text-right">
-                        {["Eingereicht", "In Prüfung"].includes(p.status) && (
-                          <div className="flex gap-1 justify-end">
-                            <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-emerald-600" onClick={() => { updatePRStatus(p.id, "Freigegeben"); toast.success(`${p.id} freigegeben.`); }} data-testid={`button-approve-${p.id}`}><CheckCircle2 className="h-4 w-4" /></Button>
-                            <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-destructive" onClick={() => { updatePRStatus(p.id, "Abgelehnt"); toast.error(`${p.id} abgelehnt.`); }} data-testid={`button-reject-${p.id}`}><XCircle className="h-4 w-4" /></Button>
-                          </div>
-                        )}
+                        <div className="flex gap-1 justify-end">
+                          {["Eingereicht", "In Prüfung"].includes(p.status) && (
+                            <>
+                              <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-emerald-600" onClick={() => { updatePRStatus(p.id, "Freigegeben"); toast.success(`${p.id} freigegeben.`); }} data-testid={`button-approve-${p.id}`}><CheckCircle2 className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-destructive" onClick={() => { updatePRStatus(p.id, "Abgelehnt"); toast.error(`${p.id} abgelehnt.`); }} data-testid={`button-reject-${p.id}`}><XCircle className="h-4 w-4" /></Button>
+                            </>
+                          )}
+                          <PurchaseRequestLifecycle pr={p} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -23,7 +23,7 @@ import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
 import { RISKS, STRATEGY_DECISIONS } from "@/data/governance";
 import { APPROVALS, DEVICE_ASSIGNMENTS, EMPLOYEES, INVENTORY, PURCHASE_REQUESTS, SUPPLIERS, UPLOADS } from "@/data/operations";
 import { setFormatLocale, ENTITIES, buildBalanceSeed } from "@/data";
-import { learnMapping } from "@/data/bank";
+import { learnMapping, heuristicCategory } from "@/data/bank";
 import type { CopilotContext } from "@/data/copilot";
 
 type Language = "de" | "en" | "es";
@@ -150,6 +150,9 @@ interface AppState {
   purchaseRequests: PurchaseRequest[];
   addPurchaseRequest: (p: PurchaseRequest) => void;
   updatePRStatus: (id: string, status: PurchaseRequest["status"]) => void;
+  payPurchaseRequest: (id: string) => boolean;
+  categorizePurchaseRequest: (id: string, category: string) => boolean;
+  transferPurchaseRequestToInventory: (id: string, payload: { name: string; category: InventoryItem["category"] }) => boolean;
 
   approvals: Approval[];
   updateApprovalStatus: (id: string, status: Approval["status"], approver?: string) => void;
@@ -297,7 +300,12 @@ export const useAppStore = create<AppState>()(
       };
     }),
   removeBankTransaction: (id) =>
-    set((s) => ({ bankTransactions: s.bankTransactions.filter((t) => t.id !== id) })),
+    set((s) => ({
+      bankTransactions: s.bankTransactions.filter((t) => t.id !== id),
+      purchaseRequests: s.purchaseRequests.map((p) =>
+        p.bankTransactionId === id ? { ...p, bankTransactionId: undefined } : p
+      ),
+    })),
 
   vendorMappings: [],
 
@@ -305,6 +313,87 @@ export const useAppStore = create<AppState>()(
   addPurchaseRequest: (p) => set((s) => ({ purchaseRequests: [p, ...s.purchaseRequests] })),
   updatePRStatus: (id, status) =>
     set((s) => ({ purchaseRequests: s.purchaseRequests.map((p) => (p.id === id ? { ...p, status } : p)) })),
+  payPurchaseRequest: (id) => {
+    let ok = false;
+    set((s) => {
+      const pr = s.purchaseRequests.find((p) => p.id === id);
+      if (!pr || pr.bankTransactionId) return {};
+      const today = new Date().toISOString().slice(0, 10);
+      const tx: BankTransaction = {
+        id: `BTX-${Date.now()}`,
+        date: today,
+        payee: pr.supplier,
+        description: `${pr.id} · ${pr.title}`,
+        amount: pr.amount,
+        entity: pr.entity,
+        category: heuristicCategory(pr.supplier, pr.title),
+        status: "needs-assignment",
+        suggestionSource: "heuristic",
+        suggestionReason: `Aus Kaufanfrage ${pr.id}`,
+        importedAt: today,
+      };
+      ok = true;
+      return {
+        bankTransactions: [tx, ...s.bankTransactions],
+        purchaseRequests: s.purchaseRequests.map((p) =>
+          p.id === id ? { ...p, status: "Bezahlt", paidAt: today, bankTransactionId: tx.id } : p
+        ),
+      };
+    });
+    return ok;
+  },
+  categorizePurchaseRequest: (id, category) => {
+    let ok = false;
+    set((s) => {
+      const pr = s.purchaseRequests.find((p) => p.id === id);
+      if (!pr || !pr.bankTransactionId) return {};
+      const today = new Date().toISOString().slice(0, 10);
+      let bookedTx: BankTransaction | undefined;
+      const bankTransactions = s.bankTransactions.map((t) => {
+        if (t.id !== pr.bankTransactionId) return t;
+        bookedTx = { ...t, category, status: "booked", bookedBy: s.currentUser.name, bookedAt: today };
+        return bookedTx;
+      });
+      if (!bookedTx) return {};
+      ok = true;
+      return {
+        bankTransactions,
+        vendorMappings: learnMapping(s.vendorMappings, bookedTx),
+      };
+    });
+    return ok;
+  },
+  transferPurchaseRequestToInventory: (id, payload) => {
+    let ok = false;
+    set((s) => {
+      const pr = s.purchaseRequests.find((p) => p.id === id);
+      if (!pr || pr.inventoryItemId) return {};
+      const today = new Date().toISOString().slice(0, 10);
+      const item: InventoryItem = {
+        id: `INV-${Date.now()}`,
+        inventoryNumber: `${pr.entity}-PR-${Math.floor(1000 + Math.random() * 9000)}`,
+        name: payload.name.trim() || pr.title,
+        category: payload.category,
+        entity: pr.entity,
+        location: "—",
+        assignedTo: "-",
+        condition: "Neuwertig",
+        purchaseDate: pr.paidAt ?? today,
+        purchasePrice: pr.amount,
+        currentValue: pr.amount,
+        depreciation: 0,
+        warrantyUntil: `${Number(today.slice(0, 4)) + 2}${today.slice(4)}`,
+        status: "verfügbar",
+        note: `Aus Kaufanfrage ${pr.id}`,
+      };
+      ok = true;
+      return {
+        inventory: [item, ...s.inventory],
+        purchaseRequests: s.purchaseRequests.map((p) => (p.id === id ? { ...p, inventoryItemId: item.id } : p)),
+      };
+    });
+    return ok;
+  },
 
   approvals: APPROVALS,
   updateApprovalStatus: (id, status, approver) =>
@@ -331,7 +420,13 @@ export const useAppStore = create<AppState>()(
   inventory: INVENTORY.map((i) => ({ ...i })),
   addInventoryItem: (i) => set((st) => ({ inventory: [i, ...st.inventory] })),
   updateInventoryItem: (id, patch) => set((st) => ({ inventory: st.inventory.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
-  removeInventoryItem: (id) => set((st) => ({ inventory: st.inventory.filter((i) => i.id !== id) })),
+  removeInventoryItem: (id) =>
+    set((st) => ({
+      inventory: st.inventory.filter((i) => i.id !== id),
+      purchaseRequests: st.purchaseRequests.map((p) =>
+        p.inventoryItemId === id ? { ...p, inventoryItemId: undefined } : p
+      ),
+    })),
 
   strategyDecisions: STRATEGY_DECISIONS.map((d) => ({ ...d })),
   addStrategyDecision: (d) => set((st) => ({ strategyDecisions: [d, ...st.strategyDecisions] })),
