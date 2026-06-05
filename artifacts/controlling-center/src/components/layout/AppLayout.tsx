@@ -9,7 +9,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <Topbar />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 p-6 bg-slate-50/50 dark:bg-slate-900/50">
+        <main className="flex-1 p-6 bg-white dark:bg-slate-900/50">
           {children}
         </main>
         <CopilotPanel />
