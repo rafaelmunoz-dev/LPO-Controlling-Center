@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { ENTITY_CODES, MS_ADAPTERS } from "@/data";
+import { MS_ADAPTERS, groupViewKey, labelForView } from "@/data";
 import { EntitySettings } from "@/components/settings/EntitySettings";
 import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS, SETTINGS_ADMIN_ROLES } from "@/data/governance";
 import type { ViewKey, MsAdapter } from "@/data/types";
@@ -30,8 +30,6 @@ const LANGS: { code: "de" | "en" | "es"; label: string }[] = [
   { code: "en", label: "English" },
   { code: "es", label: "Español" },
 ];
-
-const ENTITY_VIEWS: ViewKey[] = ["MiGu Group Gesamt", ...ENTITY_CODES];
 
 const NAV_LABELS: Record<string, string> = {
   dashboard: "dashboard", finanzen: "finanzen", entitaeten: "entitaeten", einkauf: "einkauf", inventar: "inventar",
@@ -57,9 +55,14 @@ const EXTERNAL_APPS = [
 ];
 
 export default function Einstellungen() {
-  const { language, setLanguage, currentUser, setCurrentUser, selectedEntity, setEntity, entities } = useAppStore();
+  const { language, setLanguage, currentUser, setCurrentUser, selectedEntity, setEntity, entities, groups } = useAppStore();
   const canAdminSettings = SETTINGS_ADMIN_ROLES.includes(currentUser.role);
-  const entityViews: ViewKey[] = ["MiGu Group Gesamt", ...entities.map((e) => e.code)];
+  const entityViews: ViewKey[] = groups
+    .filter((g) => !g.archived)
+    .flatMap((g) => [
+      groupViewKey(g.id) as ViewKey,
+      ...entities.filter((e) => e.groupId === g.id && !e.archived).map((e) => e.code as ViewKey),
+    ]);
   const { t, i18n } = useTranslation();
   const [notifications, setNotifications] = useState({ approvals: true, risks: true, reports: false, sync: true });
   const [adapters, setAdapters] = useState<AdapterState[]>(
@@ -279,9 +282,9 @@ export default function Einstellungen() {
               <Separator />
               <div className="space-y-1.5">
                 <Label>{t("default_entity")}</Label>
-                <Select value={selectedEntity} onValueChange={(v) => { setEntity(v as typeof selectedEntity); toast.success(`Standard-Entität: ${v}`); }}>
+                <Select value={selectedEntity} onValueChange={(v) => { setEntity(v as typeof selectedEntity); toast.success(`Standard-Entität: ${labelForView(v as ViewKey)}`); }}>
                   <SelectTrigger data-testid="select-default-entity"><SelectValue /></SelectTrigger>
-                  <SelectContent>{entityViews.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+                  <SelectContent>{entityViews.map((v) => <SelectItem key={v} value={v}>{labelForView(v)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">

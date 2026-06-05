@@ -1,8 +1,20 @@
 export type EntityCode = "IMP" | "C&A" | "MKT" | "CPE" | "COSM" | (string & {});
-export type ViewKey = "MiGu Group Gesamt" | EntityCode;
+// A group-total view is encoded as `group:<groupId>`. Firm views are the raw
+// entity code. Legacy stores used the literal "MiGu Group Gesamt" which is
+// migrated to `group:migu`.
+export type GroupViewKey = `group:${string}`;
+export type ViewKey = GroupViewKey | EntityCode;
 
 export type RiskLevel = "Niedrig" | "Mittel" | "Hoch";
 export type Trend = "up" | "down" | "flat";
+
+// A company group aggregates several firms into one total view. Groups are
+// first-class, mutable store state: they can be created, renamed and archived.
+export interface CompanyGroup {
+  id: string;
+  name: string;
+  archived?: boolean;
+}
 
 export interface EntityMeta {
   code: EntityCode;
@@ -12,6 +24,10 @@ export interface EntityMeta {
   employees: number;
   color: string;
   logo?: string;
+  // The group this firm belongs to (CompanyGroup.id).
+  groupId: string;
+  // Soft-archived firms are hidden from all live views/lists but never deleted.
+  archived?: boolean;
 }
 
 export interface MonthPoint {

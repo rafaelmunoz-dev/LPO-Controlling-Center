@@ -13,4 +13,4 @@ Entities in the LPO Controlling Center are mutable runtime state in the app stor
 - `getEntityComparison(entities)` accepts a list — pass the store's entities.
 - `searchAll(query, t, entities)` takes an optional entities arg (defaults to static for back-compat) — Topbar passes the store list.
 - Unknown/new entity codes are safe in finance via a deterministic `fallbackProfile`/`profileFor`, so getters won't crash on codes not in the seed.
-- `removeEntity` resets `selectedEntity` to the group view (`"MiGu Group Gesamt"`) when the active entity is deleted, to avoid stale selection.
+- Entities are now soft-archive only (no hard delete); every list/compare/search/select consumer must also exclude `archived` firms, and the active selection resets to a group view (`group:<id>`, no longer the literal `"MiGu Group Gesamt"`).

@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, RiskBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { scopeByEntity, PREMORTEMS, ENTITY_CODES } from "@/data";
+import { scopeByEntity, PREMORTEMS, defaultFirmForView } from "@/data";
 import { can } from "@/data/governance";
 import type { PreMortem, Risk, EntityCode, RiskLevel } from "@/data/types";
 import { ShieldAlert, TrendingUp, TrendingDown, Minus, FlaskConical, Plus, Pencil, Trash2 } from "lucide-react";
@@ -35,7 +35,7 @@ const emptyRisk = (entity: EntityCode): RiskForm => ({ title: "", entity, impact
 
 export default function Risiko() {
   const { t } = useTranslation();
-  const { selectedEntity, risks: allRisks, currentUser, addRisk, updateRisk, removeRisk, logAction } = useAppStore();
+  const { selectedEntity, risks: allRisks, currentUser, addRisk, updateRisk, removeRisk, logAction, entities } = useAppStore();
   const risks = scopeByEntity(allRisks, selectedEntity);
   const premortems = scopeByEntity(PREMORTEMS, selectedEntity);
   const [active, setActive] = useState<PreMortem | null>(null);
@@ -50,7 +50,7 @@ export default function Risiko() {
 
   const openCreate = () => {
     setEditId(null);
-    setForm(emptyRisk(selectedEntity === "MiGu Group Gesamt" ? "IMP" : (selectedEntity as EntityCode)));
+    setForm(emptyRisk(defaultFirmForView(selectedEntity) ?? "IMP"));
     setOpen(true);
   };
   const openEdit = (r: Risk) => { setEditId(r.id); setForm({ ...r }); setOpen(true); };
@@ -218,7 +218,7 @@ export default function Risiko() {
               <div className="space-y-1.5"><Label>{t("entity")}</Label>
                 <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode })}>
                   <SelectTrigger data-testid="select-risk-entity"><SelectValue /></SelectTrigger>
-                  <SelectContent>{ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{entities.filter((e) => !e.archived).map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>{t("owner")}</Label><Input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} /></div>

@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { scopeByEntity } from "@/data";
+import { scopeByEntity, isGroupView } from "@/data";
 import { can, canScoped, userGroupEntities } from "@/data/governance";
 import type { DeviceAssignment, Employee, EntityCode, EmployeeStatus } from "@/data/types";
 import { Users, CheckCircle2, Laptop, FileSignature, Plus, Pencil, Trash2 } from "lucide-react";
@@ -38,11 +38,11 @@ export default function Mitarbeiter() {
   const { selectedEntity, deviceAssignments, addDeviceAssignment, employees: allEmployees, inventory, currentUser, entities, addEmployee, updateEmployee, removeEmployee, logAction } = useAppStore();
   const employees = scopeByEntity(allEmployees, selectedEntity);
   const empNames = employees.map((e) => e.name);
-  const assignments = deviceAssignments.filter((a) => selectedEntity === "MiGu Group Gesamt" || empNames.includes(a.employee));
+  const assignments = deviceAssignments.filter((a) => isGroupView(selectedEntity) || empNames.includes(a.employee));
   const devices = scopeByEntity(inventory, selectedEntity).filter((i) => i.status === "verfügbar");
 
   // Companies the current user may add employees to: Controller → all; Geschäftsführer → their group.
-  const manageableCodes: EntityCode[] = currentUser.role === "Controller" ? entities.map((e) => e.code) : userGroupEntities(currentUser);
+  const manageableCodes: EntityCode[] = currentUser.role === "Controller" ? entities.filter((e) => !e.archived).map((e) => e.code) : userGroupEntities(currentUser);
   const canCreate = can(currentUser.role, "mitarbeiter:create") && manageableCodes.length > 0;
   const canEdit = can(currentUser.role, "mitarbeiter:edit");
   const canDeleteAny = can(currentUser.role, "mitarbeiter:delete") && manageableCodes.length > 0;
@@ -60,7 +60,7 @@ export default function Mitarbeiter() {
   const [empForm, setEmpForm] = useState<EmpForm>(emptyEmp("IMP"));
 
   const defaultCreateEntity = (): EntityCode => {
-    if (selectedEntity !== "MiGu Group Gesamt" && manageableCodes.includes(selectedEntity as EntityCode)) return selectedEntity as EntityCode;
+    if (!isGroupView(selectedEntity) && manageableCodes.includes(selectedEntity as EntityCode)) return selectedEntity as EntityCode;
     return manageableCodes[0] ?? "IMP";
   };
   const openEmpCreate = () => { setEmpEditId(null); setEmpForm(emptyEmp(defaultCreateEntity())); setEmpOpen(true); };

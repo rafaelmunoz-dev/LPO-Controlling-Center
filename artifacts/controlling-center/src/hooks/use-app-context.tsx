@@ -6,6 +6,7 @@ import type {
   AuditEntry,
   BalanceLineItem,
   BankTransaction,
+  CompanyGroup,
   DeviceAssignment,
   Employee,
   EntityCode,
@@ -22,7 +23,16 @@ import type {
 import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
 import { RISKS, STRATEGY_DECISIONS } from "@/data/governance";
 import { APPROVALS, DEVICE_ASSIGNMENTS, EMPLOYEES, INVENTORY, PURCHASE_REQUESTS, SUPPLIERS, UPLOADS } from "@/data/operations";
-import { setFormatLocale, ENTITIES, buildBalanceSeed } from "@/data";
+import {
+  setFormatLocale,
+  ENTITIES,
+  buildBalanceSeed,
+  GROUPS,
+  DEFAULT_GROUP_ID,
+  groupViewKey,
+  groupIdFromView,
+  setRegistry,
+} from "@/data";
 import { learnMapping, heuristicCategory } from "@/data/bank";
 import type { CopilotContext } from "@/data/copilot";
 
@@ -56,7 +66,7 @@ export const USERS: AppUser[] = [
     email: "m.keller@lpo-group.com",
     language: "de",
     avatar: "/avatars/maria.png",
-    entityAccess: ["MiGu Group Gesamt", "IMP", "C&A", "MKT", "CPE", "COSM"],
+    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "IMP", "C&A", "MKT", "CPE", "COSM"],
     lastActivity: "2026-05-30 09:12",
     tasks: ["Freigabe Baukran Q3 prüfen", "Monatsabschluss Mai abschließen"],
   },
@@ -68,7 +78,7 @@ export const USERS: AppUser[] = [
     email: "c.hoffmann@migu-group.com",
     language: "de",
     avatar: "/avatars/clara.png",
-    entityAccess: ["MiGu Group Gesamt", "IMP", "C&A", "MKT", "CPE", "COSM"],
+    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "IMP", "C&A", "MKT", "CPE", "COSM"],
     managedEntities: ["IMP", "C&A", "MKT", "CPE", "COSM"],
     lastActivity: "2026-05-30 09:40",
     tasks: ["Strategie Österreich freigeben", "Quartalsbericht sichten"],
@@ -81,7 +91,7 @@ export const USERS: AppUser[] = [
     email: "d.weber@lpo-group.com",
     language: "de",
     avatar: "/avatars/daniel.png",
-    entityAccess: ["MiGu Group Gesamt", "IMP", "C&A"],
+    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "IMP", "C&A"],
     lastActivity: "2026-05-30 08:47",
     tasks: ["Bankauszug Mai hochladen", "Inventar IMP ausbuchen"],
   },
@@ -93,7 +103,7 @@ export const USERS: AppUser[] = [
     email: "s.martin@lpo-group.com",
     language: "es",
     avatar: "/avatars/sofia.png",
-    entityAccess: ["MiGu Group Gesamt", "COSM", "CPE", "MKT"],
+    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "COSM", "CPE", "MKT"],
     lastActivity: "2026-05-29 17:33",
     tasks: ["Kaufanfrage PR-2048 einreichen"],
   },
@@ -122,8 +132,15 @@ interface AppState {
   entities: EntityMeta[];
   addEntity: (meta: EntityMeta) => void;
   updateEntity: (code: EntityCode, patch: Partial<Omit<EntityMeta, "code">>) => void;
-  removeEntity: (code: EntityCode) => void;
+  archiveEntity: (code: EntityCode) => void;
+  restoreEntity: (code: EntityCode) => void;
   setEntityLogo: (code: EntityCode, logo: string | null) => void;
+
+  groups: CompanyGroup[];
+  addGroup: (name: string) => string;
+  renameGroup: (id: string, name: string) => void;
+  archiveGroup: (id: string) => void;
+  restoreGroup: (id: string) => void;
 
   copilotOpen: boolean;
   setCopilotOpen: (open: boolean) => void;
@@ -206,10 +223,19 @@ setFormatLocale("de");
 
 const nowStamp = () => new Date().toISOString().slice(0, 16).replace("T", " ");
 
+// First non-archived view to fall back to when the current selection is
+// archived: the first active group total, else the first active firm.
+function firstActiveView(groups: CompanyGroup[], entities: EntityMeta[]): ViewKey {
+  const g = groups.find((x) => !x.archived);
+  if (g) return groupViewKey(g.id);
+  const e = entities.find((x) => !x.archived);
+  return e ? e.code : groupViewKey(DEFAULT_GROUP_ID);
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-  selectedEntity: "MiGu Group Gesamt",
+  selectedEntity: groupViewKey(DEFAULT_GROUP_ID),
   setEntity: (entity) => set({ selectedEntity: entity }),
   period: "Mai 2026",
   setPeriod: (period) => set({ period }),
@@ -255,13 +281,46 @@ export const useAppStore = create<AppState>()(
   addEntity: (meta) => set((s) => ({ entities: [...s.entities, meta] })),
   updateEntity: (code, patch) =>
     set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, ...patch } : e)) })),
-  removeEntity: (code) =>
-    set((s) => ({
-      entities: s.entities.filter((e) => e.code !== code),
-      selectedEntity: s.selectedEntity === code ? "MiGu Group Gesamt" : s.selectedEntity,
-    })),
+  archiveEntity: (code) =>
+    set((s) => {
+      const entities = s.entities.map((e) => (e.code === code ? { ...e, archived: true } : e));
+      return {
+        entities,
+        selectedEntity: s.selectedEntity === code ? firstActiveView(s.groups, entities) : s.selectedEntity,
+      };
+    }),
+  restoreEntity: (code) =>
+    set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, archived: false } : e)) })),
   setEntityLogo: (code, logo) =>
     set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, logo: logo ?? undefined } : e)) })),
+
+  groups: GROUPS.map((g) => ({ ...g })),
+  addGroup: (name) => {
+    const id = `g-${Date.now()}`;
+    set((s) => ({ groups: [...s.groups, { id, name }] }));
+    return id;
+  },
+  renameGroup: (id, name) =>
+    set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, name } : g)) })),
+  // Archiving a group cascades to all its firms (soft); selection falls back to
+  // the first remaining active view so the app never shows an archived view.
+  archiveGroup: (id) =>
+    set((s) => {
+      const groups = s.groups.map((g) => (g.id === id ? { ...g, archived: true } : g));
+      const entities = s.entities.map((e) => (e.groupId === id ? { ...e, archived: true } : e));
+      const selFirm = entities.find((e) => e.code === s.selectedEntity);
+      const selInGroup = groupIdFromView(s.selectedEntity) === id || (selFirm?.groupId === id);
+      return {
+        groups,
+        entities,
+        selectedEntity: selInGroup ? firstActiveView(groups, entities) : s.selectedEntity,
+      };
+    }),
+  restoreGroup: (id) =>
+    set((s) => ({
+      groups: s.groups.map((g) => (g.id === id ? { ...g, archived: false } : g)),
+      entities: s.entities.map((e) => (e.groupId === id ? { ...e, archived: false } : e)),
+    })),
 
   copilotOpen: false,
   setCopilotOpen: (open) => set({ copilotOpen: open }),
@@ -497,6 +556,40 @@ export const useAppStore = create<AppState>()(
             state.isAuthenticated = false;
           }
         }
+        // v5: groups become first-class. Seed a default group, give every firm a
+        // groupId/archived default, and remap the legacy group view key.
+        if (state && version < 5) {
+          const OLD = "MiGu Group Gesamt";
+          const NEW = groupViewKey(DEFAULT_GROUP_ID);
+          const anyState = state as Record<string, unknown>;
+          if (!Array.isArray(anyState.groups) || (anyState.groups as unknown[]).length === 0) {
+            anyState.groups = GROUPS.map((g) => ({ ...g }));
+          }
+          if (Array.isArray(state.entities)) {
+            state.entities = state.entities.map((e) => ({
+              ...e,
+              groupId: e.groupId ?? DEFAULT_GROUP_ID,
+              archived: e.archived ?? false,
+            }));
+          }
+          if ((state.selectedEntity as string) === OLD) state.selectedEntity = NEW;
+          if (Array.isArray(state.balanceItems)) {
+            state.balanceItems = state.balanceItems.map((b) =>
+              (b.view as string) === OLD ? { ...b, view: NEW } : b
+            );
+          }
+          if (state.currentUser && Array.isArray(state.currentUser.entityAccess)) {
+            state.currentUser = {
+              ...state.currentUser,
+              entityAccess: state.currentUser.entityAccess.map((v) => ((v as string) === OLD ? NEW : v)),
+            };
+          }
+          if (Array.isArray(state.reportDrafts)) {
+            state.reportDrafts = state.reportDrafts.map((d) =>
+              (d.entity as string) === OLD ? { ...d, entity: NEW } : d
+            );
+          }
+        }
         return state as AppState;
       },
       partialize: (s) => ({
@@ -506,6 +599,7 @@ export const useAppStore = create<AppState>()(
         currentUser: s.currentUser,
         isAuthenticated: s.isAuthenticated,
         entities: s.entities,
+        groups: s.groups,
         uploads: s.uploads,
         purchaseRequests: s.purchaseRequests,
         approvals: s.approvals,
@@ -523,8 +617,16 @@ export const useAppStore = create<AppState>()(
         vendorMappings: s.vendorMappings,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state) setFormatLocale(state.language);
+        if (state) {
+          setFormatLocale(state.language);
+          setRegistry(state.entities, state.groups);
+        }
       },
     }
   )
 );
+
+// Keep the data-layer registry (used by finance/scope helpers) in sync with the
+// live store so group totals and scoping always reflect current state.
+setRegistry(useAppStore.getState().entities, useAppStore.getState().groups);
+useAppStore.subscribe((s) => setRegistry(s.entities, s.groups));

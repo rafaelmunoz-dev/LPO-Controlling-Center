@@ -1,6 +1,8 @@
 import type { EntityCode, ViewKey } from "./types";
+import { entityCodesForView } from "./groups";
 
 export * from "./types";
+export * from "./groups";
 export * from "./finance";
 export * from "./operations";
 export * from "./governance";
@@ -9,9 +11,11 @@ export * from "./glossary";
 export * from "./search";
 export * from "./bank";
 
+// Scope items to the active view: a group view expands to its non-archived
+// firms; a firm view matches just that firm.
 export function scopeByEntity<T extends { entity: EntityCode }>(items: T[], view: ViewKey): T[] {
-  if (view === "MiGu Group Gesamt") return items;
-  return items.filter((i) => i.entity === view);
+  const codes = new Set(entityCodesForView(view));
+  return items.filter((i) => codes.has(i.entity));
 }
 
 export type AppLang = "de" | "en" | "es";

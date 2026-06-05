@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { answerCopilot, getCopilotSuggestions } from "@/data";
+import { answerCopilot, getCopilotSuggestions, defaultFirmForView } from "@/data";
 import { can } from "@/data/governance";
 import type { EntityCode, Risk } from "@/data/types";
 
@@ -75,7 +75,7 @@ export function CopilotPanel() {
   };
   const toRisk = (m: Msg) => {
     if (!canRisk) { toast.error(t("no_permission")); return; }
-    const entity: EntityCode = selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity;
+    const entity: EntityCode = defaultFirmForView(selectedEntity) ?? "IMP";
     const risk: Risk = {
       id: `R-${Date.now()}`,
       title: m.question ?? "Copilot-Risiko",

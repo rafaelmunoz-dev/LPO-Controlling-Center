@@ -12,13 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
 import { can } from "@/data/governance";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { REPORTS, getFinance, getEntityComparison, formatCurrency, ENTITY_CODES } from "@/data";
+import { REPORTS, getFinance, getEntityComparison, formatCurrency, groupViewKey, labelForView } from "@/data";
 import type { ViewKey } from "@/data/types";
 import { FileBarChart, Download, FileText, Calendar, Save, Sparkles, FileSpreadsheet, FileType } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 
-const ENTITY_VIEWS: ViewKey[] = ["MiGu Group Gesamt", ...ENTITY_CODES];
 const PERIODS = ["Mai 2026", "Q2 2026", "Geschäftsjahr 2026"];
 const SECTIONS: { key: string; labelKey: string }[] = [
   { key: "kpis", labelKey: "rep_sec_kpis" },
@@ -29,8 +28,14 @@ const SECTIONS: { key: string; labelKey: string }[] = [
 
 export default function Reports() {
   const { t } = useTranslation();
-  const { selectedEntity, reportDrafts, addReportDraft, currentUser } = useAppStore();
+  const { selectedEntity, reportDrafts, addReportDraft, currentUser, groups, entities } = useAppStore();
   const canCreate = can(currentUser.role, "reports:create");
+  const entityViews: ViewKey[] = groups
+    .filter((g) => !g.archived)
+    .flatMap((g) => [
+      groupViewKey(g.id) as ViewKey,
+      ...entities.filter((e) => e.groupId === g.id && !e.archived).map((e) => e.code as ViewKey),
+    ]);
   const [generating, setGenerating] = useState(false);
   const [title, setTitle] = useState("Controlling-Bericht");
   const [type, setType] = useState("Monatsbericht");
@@ -193,7 +198,7 @@ export default function Reports() {
               <Label>{t("entity")}</Label>
               <Select value={entity} onValueChange={(v) => setEntity(v as ViewKey)}>
                 <SelectTrigger data-testid="select-report-entity"><SelectValue /></SelectTrigger>
-                <SelectContent>{ENTITY_VIEWS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+                <SelectContent>{entityViews.map((v) => <SelectItem key={v} value={v}>{labelForView(v)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">

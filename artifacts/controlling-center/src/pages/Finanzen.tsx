@@ -25,6 +25,10 @@ import {
   getEntityComparison,
   getFinance,
   applyBookingsToBudget,
+  isGroupView,
+  groupViewKey,
+  labelForView,
+  DEFAULT_GROUP_ID,
 } from "@/data";
 import { can } from "@/data/governance";
 import { CHART, PIE_COLORS } from "@/lib/chart";
@@ -269,7 +273,7 @@ export default function Finanzen() {
   const { currency, compact, number } = useFormat();
   const plo = getPLOverview(selectedEntity);
   const cf = getCashflow(selectedEntity);
-  const isGroup = selectedEntity === "MiGu Group Gesamt";
+  const isGroup = isGroupView(selectedEntity);
   const bookedByCategory = bankTransactions.reduce<Record<string, number>>((acc, tx) => {
     if (tx.status !== "booked" || !tx.category) return acc;
     if (!isGroup && tx.entity !== selectedEntity) return acc;
@@ -278,7 +282,11 @@ export default function Finanzen() {
   }, {});
   const budget = applyBookingsToBudget(getBudget(selectedEntity), bookedByCategory);
   const comparison = getEntityComparison(entities);
-  const group = getFinance("MiGu Group Gesamt");
+  // Consolidation shows the total of the group the current view belongs to.
+  const groupView = isGroup
+    ? selectedEntity
+    : groupViewKey(entities.find((e) => e.code === selectedEntity)?.groupId ?? DEFAULT_GROUP_ID);
+  const group = getFinance(groupView);
 
   return (
     <div className="space-y-6">
@@ -418,7 +426,7 @@ export default function Finanzen() {
                     </TableRow>
                   ))}
                   <TableRow className="bg-primary/5 font-semibold">
-                    <TableCell>{t("all_entities")}</TableCell>
+                    <TableCell>{labelForView(groupView)}</TableCell>
                     <TableCell className="text-right">{compact(group.revenue)}</TableCell>
                     <TableCell className="text-right">{compact(group.ebitda)}</TableCell>
                     <TableCell className="text-right">{compact(group.netProfit)}</TableCell>

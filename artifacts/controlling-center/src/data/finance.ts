@@ -13,16 +13,29 @@ import type {
   RiskLevel,
   ViewKey,
 } from "./types";
+import {
+  DEFAULT_GROUP_ID,
+  GROUPS,
+  firmsInGroup,
+  groupIdFromView,
+  groupViewKey,
+  isGroupView,
+  setRegistry,
+} from "./groups";
 
 export const ENTITY_CODES: EntityCode[] = ["IMP", "C&A", "MKT", "CPE", "COSM"];
 
 export const ENTITIES: EntityMeta[] = [
-  { code: "IMP", name: "MiGu Import GmbH", description: "Import & Handel von Industriegütern", location: "Hamburg", employees: 84, color: "#3b82f6" },
-  { code: "C&A", name: "MiGu Construction & Assembly", description: "Bau, Montage & technische Dienstleistungen", location: "Dortmund", employees: 142, color: "#f59e0b" },
-  { code: "MKT", name: "MiGu Marketing AG", description: "Marketing, Werbung & Kreativdienste", location: "Berlin", employees: 46, color: "#8b5cf6" },
-  { code: "CPE", name: "MiGu Capital Equipment", description: "Maschinen, Anlagen & Vermietung", location: "München", employees: 67, color: "#10b981" },
-  { code: "COSM", name: "MiGu Cosmetics GmbH", description: "Kosmetik & Konsumgüter", location: "Düsseldorf", employees: 53, color: "#f43f5e" },
+  { code: "IMP", name: "MiGu Import GmbH", description: "Import & Handel von Industriegütern", location: "Hamburg", employees: 84, color: "#3b82f6", groupId: DEFAULT_GROUP_ID },
+  { code: "C&A", name: "MiGu Construction & Assembly", description: "Bau, Montage & technische Dienstleistungen", location: "Dortmund", employees: 142, color: "#f59e0b", groupId: DEFAULT_GROUP_ID },
+  { code: "MKT", name: "MiGu Marketing AG", description: "Marketing, Werbung & Kreativdienste", location: "Berlin", employees: 46, color: "#8b5cf6", groupId: DEFAULT_GROUP_ID },
+  { code: "CPE", name: "MiGu Capital Equipment", description: "Maschinen, Anlagen & Vermietung", location: "München", employees: 67, color: "#10b981", groupId: DEFAULT_GROUP_ID },
+  { code: "COSM", name: "MiGu Cosmetics GmbH", description: "Kosmetik & Konsumgüter", location: "Düsseldorf", employees: 53, color: "#f43f5e", groupId: DEFAULT_GROUP_ID },
 ];
+
+// Seed the live registry with curated data so first-render aggregation (and the
+// balance-sheet seed below) is correct before the store hydrates and takes over.
+setRegistry(ENTITIES, GROUPS);
 
 interface EntityProfile {
   revenue: number;
@@ -83,9 +96,20 @@ function profileToFinance(view: ViewKey, p: EntityProfile): EntityFinance {
   };
 }
 
-function groupProfile(): EntityProfile {
-  const sum = (sel: (p: EntityProfile) => number) => ENTITY_CODES.reduce((a, c) => a + sel(PROFILES[c]), 0);
+const ZERO_PROFILE: EntityProfile = {
+  revenue: 0, ebitdaMargin: 0, netMargin: 0, cash: 0, cashRunway: 0,
+  openInvoices: 0, openInvoicesCount: 0, riskLevel: "Niedrig",
+  revenueChange: 0, ebitdaChange: 0, marginChange: 0, netChange: 0, cashChange: 0,
+};
+
+// Aggregate the (non-archived) firms of a single group into one total profile.
+// Empty groups return zeros so weighted averages never divide by zero.
+function groupProfile(groupId: string): EntityProfile {
+  const codes = firmsInGroup(groupId).map((e) => e.code);
+  if (codes.length === 0) return { ...ZERO_PROFILE };
+  const sum = (sel: (p: EntityProfile) => number) => codes.reduce((a, c) => a + sel(profileFor(c)), 0);
   const revenue = sum((p) => p.revenue);
+  if (revenue === 0) return { ...ZERO_PROFILE };
   const ebitda = sum((p) => p.revenue * p.ebitdaMargin);
   const net = sum((p) => p.revenue * p.netMargin);
   const cash = sum((p) => p.cash);
@@ -144,7 +168,8 @@ function profileFor(code: ViewKey): EntityProfile {
 }
 
 export function getFinance(view: ViewKey): EntityFinance {
-  if (view === "MiGu Group Gesamt") return profileToFinance(view, groupProfile());
+  const gid = groupIdFromView(view);
+  if (gid) return profileToFinance(view, groupProfile(gid));
   return profileToFinance(view, profileFor(view));
 }
 
@@ -161,7 +186,7 @@ export interface EntityComparisonRow {
 }
 
 export function getEntityComparison(entities: EntityMeta[] = ENTITIES): EntityComparisonRow[] {
-  return entities.map((e) => {
+  return entities.filter((e) => !e.archived).map((e) => {
     const p = profileFor(e.code);
     const f = profileToFinance(e.code, p);
     return {
@@ -359,7 +384,7 @@ export function getBalanceSheet(view: ViewKey): { assets: BalanceRow[]; liabilit
 // Views that receive seeded, user-editable balance-sheet line items: the group
 // view plus every curated entity. Entities created at runtime start with an
 // empty balance sheet that the user fills in via the UI.
-export const BALANCE_SEED_VIEWS: ViewKey[] = ["MiGu Group Gesamt", ...ENTITY_CODES];
+export const BALANCE_SEED_VIEWS: ViewKey[] = [groupViewKey(DEFAULT_GROUP_ID), ...ENTITY_CODES];
 
 // Materialise the computed balance sheet for every seeded view into flat,
 // mutable line items that live in the persisted store. Once seeded, totals are
@@ -400,9 +425,9 @@ export function getForecasts(view: ViewKey): ForecastSeries[] {
     mk("Umsatz", "€", f.revenue / 4, 0.08),
     mk("Kosten", "€", (f.revenue - f.ebitda) / 4, 0.05),
     mk("Liquidität", "€", f.cash, 0.04),
-    mk("Personalbedarf", "FTE", view === "MiGu Group Gesamt" ? 392 : 60, 0.06),
+    mk("Personalbedarf", "FTE", isGroupView(view) ? 392 : 60, 0.06),
     mk("Einkauf", "€", (f.revenue * 0.6) / 4, 0.07),
-    mk("Inventarbedarf", "Stück", view === "MiGu Group Gesamt" ? 240 : 48, 0.05),
+    mk("Inventarbedarf", "Stück", isGroupView(view) ? 240 : 48, 0.05),
     mk("Investitionen", "€", (f.revenue * 0.06) / 4, 0.03),
   ];
 }

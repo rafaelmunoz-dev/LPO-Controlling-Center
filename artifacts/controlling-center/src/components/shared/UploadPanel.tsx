@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useAppStore } from "@/hooks/use-app-context";
 import { UPLOAD_ROLES, UPLOAD_PROCESS_ROLES } from "@/data/governance";
-import { ENTITY_CODES, scopeByEntity, formatDate } from "@/data";
+import { defaultFirmForView, scopeByEntity, formatDate } from "@/data";
 import type { DocType, EntityCode, UploadItem } from "@/data/types";
 import { StatusBadge } from "@/components/shared/page";
 
@@ -34,14 +34,14 @@ interface Props {
 
 export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
   const { t } = useTranslation();
-  const { uploads, addUpload, updateUploadStatus, selectedEntity, currentUser } = useAppStore();
+  const { uploads, addUpload, updateUploadStatus, selectedEntity, currentUser, entities } = useAppStore();
   const canUpload = UPLOAD_ROLES.includes(currentUser.role);
   const canProcess = UPLOAD_PROCESS_ROLES.includes(currentUser.role);
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState("");
   const [docType, setDocType] = useState<DocType>(defaultDocType);
   const [entity, setEntity] = useState<EntityCode>(
-    selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity
+    defaultFirmForView(selectedEntity) ?? "IMP"
   );
   const [format, setFormat] = useState<UploadItem["format"]>("Excel");
   const [period, setPeriod] = useState("2026-05");
@@ -120,7 +120,7 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
                   <Select value={entity} onValueChange={(v) => setEntity(v as EntityCode)}>
                     <SelectTrigger data-testid="select-upload-entity"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {entities.filter((e) => !e.archived).map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

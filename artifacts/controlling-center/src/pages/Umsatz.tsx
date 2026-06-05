@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { getEntityComparison, getFinance, formatCompact, formatCurrency, formatPercent } from "@/data";
+import { getEntityComparison, getFinance, formatCompact, formatCurrency, formatPercent, isGroupView, groupIdFromView } from "@/data";
 import { Coins, TrendingUp, Users, Trophy } from "lucide-react";
 import {
   BarChart,
@@ -31,10 +31,9 @@ export default function Umsatz() {
   const comparison = getEntityComparison(entities);
   const finance = getFinance(selectedEntity);
 
-  const employees =
-    selectedEntity === "MiGu Group Gesamt"
-      ? entities.reduce((a, e) => a + e.employees, 0)
-      : entities.find((e) => e.code === selectedEntity)?.employees ?? 0;
+  const employees = isGroupView(selectedEntity)
+    ? entities.filter((e) => !e.archived && e.groupId === groupIdFromView(selectedEntity)).reduce((a, e) => a + e.employees, 0)
+    : entities.find((e) => e.code === selectedEntity)?.employees ?? 0;
   const revenuePerEmployee = employees > 0 ? finance.revenue / employees : 0;
   const topEntity = [...comparison].sort((a, b) => b.revenue - a.revenue)[0];
 

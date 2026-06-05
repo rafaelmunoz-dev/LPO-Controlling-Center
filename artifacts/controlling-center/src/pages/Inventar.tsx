@@ -16,7 +16,7 @@ import { PageHeader } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { scopeByEntity, ENTITY_CODES, formatCurrency, formatNumber } from "@/data";
+import { scopeByEntity, defaultFirmForView, formatCurrency, formatNumber } from "@/data";
 import type { InventoryItem, EntityCode, InventoryCategory, InventoryStatus } from "@/data/types";
 import { Boxes, QrCode, Search, TrendingDown, ClipboardCheck, CheckCircle2, AlertTriangle, HelpCircle, RotateCcw, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -59,7 +59,7 @@ const emptyInv = (entity: EntityCode): InvForm => ({
 
 export default function Inventar() {
   const { t } = useTranslation();
-  const { selectedEntity, currentUser, inventory, addInventoryItem, updateInventoryItem, removeInventoryItem, logAction } = useAppStore();
+  const { selectedEntity, currentUser, inventory, addInventoryItem, updateInventoryItem, removeInventoryItem, logAction, entities } = useAppStore();
   const canEditInv = INVENTORY_EDIT_ROLES.includes(currentUser.role);
   const canCreate = can(currentUser.role, "inventar:create");
   const canEdit = can(currentUser.role, "inventar:edit");
@@ -75,7 +75,7 @@ export default function Inventar() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<InvForm>(emptyInv("IMP"));
 
-  const openCreate = () => { setEditId(null); setForm(emptyInv(selectedEntity === "MiGu Group Gesamt" ? "IMP" : (selectedEntity as EntityCode))); setOpen(true); };
+  const openCreate = () => { setEditId(null); setForm(emptyInv(defaultFirmForView(selectedEntity) ?? "IMP")); setOpen(true); };
   const openEdit = (i: InventoryItem) => { setEditId(i.id); setForm({ ...i, purchasePrice: String(i.purchasePrice), currentValue: String(i.currentValue) }); setOpen(true); };
   const save = () => {
     if (editId ? !canEdit : !canCreate) { toast.error(t("no_permission")); return; }
@@ -342,7 +342,7 @@ export default function Inventar() {
               <div className="space-y-1.5"><Label>{t("entity")}</Label>
                 <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode })}>
                   <SelectTrigger data-testid="select-inventory-entity"><SelectValue /></SelectTrigger>
-                  <SelectContent>{ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{entities.filter((e) => !e.archived).map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>

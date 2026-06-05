@@ -5,29 +5,30 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, RiskBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
-import { getEntityComparison, getFinance, formatCompact } from "@/data";
+import { getEntityComparison, formatCompact } from "@/data";
 import { Building2, MapPin, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function Entitaeten() {
   const { t } = useTranslation();
   const { setEntity, selectedEntity, entities } = useAppStore();
+  const activeEntities = entities.filter((e) => !e.archived);
   const comparison = getEntityComparison(entities);
-  const group = getFinance("MiGu Group Gesamt");
+  const totalRevenue = comparison.reduce((a, c) => a + c.revenue, 0);
 
   return (
     <div className="space-y-6">
       <PageHeader title={t("ent_title")} subtitle={t("ent_subtitle")} icon={<Building2 className="h-5 w-5" />} />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{entities.length}</div><div className="text-sm text-muted-foreground mt-1">{t("entitaeten")}</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{formatCompact(group.revenue)}</div><div className="text-sm text-muted-foreground mt-1">{t("ent_total_revenue")}</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{entities.reduce((a, e) => a + e.employees, 0)}</div><div className="text-sm text-muted-foreground mt-1">{t("ent_total_employees")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{activeEntities.length}</div><div className="text-sm text-muted-foreground mt-1">{t("entitaeten")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{formatCompact(totalRevenue)}</div><div className="text-sm text-muted-foreground mt-1">{t("ent_total_revenue")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{activeEntities.reduce((a, e) => a + e.employees, 0)}</div><div className="text-sm text-muted-foreground mt-1">{t("ent_total_employees")}</div></CardContent></Card>
       </div>
 
       <AiInsight context="entitaeten" />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {entities.map((e) => {
+        {activeEntities.map((e) => {
           const c = comparison.find((x) => x.code === e.code)!;
           const active = selectedEntity === e.code;
           return (

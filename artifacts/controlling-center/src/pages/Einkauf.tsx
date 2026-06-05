@@ -15,7 +15,7 @@ import { PageHeader, StatusBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import { PurchaseRequestLifecycle } from "@/components/shared/PurchaseRequestLifecycle";
-import { scopeByEntity, FORM_RESPONSES, ENTITY_CODES, formatCurrency } from "@/data";
+import { scopeByEntity, FORM_RESPONSES, defaultFirmForView, formatCurrency } from "@/data";
 import { can, CREATE_PR_ROLES, APPROVER_ROLES } from "@/data/governance";
 import type { EntityCode, PurchaseRequest, Supplier } from "@/data/types";
 import { ShoppingCart, Plus, Star, CheckCircle2, XCircle, FileInput, Pencil, Trash2, Paperclip, FileText, X } from "lucide-react";
@@ -27,7 +27,7 @@ const emptySupplier = (): SupplierForm => ({ name: "", category: "", country: ""
 
 export default function Einkauf() {
   const { t } = useTranslation();
-  const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser, suppliers, addSupplier, updateSupplier, removeSupplier, logAction } = useAppStore();
+  const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser, suppliers, addSupplier, updateSupplier, removeSupplier, logAction, entities } = useAppStore();
   const ownPRsOnly = currentUser.role === "Mitarbeiter";
   const prs = scopeByEntity(purchaseRequests, selectedEntity).filter((p) => !ownPRsOnly || p.requestedBy === currentUser.name);
   const forms = scopeByEntity(FORM_RESPONSES, selectedEntity);
@@ -38,7 +38,7 @@ export default function Einkauf() {
   const canSupDelete = can(currentUser.role, "lieferant:delete");
   const [open, setOpen] = useState(false);
   const [convertedIds, setConvertedIds] = useState<string[]>([]);
-  const [form, setForm] = useState({ title: "", supplier: suppliers[0]?.name ?? "", amount: "", category: "IT-Hardware", justification: "", entity: (selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity) as EntityCode });
+  const [form, setForm] = useState({ title: "", supplier: suppliers[0]?.name ?? "", amount: "", category: "IT-Hardware", justification: "", entity: (defaultFirmForView(selectedEntity) ?? "IMP") as EntityCode });
   const [offers, setOffers] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -159,7 +159,7 @@ export default function Einkauf() {
                   <div className="space-y-1.5"><Label>{t("entity")}</Label>
                     <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                      <SelectContent>{entities.filter((e) => !e.archived).map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>

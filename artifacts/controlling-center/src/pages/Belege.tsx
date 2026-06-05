@@ -21,6 +21,7 @@ import {
   parseBankCsv,
   suggestForTransaction,
   EXPENSE_BUDGET_CATEGORIES,
+  defaultFirmForView,
 } from "@/data";
 import { aiSuggestExpense } from "@/lib/ai";
 import type { BankTransaction, EntityCode, SuggestionSource } from "@/data/types";
@@ -66,9 +67,8 @@ export default function Belege() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [aiBusy, setAiBusy] = useState(false);
 
-  const entityCodes = entities.map((e) => e.code);
-  const defaultEntity: EntityCode | undefined =
-    selectedEntity !== "MiGu Group Gesamt" ? selectedEntity : entityCodes[0];
+  const entityCodes = entities.filter((e) => !e.archived).map((e) => e.code);
+  const defaultEntity: EntityCode | undefined = defaultFirmForView(selectedEntity) ?? entityCodes[0];
 
   const needsAssignment = bankTransactions.filter((t) => t.status === "needs-assignment");
   const booked = bankTransactions.filter((t) => t.status === "booked");

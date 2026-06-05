@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 import { useAppStore, USERS, PERIODS } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
 import { Bell, Search, Download, FilePlus2, Globe, ChevronDown, CalendarDays, X, LogOut } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -23,12 +24,14 @@ import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { searchAll, type SearchResult, type ViewKey } from "@/data";
+import { searchAll, groupViewKey, type SearchResult, type ViewKey } from "@/data";
 import { can } from "@/data/governance";
 import lpoLogo from "@assets/image_1780570561463.png";
 
 export function Topbar() {
-  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities, logout, allowedNav } = useAppStore();
+  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities, groups, logout, allowedNav } = useAppStore();
+  const activeGroups = groups.filter((g) => !g.archived);
+  const firmsOfGroup = (groupId: string) => entities.filter((e) => e.groupId === groupId && !e.archived);
   const canReports = allowedNav().includes("reports") && can(currentUser.role, "reports:create");
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
@@ -74,19 +77,29 @@ export function Topbar() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="MiGu Group Gesamt" textValue={t("all_entities")} data-testid="entity-option-MiGu Group Gesamt">
-              <div className="flex items-center gap-2">
-                <EntityAvatar isGroup size={22} />
-                {t("all_entities")}
-              </div>
-            </SelectItem>
-            {entities.map((e) => (
-              <SelectItem key={e.code} value={e.code} textValue={e.code} data-testid={`entity-option-${e.code}`}>
-                <div className="flex items-center gap-2">
-                  <EntityAvatar entity={e} size={22} />
-                  {e.code}
-                </div>
-              </SelectItem>
+            {activeGroups.map((g, gi) => (
+              <Fragment key={g.id}>
+                {gi > 0 && <SelectSeparator />}
+                <SelectItem
+                  value={groupViewKey(g.id)}
+                  textValue={`${g.name} ${t("group_total")}`}
+                  data-testid={`entity-option-group-${g.id}`}
+                >
+                  <div className="flex items-center gap-2 font-semibold">
+                    <EntityAvatar isGroup size={22} />
+                    <span>{g.name}</span>
+                    <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">{t("group_total")}</span>
+                  </div>
+                </SelectItem>
+                {firmsOfGroup(g.id).map((e) => (
+                  <SelectItem key={e.code} value={e.code} textValue={e.code} className="pl-8" data-testid={`entity-option-${e.code}`}>
+                    <div className="flex items-center gap-2">
+                      <EntityAvatar entity={e} size={20} />
+                      {e.code}
+                    </div>
+                  </SelectItem>
+                ))}
+              </Fragment>
             ))}
           </SelectContent>
         </Select>

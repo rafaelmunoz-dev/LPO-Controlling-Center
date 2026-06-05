@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { scopeByEntity, ENTITY_CODES, formatCurrency } from "@/data";
+import { scopeByEntity, defaultFirmForView, formatCurrency } from "@/data";
 import { can } from "@/data/governance";
 import type { EntityCode, StrategyDecision } from "@/data/types";
 import { Target, CheckCircle2, TrendingUp, AlertTriangle, Circle, Plus, Pencil, Trash2 } from "lucide-react";
@@ -38,7 +38,7 @@ const emptyForm = (entity: EntityCode): FormState => ({
 
 export default function Strategie() {
   const { t } = useTranslation();
-  const { selectedEntity, strategyDecisions, currentUser, addStrategyDecision, updateStrategyDecision, removeStrategyDecision, logAction } = useAppStore();
+  const { selectedEntity, strategyDecisions, currentUser, addStrategyDecision, updateStrategyDecision, removeStrategyDecision, logAction, entities } = useAppStore();
   const decisions = scopeByEntity(strategyDecisions, selectedEntity);
   const canCreate = can(currentUser.role, "strategie:create");
   const canEdit = can(currentUser.role, "strategie:edit");
@@ -47,11 +47,11 @@ export default function Strategie() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm(selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity));
+  const [form, setForm] = useState<FormState>(emptyForm(defaultFirmForView(selectedEntity) ?? "IMP"));
 
   const openCreate = () => {
     setEditId(null);
-    setForm(emptyForm(selectedEntity === "MiGu Group Gesamt" ? "IMP" : (selectedEntity as EntityCode)));
+    setForm(emptyForm(defaultFirmForView(selectedEntity) ?? "IMP"));
     setOpen(true);
   };
   const openEdit = (d: StrategyDecision) => {
@@ -164,7 +164,7 @@ export default function Strategie() {
               <div className="space-y-1.5"><Label>{t("entity")}</Label>
                 <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode })}>
                   <SelectTrigger data-testid="select-strategy-entity"><SelectValue /></SelectTrigger>
-                  <SelectContent>{ENTITY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{entities.filter((e) => !e.archived).map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>{t("budget")}</Label><Input type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} data-testid="input-strategy-budget" /></div>

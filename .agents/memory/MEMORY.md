@@ -1,6 +1,7 @@
 - [i18next init](i18next-init.md) — the i18n module must be imported at the app entry (main.tsx) or init() never runs and you get NO_I18NEXT_INSTANCE with raw keys showing.
 - [Controlling Center theming](controlling-center-theming.md) — accent driven by one --brass token (named 'brass', now teal); sweep color literals in spaced/underscore/no-space forms.
 - [Controlling Center entities](controlling-center-entities.md) — entities are mutable store state; every list/compare/search/select consumer must read the store, not static ENTITIES/ENTITY_CODES.
+- [Controlling Center groups](controlling-center-groups.md) — "group" is first-class (ViewKey group:<id>); use data/groups.ts helpers + registry; soft-archive only; exclude archived everywhere.
 - [Radix Select avatar gotcha](radix-select-value-rendering.md) — SelectValue re-renders the selected SelectItem's full children; don't also render an icon in the trigger or it doubles.
 - [PR lifecycle cross-links](pr-lifecycle-links.md) — PRs link to bank tx + inventory; delete paths must clear back-references or the PR orphans; stage gating reuses governance constants.
 - [Controlling Center CRUD gating](controlling-center-crud-gating.md) — capability can() checks must guard BOTH the rendered buttons AND inside save/delete handlers; UI-only gating is a client-side bypass.
