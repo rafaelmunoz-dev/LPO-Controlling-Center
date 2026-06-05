@@ -76,11 +76,15 @@ export interface BalanceRow {
   bold?: boolean;
 }
 
-export interface IntercompanyRow {
-  from: EntityCode;
-  to: EntityCode;
-  description: string;
-  amount: number;
+export type BalanceSide = "asset" | "liability";
+
+export interface BalanceLineItem {
+  id: string;
+  view: ViewKey;
+  side: BalanceSide;
+  label: string;
+  value: number;
+  explain?: string;
 }
 
 export type ForecastKind =

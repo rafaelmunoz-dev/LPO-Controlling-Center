@@ -1,4 +1,5 @@
 import type {
+  BalanceLineItem,
   BalanceRow,
   BudgetRow,
   CashflowBlock,
@@ -6,7 +7,6 @@ import type {
   EntityFinance,
   EntityMeta,
   ForecastSeries,
-  IntercompanyRow,
   LiquidityPoint,
   MonthPoint,
   PLRow,
@@ -332,13 +332,24 @@ export function getBalanceSheet(view: ViewKey): { assets: BalanceRow[]; liabilit
   };
 }
 
-export const INTERCOMPANY: IntercompanyRow[] = [
-  { from: "IMP", to: "C&A", description: "Materiallieferung Montageprojekte", amount: 1_240_000 },
-  { from: "CPE", to: "C&A", description: "Maschinenvermietung Baustellen", amount: 880_000 },
-  { from: "MKT", to: "COSM", description: "Kampagnen & Kreativleistungen", amount: 420_000 },
-  { from: "MKT", to: "IMP", description: "Markenauftritt & Messen", amount: 310_000 },
-  { from: "IMP", to: "COSM", description: "Rohstoffimport Verpackung", amount: 560_000 },
-];
+// Views that receive seeded, user-editable balance-sheet line items: the group
+// view plus every curated entity. Entities created at runtime start with an
+// empty balance sheet that the user fills in via the UI.
+export const BALANCE_SEED_VIEWS: ViewKey[] = ["MiGu Group Gesamt", ...ENTITY_CODES];
+
+// Materialise the computed balance sheet for every seeded view into flat,
+// mutable line items that live in the persisted store. Once seeded, totals are
+// derived from these items, not recalculated from revenue.
+export function buildBalanceSeed(): BalanceLineItem[] {
+  const items: BalanceLineItem[] = [];
+  let n = 0;
+  for (const view of BALANCE_SEED_VIEWS) {
+    const bs = getBalanceSheet(view);
+    bs.assets.forEach((r) => items.push({ id: `BS-${++n}`, view, side: "asset", label: r.label, value: r.value, explain: r.explain }));
+    bs.liabilities.forEach((r) => items.push({ id: `BS-${++n}`, view, side: "liability", label: r.label, value: r.value, explain: r.explain }));
+  }
+  return items;
+}
 
 export function getForecasts(view: ViewKey): ForecastSeries[] {
   const f = getFinance(view);

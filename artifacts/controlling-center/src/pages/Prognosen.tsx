@@ -11,9 +11,11 @@ import { TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from "recharts";
 import { useTranslation } from "react-i18next";
 
-const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(190 80% 42%)";
-const RED = "hsl(0 84% 60%)";
+import { CHART } from "@/lib/chart";
+
+const NAVY = CHART.navy;
+const BRASS = CHART.teal;
+const RED = CHART.red;
 
 export default function Prognosen() {
   const { t } = useTranslation();
@@ -59,7 +61,7 @@ export default function Prognosen() {
           <div className="h-[360px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                 <XAxis dataKey="period" axisLine={false} tickLine={false} fontSize={12} />
                 <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => (active.unit === "€" ? formatCurrency(v) : formatNumber(v))} width={75} />
                 <RTooltip formatter={(v: number) => fmt(v)} />

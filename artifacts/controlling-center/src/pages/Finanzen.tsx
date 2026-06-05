@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/hooks/use-app-context";
 import { useFormat } from "@/hooks/use-format";
@@ -6,22 +7,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import type { GlossaryKey } from "@/data";
+import type { BalanceLineItem, BalanceSide } from "@/data/types";
 import {
-  getProfitLoss,
   getPLOverview,
-  getBalanceSheet,
   getCashflow,
   getBudget,
   getEntityComparison,
   getFinance,
-  INTERCOMPANY,
 } from "@/data";
-import { Info, PieChart as PieIcon } from "lucide-react";
+import { can } from "@/data/governance";
+import { CHART, PIE_COLORS } from "@/lib/chart";
+import { Info, PieChart as PieIcon, Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   AreaChart,
   Area,
@@ -35,12 +42,6 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
-const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(190 80% 42%)";
-const RED = "hsl(0 84% 60%)";
-const GREY = "hsl(215 16% 47%)";
-const PIE_COLORS = [NAVY, BRASS, GREY, RED, "hsl(216 40% 40%)"];
 
 function InfoLabel({ label, explain, bold }: { label: string; explain?: string; bold?: boolean }) {
   return (
@@ -72,13 +73,200 @@ function StatCard({ glossary, label, value, sub }: { glossary: GlossaryKey; labe
   );
 }
 
+interface BalanceFormState {
+  label: string;
+  value: string;
+  explain: string;
+}
+
+const emptyBalanceForm = (): BalanceFormState => ({ label: "", value: "", explain: "" });
+
+function BalanceCard({
+  side,
+  title,
+  addLabel,
+  items,
+  canCreate,
+  canEdit,
+  canDelete,
+  onCreate,
+  onEdit,
+  onDelete,
+}: {
+  side: BalanceSide;
+  title: string;
+  addLabel: string;
+  items: BalanceLineItem[];
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  onCreate: (side: BalanceSide) => void;
+  onEdit: (item: BalanceLineItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { currency } = useFormat();
+  const total = items.reduce((a, b) => a + b.value, 0);
+  const totalLabel = side === "asset" ? t("bs_total_assets") : t("bs_total_liabilities");
+  return (
+    <Card className="glass-card">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle>{title}</CardTitle>
+        {canCreate && (
+          <Button size="sm" variant="outline" onClick={() => onCreate(side)} data-testid={`button-add-balance-${side}`}>
+            <Plus className="h-4 w-4 mr-1.5" /> {addLabel}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableBody>
+            {items.map((r) => (
+              <TableRow key={r.id} data-testid={`row-balance-${r.id}`}>
+                <TableCell><InfoLabel label={r.label} explain={r.explain} /></TableCell>
+                <TableCell className="text-right tabular-nums">{currency(r.value)}</TableCell>
+                {(canEdit || canDelete) && (
+                  <TableCell className="w-[84px] py-1.5">
+                    <div className="flex items-center justify-end gap-1">
+                      {canEdit && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(r)} data-testid={`button-edit-balance-${r.id}`}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDelete(r.id)} data-testid={`button-delete-balance-${r.id}`}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+            {items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={canEdit || canDelete ? 3 : 2} className="text-center text-muted-foreground py-6">
+                  {t("bs_empty")}
+                </TableCell>
+              </TableRow>
+            )}
+            <TableRow className="bg-muted/40">
+              <TableCell className="font-semibold">{totalLabel}</TableCell>
+              <TableCell className="text-right font-semibold tabular-nums" data-testid={`total-balance-${side}`}>{currency(total)}</TableCell>
+              {(canEdit || canDelete) && <TableCell />}
+            </TableRow>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BilanzTab() {
+  const { t } = useTranslation();
+  const { selectedEntity, balanceItems, currentUser, addBalanceItem, updateBalanceItem, removeBalanceItem, logAction } = useAppStore();
+  const canCreate = can(currentUser.role, "bilanz:create");
+  const canEdit = can(currentUser.role, "bilanz:edit");
+  const canDelete = can(currentUser.role, "bilanz:delete");
+
+  const scoped = balanceItems.filter((b) => b.view === selectedEntity);
+  const assets = scoped.filter((b) => b.side === "asset");
+  const liabilities = scoped.filter((b) => b.side === "liability");
+
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [side, setSide] = useState<BalanceSide>("asset");
+  const [form, setForm] = useState<BalanceFormState>(emptyBalanceForm());
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const openCreate = (s: BalanceSide) => {
+    setEditId(null);
+    setSide(s);
+    setForm(emptyBalanceForm());
+    setOpen(true);
+  };
+  const openEdit = (item: BalanceLineItem) => {
+    setEditId(item.id);
+    setSide(item.side);
+    setForm({ label: item.label, value: String(item.value), explain: item.explain ?? "" });
+    setOpen(true);
+  };
+
+  const save = () => {
+    if (editId ? !canEdit : !canCreate) { toast.error(t("no_permission")); return; }
+    if (!form.label.trim()) { toast.error(t("bs_item_label")); return; }
+    const value = Number(form.value) || 0;
+    const explain = form.explain.trim() || undefined;
+    if (editId) {
+      updateBalanceItem(editId, { label: form.label.trim(), value, explain });
+      logAction(t("bs_edit_item"), `${form.label} · ${selectedEntity}`);
+      toast.success(t("bs_saved"));
+    } else {
+      const item: BalanceLineItem = {
+        id: `BS-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        view: selectedEntity,
+        side,
+        label: form.label.trim(),
+        value,
+        explain,
+      };
+      addBalanceItem(item);
+      logAction(t("bs_create_item"), `${form.label} · ${selectedEntity}`);
+      toast.success(t("bs_created"));
+    }
+    setOpen(false);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteId) return;
+    if (!canDelete) { toast.error(t("no_permission")); return; }
+    const item = balanceItems.find((b) => b.id === deleteId);
+    removeBalanceItem(deleteId);
+    logAction(t("common_delete"), `${item?.label ?? deleteId} · ${selectedEntity}`);
+    toast.success(t("bs_deleted"));
+    setDeleteId(null);
+  };
+
+  return (
+    <>
+      <div className="grid gap-4 md:grid-cols-2">
+        <BalanceCard side="asset" title={t("bs_assets")} addLabel={t("bs_add_asset")} items={assets} canCreate={canCreate} canEdit={canEdit} canDelete={canDelete} onCreate={openCreate} onEdit={openEdit} onDelete={setDeleteId} />
+        <BalanceCard side="liability" title={t("bs_liabilities")} addLabel={t("bs_add_liability")} items={liabilities} canCreate={canCreate} canEdit={canEdit} canDelete={canDelete} onCreate={openCreate} onEdit={openEdit} onDelete={setDeleteId} />
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editId ? t("bs_edit_item") : t("bs_create_item")}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5"><Label>{t("bs_item_label")}</Label><Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} data-testid="input-balance-label" /></div>
+            <div className="space-y-1.5"><Label>{t("bs_item_value")}</Label><Input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} data-testid="input-balance-value" /></div>
+            <div className="space-y-1.5"><Label>{t("bs_item_explain")}</Label><Input value={form.explain} onChange={(e) => setForm({ ...form, explain: e.target.value })} data-testid="input-balance-explain" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={save} data-testid="button-save-balance">{t("common_save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{t("common_delete_confirm_title")}</AlertDialogTitle><AlertDialogDescription>{t("common_delete_confirm_desc")}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-balance">{t("common_delete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
 export default function Finanzen() {
   const { selectedEntity, entities } = useAppStore();
   const { t } = useTranslation();
   const { currency, compact, number } = useFormat();
-  const pl = getProfitLoss(selectedEntity);
   const plo = getPLOverview(selectedEntity);
-  const bs = getBalanceSheet(selectedEntity);
   const cf = getCashflow(selectedEntity);
   const budget = getBudget(selectedEntity);
   const comparison = getEntityComparison(entities);
@@ -91,12 +279,10 @@ export default function Finanzen() {
       <Tabs defaultValue="overview">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview" data-testid="tab-overview">{t("tab_overview")}</TabsTrigger>
-          <TabsTrigger value="pl" data-testid="tab-pl">{t("tab_pl")}</TabsTrigger>
           <TabsTrigger value="bs" data-testid="tab-balance">{t("tab_balance")}</TabsTrigger>
           <TabsTrigger value="cf" data-testid="tab-cashflow">{t("tab_cashflow")}</TabsTrigger>
           <TabsTrigger value="budget" data-testid="tab-budget">{t("tab_budget")}</TabsTrigger>
           <TabsTrigger value="konsol" data-testid="tab-consolidation">{t("tab_consolidation")}</TabsTrigger>
-          <TabsTrigger value="ic" data-testid="tab-intercompany">{t("tab_intercompany")}</TabsTrigger>
           <TabsTrigger value="uploads" data-testid="tab-uploads">{t("tab_uploads")}</TabsTrigger>
         </TabsList>
 
@@ -108,49 +294,21 @@ export default function Finanzen() {
             <StatCard glossary="nettoergebnis" label={t("kpi_net")} value={compact(plo.netProfit)} sub={`${number(Math.round(plo.netMargin * 10) / 10)} % ${t("net_margin")}`} />
           </div>
           <AiInsight context="finanzen" />
-          <Card className="glass-card">
-            <CardHeader><CardTitle>{t("profit_trend")}</CardTitle></CardHeader>
-            <CardContent className="pl-0">
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={plo.series}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
-                    <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => compact(v)} width={60} />
-                    <RTooltip formatter={(v: number) => currency(v)} />
-                    <Legend />
-                    <Area type="monotone" name={t("kpi_revenue")} dataKey="revenue" stroke={NAVY} fill={NAVY} fillOpacity={0.12} strokeWidth={2} />
-                    <Area type="monotone" name={t("kpi_ebitda")} dataKey="ebitda" stroke={BRASS} fill={BRASS} fillOpacity={0.12} strokeWidth={2} />
-                    <Area type="monotone" name={t("kpi_net")} dataKey="profit" stroke={GREY} fill={GREY} fillOpacity={0.08} strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="pl" className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard glossary="bruttogewinn" label={t("gross_profit")} value={compact(plo.grossProfit)} sub={`${number(Math.round(plo.grossMargin * 10) / 10)} %`} />
-            <StatCard glossary="ebit" label={t("ebit")} value={compact(plo.ebit)} />
-            <StatCard glossary="nettoergebnis" label={t("kpi_net")} value={compact(plo.netProfit)} sub={`${number(Math.round(plo.netMargin * 10) / 10)} %`} />
-            <StatCard glossary="abschreibung" label={t("depreciation")} value={compact(plo.depreciation)} />
-          </div>
-
           <div className="grid gap-4 lg:grid-cols-5">
             <Card className="glass-card lg:col-span-3">
               <CardHeader><CardTitle>{t("profit_trend")}</CardTitle></CardHeader>
               <CardContent className="pl-0">
-                <div className="h-[280px]">
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={plo.series}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                       <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
                       <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => compact(v)} width={60} />
                       <RTooltip formatter={(v: number) => currency(v)} />
                       <Legend />
-                      <Area type="monotone" name={t("kpi_revenue")} dataKey="revenue" stroke={NAVY} fill={NAVY} fillOpacity={0.12} strokeWidth={2} />
-                      <Area type="monotone" name={t("kpi_net")} dataKey="profit" stroke={BRASS} fill={BRASS} fillOpacity={0.12} strokeWidth={2} />
+                      <Area type="monotone" name={t("kpi_revenue")} dataKey="revenue" stroke={CHART.navy} fill={CHART.navy} fillOpacity={0.12} strokeWidth={2} />
+                      <Area type="monotone" name={t("kpi_ebitda")} dataKey="ebitda" stroke={CHART.teal} fill={CHART.teal} fillOpacity={0.14} strokeWidth={2} />
+                      <Area type="monotone" name={t("kpi_net")} dataKey="profit" stroke={CHART.blue} fill={CHART.blue} fillOpacity={0.1} strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -159,7 +317,7 @@ export default function Finanzen() {
             <Card className="glass-card lg:col-span-2">
               <CardHeader><CardTitle>{t("cost_structure")}</CardTitle></CardHeader>
               <CardContent>
-                <div className="h-[280px]">
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={plo.costBreakdown} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
@@ -173,67 +331,10 @@ export default function Finanzen() {
               </CardContent>
             </Card>
           </div>
-
-          <Card className="glass-card">
-            <CardHeader><CardTitle>{t("pl_title")}</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  {pl.map((r) => (
-                    <TableRow key={r.label} className={r.bold ? "bg-muted/40" : ""} data-testid={`row-pl-${r.label}`}>
-                      <TableCell className="py-2.5"><InfoLabel label={r.label} explain={r.explain} bold={r.bold} /></TableCell>
-                      <TableCell className={`text-right py-2.5 ${r.bold ? "font-semibold" : ""} ${r.value < 0 ? "text-destructive" : ""}`}>
-                        {currency(r.value)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="bs">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="glass-card">
-              <CardHeader><CardTitle>Aktiva</CardTitle></CardHeader>
-              <CardContent>
-                <Table>
-                  <TableBody>
-                    {bs.assets.map((r) => (
-                      <TableRow key={r.label}>
-                        <TableCell><InfoLabel label={r.label} explain={r.explain} /></TableCell>
-                        <TableCell className="text-right">{currency(r.value)}</TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="bg-muted/40">
-                      <TableCell className="font-semibold">Summe Aktiva</TableCell>
-                      <TableCell className="text-right font-semibold">{currency(bs.assets.reduce((a, b) => a + b.value, 0))}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardHeader><CardTitle>Passiva</CardTitle></CardHeader>
-              <CardContent>
-                <Table>
-                  <TableBody>
-                    {bs.liabilities.map((r) => (
-                      <TableRow key={r.label}>
-                        <TableCell><InfoLabel label={r.label} explain={r.explain} /></TableCell>
-                        <TableCell className="text-right">{currency(r.value)}</TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="bg-muted/40">
-                      <TableCell className="font-semibold">Summe Passiva</TableCell>
-                      <TableCell className="text-right font-semibold">{currency(bs.liabilities.reduce((a, b) => a + b.value, 0))}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+          <BilanzTab />
         </TabsContent>
 
         <TabsContent value="cf">
@@ -243,14 +344,14 @@ export default function Finanzen() {
               <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={cf.series}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
                     <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => compact(v)} width={60} />
                     <RTooltip formatter={(v: number) => currency(v)} />
                     <Legend />
-                    <Area type="monotone" name="Operativ" dataKey="operating" stroke={NAVY} fill={NAVY} fillOpacity={0.12} strokeWidth={2} />
-                    <Area type="monotone" name="Investition" dataKey="investing" stroke={RED} fill={RED} fillOpacity={0.1} strokeWidth={2} />
-                    <Area type="monotone" name="Finanzierung" dataKey="financing" stroke={BRASS} fill={BRASS} fillOpacity={0.1} strokeWidth={2} />
+                    <Area type="monotone" name="Operativ" dataKey="operating" stroke={CHART.navy} fill={CHART.navy} fillOpacity={0.12} strokeWidth={2} />
+                    <Area type="monotone" name="Investition" dataKey="investing" stroke={CHART.red} fill={CHART.red} fillOpacity={0.1} strokeWidth={2} />
+                    <Area type="monotone" name="Finanzierung" dataKey="financing" stroke={CHART.teal} fill={CHART.teal} fillOpacity={0.12} strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -315,37 +416,6 @@ export default function Finanzen() {
                     <TableCell className="text-right">{compact(group.netProfit)}</TableCell>
                     <TableCell className="text-right">{compact(group.cash)}</TableCell>
                   </TableRow>
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="ic">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle><Term k="intercompany">{t("tab_intercompany")}</Term></CardTitle>
-              <p className="text-sm text-muted-foreground">Leistungsbeziehungen zwischen den MiGu-Entitäten, die bei der Konsolidierung eliminiert werden.</p>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Von</TableHead>
-                    <TableHead>An</TableHead>
-                    <TableHead>{t("description")}</TableHead>
-                    <TableHead className="text-right">{t("amount")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {INTERCOMPANY.map((r, i) => (
-                    <TableRow key={i} data-testid={`row-ic-${i}`}>
-                      <TableCell className="font-semibold text-primary">{r.from}</TableCell>
-                      <TableCell className="font-semibold text-primary">{r.to}</TableCell>
-                      <TableCell>{r.description}</TableCell>
-                      <TableCell className="text-right">{currency(r.amount)}</TableCell>
-                    </TableRow>
-                  ))}
                 </TableBody>
               </Table>
             </CardContent>

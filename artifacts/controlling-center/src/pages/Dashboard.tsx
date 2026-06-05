@@ -40,10 +40,12 @@ import {
   Legend,
 } from "recharts";
 
-const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(190 80% 42%)";
-const GREY = "hsl(215 16% 47%)";
-const RED = "hsl(0 84% 60%)";
+import { CHART } from "@/lib/chart";
+
+const NAVY = CHART.navy;
+const BRASS = CHART.teal;
+const GREY = CHART.grey;
+const RED = CHART.red;
 
 function Spark({ data, color }: { data: { v: number }[]; color: string }) {
   return (
@@ -156,7 +158,7 @@ export default function Dashboard() {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={f.series}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
                   <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => compact(v)} width={60} />
                   <RTooltip formatter={(v: number) => currency(v)} />
@@ -209,7 +211,7 @@ export default function Dashboard() {
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={liquidity}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                 <XAxis dataKey="week" axisLine={false} tickLine={false} fontSize={11} interval={1} />
                 <YAxis axisLine={false} tickLine={false} fontSize={11} tickFormatter={(v) => compact(v)} width={60} />
                 <RTooltip formatter={(v: number) => currency(v)} />

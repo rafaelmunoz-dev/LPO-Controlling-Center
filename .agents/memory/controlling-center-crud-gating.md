@@ -3,7 +3,7 @@ name: Controlling Center CRUD gating
 description: How role-based create/edit/delete is enforced across the domain pages
 ---
 
-Role-based CRUD on the domain pages (Risiko, Einkauf suppliers, Mitarbeiter, Inventar, Strategie) is gated by `can(role, capability)` from `@/data/governance` where capability is `<domain>:create|edit|delete` (domains: risiko, lieferant, mitarbeiter, inventar, strategie).
+Role-based CRUD on the domain pages (Risiko, Einkauf suppliers, Mitarbeiter, Inventar, Strategie, Finanzen Bilanz) is gated by `can(role, capability)` from `@/data/governance` where capability is `<domain>:create|edit|delete` (domains: risiko, lieferant, mitarbeiter, inventar, strategie, bilanz). New capabilities must be added to BOTH the `Capability` union AND the `ALL_CAPS` array, or Controller (which spreads ALL_CAPS) won't get them.
 
 **Rule:** enforce capability in two places, not one:
 1. UI: conditionally render the Add button and the per-row edit/delete buttons.

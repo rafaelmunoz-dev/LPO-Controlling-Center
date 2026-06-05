@@ -21,8 +21,9 @@ import {
   Legend,
 } from "recharts";
 
-const NAVY = "hsl(216 65% 11%)";
-const PIE_COLORS = ["hsl(190 80% 42%)", "hsl(216 65% 11%)", "hsl(190 60% 60%)", "hsl(216 40% 40%)", "hsl(190 70% 30%)", "hsl(216 30% 65%)"];
+import { CHART, PIE_COLORS } from "@/lib/chart";
+
+const NAVY = CHART.navy;
 
 export default function Umsatz() {
   const { t } = useTranslation();
@@ -85,7 +86,7 @@ export default function Umsatz() {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={byEntity}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} />
                   <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => formatCompact(v)} width={60} />
                   <RTooltip formatter={(v: number) => formatCurrency(v)} />
@@ -122,15 +123,15 @@ export default function Umsatz() {
               <AreaChart data={trend}>
                 <defs>
                   <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(190 80% 42%)" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="hsl(190 80% 42%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART.teal} stopOpacity={0.35} />
+                    <stop offset="95%" stopColor={CHART.teal} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
                 <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => formatCompact(v)} width={60} />
                 <RTooltip formatter={(v: number) => formatCurrency(v)} />
-                <Area type="monotone" dataKey="Umsatz" stroke="hsl(190 80% 42%)" strokeWidth={2} fill="url(#revFill)" />
+                <Area type="monotone" dataKey="Umsatz" stroke={CHART.teal} strokeWidth={2} fill="url(#revFill)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

@@ -25,10 +25,12 @@ import {
   Legend,
 } from "recharts";
 
-const NAVY = "hsl(216 65% 11%)";
-const BRASS = "hsl(190 80% 42%)";
-const RED = "hsl(0 84% 60%)";
-const EMERALD = "hsl(160 70% 38%)";
+import { CHART } from "@/lib/chart";
+
+const NAVY = CHART.navy;
+const BRASS = CHART.teal;
+const RED = CHART.red;
+const EMERALD = CHART.emerald;
 
 function KpiCard({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "bad" }) {
   const valueColor = tone === "bad" ? "text-destructive" : tone === "good" ? "text-emerald-600" : "text-primary";
@@ -84,7 +86,7 @@ export default function GewinnVerlust() {
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
                 <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => formatCompact(v)} width={60} />
                 <RTooltip formatter={(v: number) => formatCurrency(v)} />
@@ -104,7 +106,7 @@ export default function GewinnVerlust() {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={byEntity}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} />
                   <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => formatCompact(v)} width={60} />
                   <RTooltip formatter={(v: number) => formatCurrency(v)} />

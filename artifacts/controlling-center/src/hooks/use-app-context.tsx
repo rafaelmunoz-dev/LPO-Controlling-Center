@@ -4,6 +4,7 @@ import type {
   Approval,
   AppUser,
   AuditEntry,
+  BalanceLineItem,
   DeviceAssignment,
   Employee,
   EntityCode,
@@ -19,7 +20,7 @@ import type {
 import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
 import { RISKS, STRATEGY_DECISIONS } from "@/data/governance";
 import { APPROVALS, DEVICE_ASSIGNMENTS, EMPLOYEES, INVENTORY, PURCHASE_REQUESTS, SUPPLIERS, UPLOADS } from "@/data/operations";
-import { setFormatLocale, ENTITIES } from "@/data";
+import { setFormatLocale, ENTITIES, buildBalanceSeed } from "@/data";
 import type { CopilotContext } from "@/data/copilot";
 
 type Language = "de" | "en" | "es";
@@ -171,6 +172,11 @@ interface AppState {
   updateRisk: (id: string, patch: Partial<Omit<Risk, "id">>) => void;
   removeRisk: (id: string) => void;
 
+  balanceItems: BalanceLineItem[];
+  addBalanceItem: (item: BalanceLineItem) => void;
+  updateBalanceItem: (id: string, patch: Partial<Omit<BalanceLineItem, "id">>) => void;
+  removeBalanceItem: (id: string) => void;
+
   auditLog: AuditEntry[];
   logAction: (action: string, detail: string) => void;
 
@@ -300,6 +306,12 @@ export const useAppStore = create<AppState>()(
   updateRisk: (id, patch) => set((s) => ({ risks: s.risks.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
   removeRisk: (id) => set((s) => ({ risks: s.risks.filter((r) => r.id !== id) })),
 
+  balanceItems: buildBalanceSeed(),
+  addBalanceItem: (item) => set((s) => ({ balanceItems: [...s.balanceItems, item] })),
+  updateBalanceItem: (id, patch) =>
+    set((s) => ({ balanceItems: s.balanceItems.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
+  removeBalanceItem: (id) => set((s) => ({ balanceItems: s.balanceItems.filter((b) => b.id !== id) })),
+
   auditLog: [],
   logAction: (action, detail) =>
     set((s) => ({
@@ -324,7 +336,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "lpo-cc-store",
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<AppState> | undefined;
@@ -340,6 +352,9 @@ export const useAppStore = create<AppState>()(
           };
           const mapped = legacyRoleMap[state.currentUser.role as string] ?? "Mitarbeiter";
           state.currentUser = { ...state.currentUser, role: mapped };
+        }
+        if (state && (!state.balanceItems || state.balanceItems.length === 0)) {
+          state.balanceItems = buildBalanceSeed();
         }
         return state as AppState;
       },
@@ -359,6 +374,7 @@ export const useAppStore = create<AppState>()(
         inventory: s.inventory,
         strategyDecisions: s.strategyDecisions,
         risks: s.risks,
+        balanceItems: s.balanceItems,
         auditLog: s.auditLog,
         tasks: s.tasks,
         reportDrafts: s.reportDrafts,

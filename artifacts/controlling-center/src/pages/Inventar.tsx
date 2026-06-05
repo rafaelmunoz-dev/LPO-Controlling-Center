@@ -36,7 +36,9 @@ const STATUS_TONE: Record<string, string> = {
   verkauft: "bg-slate-500/10 text-slate-600 border-slate-500/20",
 };
 
-const NAVY = "hsl(216 65% 11%)";
+import { CHART } from "@/lib/chart";
+
+const NAVY = CHART.navy;
 
 type CountState = "offen" | "gezählt" | "abweichend" | "fehlt";
 const COUNT_TONE: Record<CountState, string> = {
@@ -197,7 +199,7 @@ export default function Inventar() {
               <div className="h-[240px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={byCategory}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
                     <XAxis dataKey="category" axisLine={false} tickLine={false} fontSize={11} />
                     <YAxis axisLine={false} tickLine={false} fontSize={11} tickFormatter={(v) => formatNumber(v)} width={70} />
                     <RTooltip formatter={(v: number) => formatCurrency(v)} />
