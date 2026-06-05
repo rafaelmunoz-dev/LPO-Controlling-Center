@@ -110,6 +110,7 @@ export function EntitySettings() {
   const openEdit = (e: EntityMeta) => { setEditForm(metaToForm(e)); setEditOpen(true); };
 
   const saveEdit = () => {
+    if (!canEdit) { toast.error(t("no_permission")); return; }
     if (!editForm) return;
     if (!editForm.name.trim()) { toast.error(t("ent_name_required")); return; }
     updateEntity(editForm.code, {
@@ -124,6 +125,7 @@ export function EntitySettings() {
   };
 
   const saveCreate = () => {
+    if (!canAdmin) { toast.error(t("no_permission")); return; }
     const code = createForm.code.trim().toUpperCase();
     if (!code) { toast.error(t("ent_code_required")); return; }
     if (!createForm.name.trim()) { toast.error(t("ent_name_required")); return; }
@@ -145,6 +147,7 @@ export function EntitySettings() {
   };
 
   const handleDelete = (e: EntityMeta) => {
+    if (!canAdmin) { toast.error(t("no_permission")); return; }
     removeEntity(e.code);
     toast.success(t("ent_deleted"));
   };

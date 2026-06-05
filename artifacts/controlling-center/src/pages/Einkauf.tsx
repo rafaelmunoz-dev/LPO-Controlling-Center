@@ -93,6 +93,7 @@ export default function Einkauf() {
   };
 
   const convertForm = (id: string) => {
+    if (!canCreatePR) { toast.error(t("no_permission")); return; }
     const fr = FORM_RESPONSES.find((f) => f.id === id);
     if (!fr) return;
     if (fr.converted || convertedIds.includes(id)) { toast.error("Formular wurde bereits umgewandelt."); return; }
@@ -258,7 +259,7 @@ export default function Einkauf() {
                       <div className="text-xs text-muted-foreground mt-0.5">{fr.respondent} · {fr.entity} · {fr.submittedAt}</div>
                     </div>
                     {(fr.converted || convertedIds.includes(fr.id)) ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{t("einkauf_converted")}</Badge>
-                      : <Button size="sm" onClick={() => convertForm(fr.id)} data-testid={`button-convert-${fr.id}`}>{t("einkauf_to_pr")}</Button>}
+                      : canCreatePR ? <Button size="sm" onClick={() => convertForm(fr.id)} data-testid={`button-convert-${fr.id}`}>{t("einkauf_to_pr")}</Button> : null}
                   </div>
                   <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
                     {fr.fields.map((f, i) => (<div key={i} className="flex justify-between border-b border-dashed border-border/60 py-1"><span className="text-muted-foreground">{f.label}</span><span className="font-medium">{f.value}</span></div>))}

@@ -99,13 +99,10 @@ export interface ForecastSeries {
 }
 
 export type Role =
-  | "Admin"
   | "Controller"
-  | "Finance Analyst"
-  | "Procurement Manager"
-  | "Inventory Manager"
-  | "Management Viewer"
-  | "Entity Manager";
+  | "Geschäftsführer"
+  | "Finanzbuchhalter"
+  | "Mitarbeiter";
 
 export interface AppUser {
   id: string;

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { answerCopilot, getCopilotSuggestions } from "@/data";
+import { can } from "@/data/governance";
 import type { EntityCode, Risk } from "@/data/types";
 
 interface Msg {
@@ -26,8 +27,12 @@ export function CopilotPanel() {
     addTask,
     addReportDraft,
     addRisk,
+    currentUser,
   } = useAppStore();
   const { t } = useTranslation();
+  const canTask = can(currentUser.role, "tasks:create");
+  const canReport = can(currentUser.role, "reports:create");
+  const canRisk = can(currentUser.role, "risiko:create");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [expanded, setExpanded] = useState(false);
@@ -59,14 +64,17 @@ export function CopilotPanel() {
   if (!copilotOpen) return null;
 
   const saveTask = (m: Msg) => {
+    if (!canTask) { toast.error(t("no_permission")); return; }
     addTask(m.question ?? "Copilot-Analyse", `${t("ai_analysis")} · ${selectedEntity}`);
     toast.success(t("task_saved"));
   };
   const toReport = (m: Msg) => {
+    if (!canReport) { toast.error(t("no_permission")); return; }
     addReportDraft(m.question ?? "Copilot-Analyse", t("ai_analysis"), selectedEntity);
     toast.success(t("added_to_report"));
   };
   const toRisk = (m: Msg) => {
+    if (!canRisk) { toast.error(t("no_permission")); return; }
     const entity: EntityCode = selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity;
     const risk: Risk = {
       id: `R-${Date.now()}`,
@@ -125,20 +133,26 @@ export function CopilotPanel() {
               >
                 {m.text}
               </div>
-              {m.role === "bot" && m.question && (
+              {m.role === "bot" && m.question && (canTask || canReport || canRisk) && (
                 <div className="flex flex-wrap gap-1.5">
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => saveTask(m)} data-testid={`action-task-${i}`}>
-                    <ListTodo className="h-3.5 w-3.5" />
-                    {t("save_as_task")}
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toReport(m)} data-testid={`action-report-${i}`}>
-                    <FileText className="h-3.5 w-3.5" />
-                    {t("add_to_report")}
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toRisk(m)} data-testid={`action-risk-${i}`}>
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    {t("create_risk")}
-                  </Button>
+                  {canTask && (
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => saveTask(m)} data-testid={`action-task-${i}`}>
+                      <ListTodo className="h-3.5 w-3.5" />
+                      {t("save_as_task")}
+                    </Button>
+                  )}
+                  {canReport && (
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toReport(m)} data-testid={`action-report-${i}`}>
+                      <FileText className="h-3.5 w-3.5" />
+                      {t("add_to_report")}
+                    </Button>
+                  )}
+                  {canRisk && (
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toRisk(m)} data-testid={`action-risk-${i}`}>
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                      {t("create_risk")}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

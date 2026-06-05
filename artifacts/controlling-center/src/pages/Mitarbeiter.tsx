@@ -44,6 +44,7 @@ export default function Mitarbeiter() {
   const canCreate = can(currentUser.role, "mitarbeiter:create");
   const canEdit = can(currentUser.role, "mitarbeiter:edit");
   const canDelete = can(currentUser.role, "mitarbeiter:delete");
+  const canAssign = can(currentUser.role, "assignment:create");
 
   const [open, setOpen] = useState(false);
   const [emp, setEmp] = useState(employees[0]?.name ?? "");
@@ -83,6 +84,7 @@ export default function Mitarbeiter() {
   };
 
   const assign = () => {
+    if (!canAssign) { toast.error(t("no_permission")); return; }
     const dev = inventory.find((i) => i.inventoryNumber === device);
     if (!emp || !dev) { toast.error("Bitte Mitarbeiter und Gerät wählen."); return; }
     const da: DeviceAssignment = {
@@ -108,7 +110,7 @@ export default function Mitarbeiter() {
         actions={
           <div className="flex gap-2">
             {canCreate && <Button variant="outline" onClick={openEmpCreate} data-testid="button-add-employee"><Plus className="h-4 w-4 mr-1.5" /> {t("emp_create")}</Button>}
-            <Button onClick={() => setOpen(true)} data-testid="button-assign-device"><Laptop className="h-4 w-4 mr-1.5" /> {t("mit_assign_device")}</Button>
+            {canAssign && <Button onClick={() => setOpen(true)} data-testid="button-assign-device"><Laptop className="h-4 w-4 mr-1.5" /> {t("mit_assign_device")}</Button>}
           </div>
         }
       />

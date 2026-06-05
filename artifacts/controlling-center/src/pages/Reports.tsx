@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page";
+import { can } from "@/data/governance";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { REPORTS, getFinance, getEntityComparison, formatCurrency, ENTITY_CODES } from "@/data";
 import type { ViewKey } from "@/data/types";
@@ -28,7 +29,8 @@ const SECTIONS: { key: string; labelKey: string }[] = [
 
 export default function Reports() {
   const { t } = useTranslation();
-  const { selectedEntity, reportDrafts, addReportDraft } = useAppStore();
+  const { selectedEntity, reportDrafts, addReportDraft, currentUser } = useAppStore();
+  const canCreate = can(currentUser.role, "reports:create");
   const [generating, setGenerating] = useState(false);
   const [title, setTitle] = useState("Controlling-Bericht");
   const [type, setType] = useState("Monatsbericht");
@@ -45,6 +47,7 @@ export default function Reports() {
   };
 
   const downloadDelimited = (delimiter: string, ext: string, label: string, view: ViewKey, docTitle: string) => {
+    if (!canCreate) { toast.error(t("no_permission")); return; }
     const fin = getFinance(view);
     const comparison = getEntityComparison();
     const lines: string[][] = [
@@ -76,6 +79,7 @@ export default function Reports() {
   };
 
   const generatePdf = (overrideTitle?: string, overrideEntity?: ViewKey) => {
+    if (!canCreate) { toast.error(t("no_permission")); return; }
     setGenerating(true);
     const view = overrideEntity ?? entity;
     const docTitle = overrideTitle ?? title;
@@ -157,6 +161,7 @@ export default function Reports() {
   };
 
   const saveDraft = () => {
+    if (!canCreate) { toast.error(t("no_permission")); return; }
     addReportDraft(title, type, entity);
     toast.success("Berichtsentwurf gespeichert.");
   };
@@ -167,7 +172,7 @@ export default function Reports() {
         title={t("reports")}
         subtitle={t("rep_subtitle")}
         icon={<FileBarChart className="h-5 w-5" />}
-        actions={<Button onClick={() => generatePdf()} disabled={generating} data-testid="button-generate-report"><Download className="h-4 w-4 mr-1.5" /> {t("bericht_erstellen")}</Button>}
+        actions={canCreate ? <Button onClick={() => generatePdf()} disabled={generating} data-testid="button-generate-report"><Download className="h-4 w-4 mr-1.5" /> {t("bericht_erstellen")}</Button> : undefined}
       />
 
       <AiInsight context="reports" />
@@ -229,10 +234,16 @@ export default function Reports() {
           <div className="space-y-2">
             <Label>{t("export")}</Label>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => generatePdf()} disabled={generating} data-testid="button-export-pdf"><Download className="h-4 w-4 mr-1.5" /> {t("rep_export_pdf")}</Button>
-              <Button variant="outline" onClick={() => downloadDelimited(";", "xls", "Excel", entity, title)} data-testid="button-export-excel"><FileSpreadsheet className="h-4 w-4 mr-1.5" /> {t("rep_export_excel")}</Button>
-              <Button variant="outline" onClick={() => downloadDelimited(",", "csv", "CSV", entity, title)} data-testid="button-export-csv"><FileType className="h-4 w-4 mr-1.5" /> {t("rep_export_csv")}</Button>
-              <Button variant="outline" onClick={saveDraft} data-testid="button-save-draft"><Save className="h-4 w-4 mr-1.5" /> {t("rep_save_draft")}</Button>
+              {canCreate ? (
+                <>
+                  <Button onClick={() => generatePdf()} disabled={generating} data-testid="button-export-pdf"><Download className="h-4 w-4 mr-1.5" /> {t("rep_export_pdf")}</Button>
+                  <Button variant="outline" onClick={() => downloadDelimited(";", "xls", "Excel", entity, title)} data-testid="button-export-excel"><FileSpreadsheet className="h-4 w-4 mr-1.5" /> {t("rep_export_excel")}</Button>
+                  <Button variant="outline" onClick={() => downloadDelimited(",", "csv", "CSV", entity, title)} data-testid="button-export-csv"><FileType className="h-4 w-4 mr-1.5" /> {t("rep_export_csv")}</Button>
+                  <Button variant="outline" onClick={saveDraft} data-testid="button-save-draft"><Save className="h-4 w-4 mr-1.5" /> {t("rep_save_draft")}</Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("no_permission")}</p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -244,7 +255,7 @@ export default function Reports() {
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> {tp}</CardTitle></CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">{t("rep_quick_desc", { type: tp, entity })}</p>
-              <Button variant="outline" size="sm" className="w-full" onClick={() => generatePdf(tp)} data-testid={`button-quick-${tp}`}><Download className="h-4 w-4 mr-1.5" /> {t("rep_create_pdf")}</Button>
+              {canCreate && <Button variant="outline" size="sm" className="w-full" onClick={() => generatePdf(tp)} data-testid={`button-quick-${tp}`}><Download className="h-4 w-4 mr-1.5" /> {t("rep_create_pdf")}</Button>}
             </CardContent>
           </Card>
         ))}
@@ -263,7 +274,7 @@ export default function Reports() {
                     <TableCell><Badge variant="outline">{d.type}</Badge></TableCell>
                     <TableCell>{d.entity}</TableCell>
                     <TableCell className="text-muted-foreground">{d.createdAt}</TableCell>
-                    <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => generatePdf(d.title, d.entity)} data-testid={`button-export-draft-${d.id}`}><Download className="h-4 w-4" /></Button></TableCell>
+                    <TableCell className="text-right">{canCreate && <Button size="sm" variant="ghost" onClick={() => generatePdf(d.title, d.entity)} data-testid={`button-export-draft-${d.id}`}><Download className="h-4 w-4" /></Button>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -284,7 +295,7 @@ export default function Reports() {
                   <TableCell className="text-muted-foreground max-w-xs">{r.description}</TableCell>
                   <TableCell><Badge variant="outline">{r.type}</Badge></TableCell>
                   <TableCell className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {r.period}</TableCell>
-                  <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => generatePdf(r.title)} data-testid={`button-download-${r.id}`}><Download className="h-4 w-4" /></Button></TableCell>
+                  <TableCell className="text-right">{canCreate && <Button size="sm" variant="ghost" onClick={() => generatePdf(r.title)} data-testid={`button-download-${r.id}`}><Download className="h-4 w-4" /></Button>}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

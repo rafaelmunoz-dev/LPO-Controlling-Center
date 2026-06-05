@@ -17,7 +17,7 @@ import { PageHeader } from "@/components/shared/page";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import { ENTITY_CODES, MS_ADAPTERS } from "@/data";
 import { EntitySettings } from "@/components/settings/EntitySettings";
-import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS } from "@/data/governance";
+import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS, SETTINGS_ADMIN_ROLES } from "@/data/governance";
 import type { ViewKey, MsAdapter } from "@/data/types";
 import {
   Settings, Globe, Bell, Palette, User, Shield, CheckCircle2, XCircle, UserCheck,
@@ -58,6 +58,7 @@ const EXTERNAL_APPS = [
 
 export default function Einstellungen() {
   const { language, setLanguage, currentUser, setCurrentUser, selectedEntity, setEntity, entities } = useAppStore();
+  const canAdminSettings = SETTINGS_ADMIN_ROLES.includes(currentUser.role);
   const entityViews: ViewKey[] = ["MiGu Group Gesamt", ...entities.map((e) => e.code)];
   const { t, i18n } = useTranslation();
   const [notifications, setNotifications] = useState({ approvals: true, risks: true, reports: false, sync: true });
@@ -69,12 +70,14 @@ export default function Einstellungen() {
   const [copilot, setCopilot] = useState({ proactive: true, autoSummary: true, suggestActions: true, tone: "Sachlich" });
 
   const changeLang = (code: "de" | "en" | "es") => {
+    if (!canAdminSettings) { toast.error(t("no_permission")); return; }
     setLanguage(code);
     i18n.changeLanguage(code);
     toast.success(`Sprache: ${LANGS.find((l) => l.code === code)?.label}`);
   };
 
   const toggleAdapter = (service: string) => {
+    if (!canAdminSettings) { toast.error(t("no_permission")); return; }
     setAdapters((prev) => prev.map((a) => {
       if (a.service !== service) return a;
       const connected = !a.connected;
@@ -84,6 +87,7 @@ export default function Einstellungen() {
   };
 
   const syncAdapter = (service: string) => {
+    if (!canAdminSettings) { toast.error(t("no_permission")); return; }
     const a = adapters.find((x) => x.service === service);
     if (!a?.connected) { toast.error("Adapter ist nicht verbunden."); return; }
     setAdapters((prev) => prev.map((x) => x.service === service ? { ...x, lastSyncTime: new Date().toLocaleString("de-DE") } : x));
@@ -91,6 +95,7 @@ export default function Einstellungen() {
   };
 
   const toggleApp = (name: string) => {
+    if (!canAdminSettings) { toast.error(t("no_permission")); return; }
     setApps((prev) => prev.map((a) => {
       if (a.name !== name) return a;
       const connected = !a.connected;
@@ -140,7 +145,7 @@ export default function Einstellungen() {
                   <div className="space-y-1.5"><Label>{t("set_organisation")}</Label><Input defaultValue={currentUser.organisation} disabled /></div>
                   <div className="space-y-1.5"><Label>{t("set_role")}</Label><Input defaultValue={currentUser.role} disabled /></div>
                 </div>
-                <Button onClick={() => toast.success(t("set_profile_saved"))} data-testid="button-save-profile">{t("save")}</Button>
+                <Button disabled={!canAdminSettings} onClick={() => toast.success(t("set_profile_saved"))} data-testid="button-save-profile">{t("save")}</Button>
               </CardContent>
             </Card>
 
@@ -155,7 +160,7 @@ export default function Einstellungen() {
                 ] as const).map(([key, title, desc]) => (
                   <div key={key} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
                     <div><div className="font-medium text-sm">{title}</div><div className="text-xs text-muted-foreground">{desc}</div></div>
-                    <Switch checked={notifications[key as keyof typeof notifications]} onCheckedChange={(v) => { setNotifications((n) => ({ ...n, [key]: v })); toast.message(`${title}: ${v ? t("set_enabled") : t("set_disabled")}`); }} data-testid={`switch-notif-${key}`} />
+                    <Switch checked={notifications[key as keyof typeof notifications]} disabled={!canAdminSettings} onCheckedChange={(v) => { setNotifications((n) => ({ ...n, [key]: v })); toast.message(`${title}: ${v ? t("set_enabled") : t("set_disabled")}`); }} data-testid={`switch-notif-${key}`} />
                   </div>
                 ))}
               </CardContent>
@@ -213,11 +218,11 @@ export default function Einstellungen() {
                         {r.role}
                         <Badge variant="outline">{ROLE_PERMISSIONS[r.role].length} {t("set_modules")}</Badge>
                       </CardTitle>
-                      <p className="text-sm text-muted-foreground">{r.description}</p>
+                      <p className="text-sm text-muted-foreground">{t(r.descriptionKey)}</p>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-wrap gap-1.5">
-                        {r.permissions.map((p) => <Badge key={p} variant="outline" className="gap-1 text-xs"><CheckCircle2 className="h-3 w-3 text-emerald-600" /> {p}</Badge>)}
+                        {r.permissionKeys.map((p) => <Badge key={p} variant="outline" className="gap-1 text-xs"><CheckCircle2 className="h-3 w-3 text-emerald-600" /> {t(p)}</Badge>)}
                       </div>
                     </CardContent>
                   </Card>
@@ -266,7 +271,7 @@ export default function Einstellungen() {
                 <Label>{t("set_display_language")}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {LANGS.map((l) => (
-                    <Button key={l.code} variant={language === l.code ? "default" : "outline"} onClick={() => changeLang(l.code)} data-testid={`button-lang-${l.code}`}>{l.label}</Button>
+                    <Button key={l.code} variant={language === l.code ? "default" : "outline"} disabled={!canAdminSettings} onClick={() => changeLang(l.code)} data-testid={`button-lang-${l.code}`}>{l.label}</Button>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">{t("set_language_hint")}</p>
@@ -311,7 +316,7 @@ export default function Einstellungen() {
                           <p className="text-xs text-muted-foreground mt-0.5">{a.description}</p>
                         </div>
                       </div>
-                      <Switch checked={a.connected} onCheckedChange={() => toggleAdapter(a.service)} data-testid={`switch-adapter-${a.service}`} />
+                      <Switch checked={a.connected} disabled={!canAdminSettings} onCheckedChange={() => toggleAdapter(a.service)} data-testid={`switch-adapter-${a.service}`} />
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm">
@@ -322,7 +327,7 @@ export default function Einstellungen() {
                         : <Badge variant="outline" className="gap-1 bg-slate-500/10 text-slate-600 border-slate-500/20"><XCircle className="h-3.5 w-3.5" /> {t("set_disconnected")}</Badge>}
                     </div>
                     <div className="flex items-center justify-between"><span className="text-muted-foreground">{t("set_last_sync")}</span><span className="font-medium">{a.lastSyncTime}</span></div>
-                    <Button variant="outline" size="sm" className="w-full" disabled={!a.connected} onClick={() => syncAdapter(a.service)} data-testid={`button-sync-${a.service}`}>
+                    <Button variant="outline" size="sm" className="w-full" disabled={!a.connected || !canAdminSettings} onClick={() => syncAdapter(a.service)} data-testid={`button-sync-${a.service}`}>
                       <RefreshCw className="h-4 w-4 mr-1.5" /> {t("set_sync_now")}
                     </Button>
                   </CardContent>
@@ -349,7 +354,7 @@ export default function Einstellungen() {
                     </div>
                     <div className="flex items-center gap-2">
                       {a.connected && <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1"><CheckCircle2 className="h-3 w-3" /> {t("set_connected")}</Badge>}
-                      <Switch checked={a.connected} onCheckedChange={() => toggleApp(a.name)} data-testid={`switch-app-${a.name}`} />
+                      <Switch checked={a.connected} disabled={!canAdminSettings} onCheckedChange={() => toggleApp(a.name)} data-testid={`switch-app-${a.name}`} />
                     </div>
                   </div>
                 ))}
@@ -386,7 +391,7 @@ export default function Einstellungen() {
               ] as const).map(([key, title, desc]) => (
                 <div key={key} className="flex items-center justify-between py-2.5 border-b border-border">
                   <div><div className="font-medium text-sm">{title}</div><div className="text-xs text-muted-foreground">{desc}</div></div>
-                  <Switch checked={security[key as keyof typeof security] as boolean} onCheckedChange={(v) => { setSecurity((s) => ({ ...s, [key]: v })); toast.message(`${title}: ${v ? t("set_enabled") : t("set_disabled")}`); }} data-testid={`switch-security-${key}`} />
+                  <Switch checked={security[key as keyof typeof security] as boolean} disabled={!canAdminSettings} onCheckedChange={(v) => { setSecurity((s) => ({ ...s, [key]: v })); toast.message(`${title}: ${v ? t("set_enabled") : t("set_disabled")}`); }} data-testid={`switch-security-${key}`} />
                 </div>
               ))}
               <div className="py-4 space-y-2">
@@ -394,7 +399,7 @@ export default function Einstellungen() {
                   <div><div className="font-medium text-sm">{t("set_session_timeout")}</div><div className="text-xs text-muted-foreground">{t("set_session_timeout_desc")}</div></div>
                   <span className="text-sm font-medium text-primary">{security.sessionTimeout[0]} {t("set_min")}</span>
                 </div>
-                <Slider value={security.sessionTimeout} onValueChange={(v) => setSecurity((s) => ({ ...s, sessionTimeout: v }))} min={5} max={120} step={5} data-testid="slider-session-timeout" />
+                <Slider value={security.sessionTimeout} disabled={!canAdminSettings} onValueChange={(v) => setSecurity((s) => ({ ...s, sessionTimeout: v }))} min={5} max={120} step={5} data-testid="slider-session-timeout" />
               </div>
             </CardContent>
           </Card>
@@ -407,11 +412,11 @@ export default function Einstellungen() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between py-2">
                 <div><div className="font-medium text-sm">{t("set_glass")}</div><div className="text-xs text-muted-foreground">{t("set_glass_desc")}</div></div>
-                <Switch defaultChecked data-testid="switch-glass" />
+                <Switch defaultChecked disabled={!canAdminSettings} data-testid="switch-glass" />
               </div>
               <div className="flex items-center justify-between py-2">
                 <div><div className="font-medium text-sm">{t("set_compact_tables")}</div><div className="text-xs text-muted-foreground">{t("set_compact_desc")}</div></div>
-                <Switch data-testid="switch-compact" />
+                <Switch disabled={!canAdminSettings} data-testid="switch-compact" />
               </div>
               <Separator />
               <div className="space-y-2">
@@ -441,12 +446,12 @@ export default function Einstellungen() {
               ] as const).map(([key, title, desc]) => (
                 <div key={key} className="flex items-center justify-between py-2.5 border-b border-border">
                   <div><div className="font-medium text-sm">{title}</div><div className="text-xs text-muted-foreground">{desc}</div></div>
-                  <Switch checked={copilot[key as keyof typeof copilot] as boolean} onCheckedChange={(v) => { setCopilot((c) => ({ ...c, [key]: v })); toast.message(`${title}: ${v ? t("set_enabled") : t("set_disabled")}`); }} data-testid={`switch-copilot-${key}`} />
+                  <Switch checked={copilot[key as keyof typeof copilot] as boolean} disabled={!canAdminSettings} onCheckedChange={(v) => { setCopilot((c) => ({ ...c, [key]: v })); toast.message(`${title}: ${v ? t("set_enabled") : t("set_disabled")}`); }} data-testid={`switch-copilot-${key}`} />
                 </div>
               ))}
               <div className="pt-4 space-y-1.5">
                 <Label>{t("set_tone")}</Label>
-                <Select value={copilot.tone} onValueChange={(v) => { setCopilot((c) => ({ ...c, tone: v })); toast.success(`Tonalität: ${v}`); }}>
+                <Select value={copilot.tone} disabled={!canAdminSettings} onValueChange={(v) => { setCopilot((c) => ({ ...c, tone: v })); toast.success(`Tonalität: ${v}`); }}>
                   <SelectTrigger data-testid="select-copilot-tone"><SelectValue /></SelectTrigger>
                   <SelectContent>{["Sachlich", "Prägnant", "Ausführlich"].map((tone) => <SelectItem key={tone} value={tone}>{tone}</SelectItem>)}</SelectContent>
                 </Select>

@@ -32,9 +32,14 @@ export default function Login() {
   const [, navigate] = useLocation();
   const login = useAppStore((s) => s.login);
 
-  const signIn = (user: AppUser, href = "/") => {
+  const homeFor = (user: AppUser) => {
+    const first = ROLE_PERMISSIONS[user.role][0];
+    return first ? NAV_META[first].href : "/";
+  };
+
+  const signIn = (user: AppUser, href?: string) => {
     login(user);
-    navigate(href);
+    navigate(href ?? homeFor(user));
   };
 
   return (
@@ -68,7 +73,7 @@ export default function Login() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col flex-1 gap-3">
-                  <p className="text-sm text-muted-foreground min-h-[2.5rem]">{def?.description}</p>
+                  <p className="text-sm text-muted-foreground min-h-[2.5rem]">{def ? t(def.descriptionKey) : ""}</p>
                   <div>
                     <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-1.5">{t("login_access_to")}</p>
                     <div className="flex flex-wrap gap-1.5">

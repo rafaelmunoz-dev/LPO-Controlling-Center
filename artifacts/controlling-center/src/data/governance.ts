@@ -70,12 +70,6 @@ export const REPORTS: ReportDef[] = [
   { id: "RP-9", title: "Freigabebericht", description: "Übersicht aller Freigabeprozesse und Status.", period: "Monatlich", type: "Freigaben" },
 ];
 
-export interface RoleDef {
-  role: Role;
-  description: string;
-  permissions: string[];
-}
-
 export const NAV_KEYS = [
   "dashboard",
   "finanzen",
@@ -96,27 +90,31 @@ export const NAV_KEYS = [
 export type NavKey = (typeof NAV_KEYS)[number];
 
 export const ROLE_PERMISSIONS: Record<Role, NavKey[]> = {
-  Admin: [...NAV_KEYS],
-  Controller: ["dashboard", "finanzen", "umsatz", "entitaeten", "gewinnverlust", "einkauf", "freigaben", "prognosen", "risiko", "strategie", "audit", "reports", "einstellungen"],
-  "Finance Analyst": ["dashboard", "finanzen", "umsatz", "entitaeten", "gewinnverlust", "prognosen", "reports", "einstellungen"],
-  "Procurement Manager": ["dashboard", "einkauf", "freigaben", "reports", "einstellungen"],
-  "Inventory Manager": ["dashboard", "inventar", "mitarbeiter", "freigaben", "reports", "einstellungen"],
-  "Management Viewer": ["dashboard", "finanzen", "umsatz", "entitaeten", "gewinnverlust", "prognosen", "risiko", "strategie", "audit", "reports", "einstellungen"],
-  "Entity Manager": ["dashboard", "finanzen", "umsatz", "gewinnverlust", "einkauf", "inventar", "mitarbeiter", "freigaben", "risiko", "reports", "einstellungen"],
+  Controller: [...NAV_KEYS],
+  "Geschäftsführer": [...NAV_KEYS],
+  "Finanzbuchhalter": ["einkauf", "finanzen", "inventar"],
+  "Mitarbeiter": ["einkauf"],
 };
 
-export const APPROVER_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
-export const CREATE_PR_ROLES: Role[] = ["Admin", "Controller", "Procurement Manager", "Entity Manager"];
-export const INVENTORY_EDIT_ROLES: Role[] = ["Admin", "Inventory Manager", "Entity Manager"];
-export const ENTITY_EDIT_ROLES: Role[] = ["Admin", "Controller", "Entity Manager"];
-export const ENTITY_ADMIN_ROLES: Role[] = ["Admin"];
+export const APPROVER_ROLES: Role[] = ["Controller", "Geschäftsführer"];
+export const CREATE_PR_ROLES: Role[] = ["Controller", "Finanzbuchhalter", "Mitarbeiter"];
+// Who may upload documents (e.g. Finanzbuchhalter uploading bank statements).
+export const UPLOAD_ROLES: Role[] = ["Controller", "Finanzbuchhalter"];
+// Who may further-process an upload (mark "Verarbeitet") — Controller only per spec.
+export const UPLOAD_PROCESS_ROLES: Role[] = ["Controller"];
+export const INVENTORY_EDIT_ROLES: Role[] = ["Controller", "Finanzbuchhalter"];
+// Who may change system/integration configuration in Einstellungen (connect/sync adapters & apps).
+export const SETTINGS_ADMIN_ROLES: Role[] = ["Controller"];
+export const ENTITY_EDIT_ROLES: Role[] = ["Controller"];
+export const ENTITY_ADMIN_ROLES: Role[] = ["Controller"];
 
 export type Capability =
   | "risiko:create" | "risiko:edit" | "risiko:delete"
   | "lieferant:create" | "lieferant:edit" | "lieferant:delete"
   | "mitarbeiter:create" | "mitarbeiter:edit" | "mitarbeiter:delete"
   | "inventar:create" | "inventar:edit" | "inventar:delete"
-  | "strategie:create" | "strategie:edit" | "strategie:delete";
+  | "strategie:create" | "strategie:edit" | "strategie:delete"
+  | "assignment:create" | "reports:create" | "tasks:create";
 
 const ALL_CAPS: Capability[] = [
   "risiko:create", "risiko:edit", "risiko:delete",
@@ -124,28 +122,29 @@ const ALL_CAPS: Capability[] = [
   "mitarbeiter:create", "mitarbeiter:edit", "mitarbeiter:delete",
   "inventar:create", "inventar:edit", "inventar:delete",
   "strategie:create", "strategie:edit", "strategie:delete",
+  "assignment:create", "reports:create", "tasks:create",
 ];
 
 export const ROLE_CAPABILITIES: Record<Role, Capability[]> = {
-  Admin: [...ALL_CAPS],
-  Controller: ["risiko:create", "risiko:edit", "risiko:delete", "strategie:create", "strategie:edit", "strategie:delete"],
-  "Finance Analyst": [],
-  "Procurement Manager": ["lieferant:create", "lieferant:edit", "lieferant:delete"],
-  "Inventory Manager": ["inventar:create", "inventar:edit", "inventar:delete", "mitarbeiter:create", "mitarbeiter:edit", "mitarbeiter:delete"],
-  "Management Viewer": [],
-  "Entity Manager": ["risiko:create", "risiko:edit", "risiko:delete", "inventar:create", "inventar:edit", "inventar:delete", "mitarbeiter:create", "mitarbeiter:edit", "mitarbeiter:delete", "lieferant:edit"],
+  Controller: [...ALL_CAPS],
+  "Geschäftsführer": [],
+  "Finanzbuchhalter": ["inventar:create", "inventar:edit", "inventar:delete"],
+  "Mitarbeiter": [],
 };
 
 export function can(role: Role, cap: Capability): boolean {
   return ROLE_CAPABILITIES[role]?.includes(cap) ?? false;
 }
 
-export const ROLE_DEFS: RoleDef[] = [
-  { role: "Admin", description: "Voller Zugriff auf alle Module und Einstellungen.", permissions: ["Alle Module", "Benutzerverwaltung", "Systemeinstellungen"] },
-  { role: "Controller", description: "Steuert Finanzen, Freigaben und Strategie über alle Entitäten.", permissions: ["Finanzen", "Freigaben", "Risiko", "Strategie", "Reports"] },
-  { role: "Finance Analyst", description: "Analysiert Finanzdaten und Prognosen.", permissions: ["Finanzen", "Prognosen", "Reports"] },
-  { role: "Procurement Manager", description: "Verwaltet Einkauf und Beschaffungsfreigaben.", permissions: ["Einkauf", "Freigaben", "Microsoft Integration"] },
-  { role: "Inventory Manager", description: "Verwaltet Inventar und Geräteausgaben.", permissions: ["Inventar", "Mitarbeiter & Geräte", "Reports"] },
-  { role: "Management Viewer", description: "Liest Berichte, Risiken und Strategie ohne Bearbeitung.", permissions: ["Dashboard", "Reports", "Risiko", "Strategie"] },
-  { role: "Entity Manager", description: "Verantwortet eine Entität operativ und finanziell.", permissions: ["Finanzen", "Einkauf", "Inventar", "Freigaben"] },
+export interface RoleDefMeta {
+  role: Role;
+  descriptionKey: string;
+  permissionKeys: string[];
+}
+
+export const ROLE_DEFS: RoleDefMeta[] = [
+  { role: "Controller", descriptionKey: "role_controller_desc", permissionKeys: ["role_perm_all_modules", "role_perm_edit_delete", "role_perm_approve"] },
+  { role: "Geschäftsführer", descriptionKey: "role_gf_desc", permissionKeys: ["role_perm_view_all", "role_perm_approve"] },
+  { role: "Finanzbuchhalter", descriptionKey: "role_fibu_desc", permissionKeys: ["role_perm_purchase_requests", "role_perm_bank_statements", "role_perm_inventory"] },
+  { role: "Mitarbeiter", descriptionKey: "role_ma_desc", permissionKeys: ["role_perm_purchase_requests"] },
 ];

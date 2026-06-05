@@ -24,10 +24,12 @@ import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { searchAll, type SearchResult, type ViewKey } from "@/data";
+import { can } from "@/data/governance";
 import lpoLogo from "@assets/image_1780570561463.png";
 
 export function Topbar() {
-  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities, logout } = useAppStore();
+  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities, logout, allowedNav } = useAppStore();
+  const canReports = allowedNav().includes("reports") && can(currentUser.role, "reports:create");
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
@@ -177,15 +179,19 @@ export function Topbar() {
 
         <div className="w-px h-6 bg-border mx-1" />
 
-        <Button variant="outline" size="sm" className="hidden lg:flex gap-2 bg-white/60" onClick={() => { navigate("/reports"); toast.success(t("export_started")); }} data-testid="button-export">
-          <Download className="h-4 w-4" />
-          {t("export")}
-        </Button>
+        {canReports && (
+          <>
+            <Button variant="outline" size="sm" className="hidden lg:flex gap-2 bg-white/60" onClick={() => { navigate("/reports"); toast.success(t("export_started")); }} data-testid="button-export">
+              <Download className="h-4 w-4" />
+              {t("export")}
+            </Button>
 
-        <Button size="sm" className="hidden lg:flex gap-2 shadow-sm" onClick={() => navigate("/reports")} data-testid="button-create-report">
-          <FilePlus2 className="h-4 w-4" />
-          {t("bericht_erstellen")}
-        </Button>
+            <Button size="sm" className="hidden lg:flex gap-2 shadow-sm" onClick={() => navigate("/reports")} data-testid="button-create-report">
+              <FilePlus2 className="h-4 w-4" />
+              {t("bericht_erstellen")}
+            </Button>
+          </>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -21,6 +21,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useAppStore } from "@/hooks/use-app-context";
+import { UPLOAD_ROLES, UPLOAD_PROCESS_ROLES } from "@/data/governance";
 import { ENTITY_CODES, scopeByEntity, formatDate } from "@/data";
 import type { DocType, EntityCode, UploadItem } from "@/data/types";
 import { StatusBadge } from "@/components/shared/page";
@@ -34,6 +35,8 @@ interface Props {
 export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
   const { t } = useTranslation();
   const { uploads, addUpload, updateUploadStatus, selectedEntity, currentUser } = useAppStore();
+  const canUpload = UPLOAD_ROLES.includes(currentUser.role);
+  const canProcess = UPLOAD_PROCESS_ROLES.includes(currentUser.role);
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState("");
   const [docType, setDocType] = useState<DocType>(defaultDocType);
@@ -49,6 +52,10 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
   );
 
   const submit = () => {
+    if (!canUpload) {
+      toast.error(t("no_permission"));
+      return;
+    }
     if (!fileName.trim()) {
       toast.error(t("file_name"));
       return;
@@ -81,12 +88,14 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
           <span className="font-semibold text-primary">{title ?? t("upload_documents")}</span>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5" data-testid="button-upload-open">
-              <UploadCloud className="h-4 w-4" />
-              {t("upload_document")}
-            </Button>
-          </DialogTrigger>
+          {canUpload && (
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5" data-testid="button-upload-open">
+                <UploadCloud className="h-4 w-4" />
+                {t("upload_document")}
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{t("upload_document")}</DialogTitle>
@@ -150,8 +159,8 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
                 <p className="text-xs text-muted-foreground">{u.entity} · {u.period} · {formatDate(u.uploadedAt)}</p>
               </div>
               <StatusBadge status={u.status} />
-              {(u.status === "Neu" || u.status === "Fehler") && (
-                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => { updateUploadStatus(u.id, "Verarbeitet"); toast.success(t("process")); }} data-testid={`button-process-${u.id}`}>
+              {canProcess && (u.status === "Neu" || u.status === "Fehler") && (
+                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => { if (!canProcess) { toast.error(t("no_permission")); return; } updateUploadStatus(u.id, "Verarbeitet"); toast.success(t("process")); }} data-testid={`button-process-${u.id}`}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   {t("process")}
                 </Button>
