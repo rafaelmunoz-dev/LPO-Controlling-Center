@@ -207,6 +207,7 @@ export interface PurchaseRequest {
   requestedBy: string;
   createdAt: string;
   document?: string;
+  documents?: string[];
   source?: "Manuell" | "Microsoft Forms";
 }
 

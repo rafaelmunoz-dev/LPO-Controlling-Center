@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { UploadPanel } from "@/components/shared/UploadPanel";
 import { scopeByEntity, FORM_RESPONSES, ENTITY_CODES, formatCurrency } from "@/data";
 import { can, CREATE_PR_ROLES, APPROVER_ROLES } from "@/data/governance";
 import type { EntityCode, PurchaseRequest, Supplier } from "@/data/types";
-import { ShoppingCart, Plus, Star, CheckCircle2, XCircle, FileInput, Pencil, Trash2 } from "lucide-react";
+import { ShoppingCart, Plus, Star, CheckCircle2, XCircle, FileInput, Pencil, Trash2, Paperclip, FileText, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -37,6 +37,18 @@ export default function Einkauf() {
   const [open, setOpen] = useState(false);
   const [convertedIds, setConvertedIds] = useState<string[]>([]);
   const [form, setForm] = useState({ title: "", supplier: suppliers[0]?.name ?? "", amount: "", category: "IT-Hardware", justification: "", entity: (selectedEntity === "MiGu Group Gesamt" ? "IMP" : selectedEntity) as EntityCode });
+  const [offers, setOffers] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? [])
+      .filter((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"))
+      .map((f) => f.name);
+    if (picked.length === 0 && (e.target.files?.length ?? 0) > 0) toast.error(t("einkauf_offer_hint"));
+    setOffers((prev) => Array.from(new Set([...prev, ...picked])));
+    e.target.value = "";
+  };
+  const removeOffer = (name: string) => setOffers((prev) => prev.filter((n) => n !== name));
 
   const [supOpen, setSupOpen] = useState(false);
   const [supEditId, setSupEditId] = useState<string | null>(null);
@@ -84,12 +96,14 @@ export default function Einkauf() {
       status: "Eingereicht",
       requestedBy: currentUser.name,
       createdAt: new Date().toISOString().slice(0, 10),
+      documents: offers.length ? offers : undefined,
       source: "Manuell",
     };
     addPurchaseRequest(pr);
     toast.success(`Kaufanfrage ${pr.id} eingereicht.`);
     setOpen(false);
     setForm({ ...form, title: "", amount: "", justification: "" });
+    setOffers([]);
   };
 
   const convertForm = (id: string) => {
@@ -125,7 +139,7 @@ export default function Einkauf() {
         subtitle={t("einkauf_subtitle")}
         icon={<ShoppingCart className="h-5 w-5" />}
         actions={
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setOffers([]); }}>
             <DialogTrigger asChild><Button disabled={!canCreatePR} data-testid="button-new-pr"><Plus className="h-4 w-4 mr-1.5" /> {t("einkauf_new_pr")}</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{t("einkauf_new_pr_title")}</DialogTitle></DialogHeader>
@@ -148,6 +162,25 @@ export default function Einkauf() {
                   </div>
                 </div>
                 <div className="space-y-1.5"><Label>{t("common_justification")}</Label><Textarea value={form.justification} onChange={(e) => setForm({ ...form, justification: e.target.value })} data-testid="input-pr-justification" /></div>
+                <div className="space-y-1.5">
+                  <Label>{t("einkauf_attach_offer")}</Label>
+                  <input ref={fileInputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={onPickFiles} data-testid="input-pr-offer-file" />
+                  <Button type="button" variant="outline" className="w-full justify-start gap-2 font-normal text-muted-foreground" onClick={() => fileInputRef.current?.click()} data-testid="button-pr-attach-offer">
+                    <Paperclip className="h-4 w-4" /> {t("einkauf_select_pdf")}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">{t("einkauf_offer_hint")}</p>
+                  {offers.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      {offers.map((name) => (
+                        <div key={name} className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-sm" data-testid={`offer-chip-${name}`}>
+                          <FileText className="h-4 w-4 shrink-0 text-primary" />
+                          <span className="min-w-0 flex-1 truncate">{name}</span>
+                          <button type="button" onClick={() => removeOffer(name)} className="text-muted-foreground hover:text-destructive" data-testid={`button-remove-offer-${name}`}><X className="h-3.5 w-3.5" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
@@ -182,7 +215,7 @@ export default function Einkauf() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("common_id")}</TableHead><TableHead>{t("common_title")}</TableHead><TableHead>{t("supplier")}</TableHead><TableHead>{t("entity")}</TableHead>
-                    <TableHead className="text-right">{t("amount")}</TableHead><TableHead>{t("common_source")}</TableHead><TableHead>{t("status")}</TableHead><TableHead className="text-right">{t("common_action")}</TableHead>
+                    <TableHead className="text-right">{t("amount")}</TableHead><TableHead>{t("einkauf_offer")}</TableHead><TableHead>{t("common_source")}</TableHead><TableHead>{t("status")}</TableHead><TableHead className="text-right">{t("common_action")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -193,6 +226,19 @@ export default function Einkauf() {
                       <TableCell>{p.supplier}</TableCell>
                       <TableCell>{p.entity}</TableCell>
                       <TableCell className="text-right">{formatCurrency(p.amount)}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const docs = p.documents ?? (p.document ? [p.document] : []);
+                          if (docs.length === 0) return <span className="text-muted-foreground text-xs">{t("einkauf_no_offer")}</span>;
+                          return (
+                            <span className="inline-flex items-center gap-1.5 text-xs" title={docs.join(", ")} data-testid={`pr-offer-${p.id}`}>
+                              <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <span className="max-w-[160px] truncate">{docs[0]}</span>
+                              {docs.length > 1 && <Badge variant="outline" className="text-[10px] px-1 py-0">+{docs.length - 1}</Badge>}
+                            </span>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell>{p.source === "Microsoft Forms" ? <Badge variant="outline" className="text-xs">MS Forms</Badge> : <span className="text-muted-foreground text-xs">{p.source}</span>}</TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell className="text-right">
@@ -205,7 +251,7 @@ export default function Einkauf() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {prs.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{t("einkauf_empty_requests")}</TableCell></TableRow>}
+                  {prs.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">{t("einkauf_empty_requests")}</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
