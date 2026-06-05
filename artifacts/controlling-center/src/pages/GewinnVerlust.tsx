@@ -53,8 +53,8 @@ export default function GewinnVerlust() {
   const comparison = getEntityComparison(entities);
 
   const lossEntities = comparison.filter((c) => c.profit < 0);
-  const trendData = pl.series.map((s) => ({ month: s.month, EBITDA: s.ebitda, [t("gv_result")]: s.profit }));
-  const byEntity = comparison.map((c) => ({ name: c.code, EBITDA: c.ebitda, [t("gv_result")]: c.profit }));
+  const trendData = pl.series.map((s) => ({ month: s.month, [t("kpi_ebitda")]: s.ebitda, [t("gv_result")]: s.profit }));
+  const byEntity = comparison.map((c) => ({ name: c.code, [t("kpi_ebitda")]: c.ebitda, [t("gv_result")]: c.profit }));
   const profitIsLoss = pl.netProfit < 0;
 
   return (
@@ -91,7 +91,7 @@ export default function GewinnVerlust() {
                 <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => formatCompact(v)} width={60} />
                 <RTooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
-                <Bar dataKey="EBITDA" fill={BRASS} radius={[6, 6, 0, 0]} />
+                <Bar dataKey={t("kpi_ebitda")} fill={BRASS} radius={[6, 6, 0, 0]} />
                 <Line type="monotone" dataKey={t("gv_result")} stroke={NAVY} strokeWidth={2.5} dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -111,7 +111,7 @@ export default function GewinnVerlust() {
                   <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => formatCompact(v)} width={60} />
                   <RTooltip formatter={(v: number) => formatCurrency(v)} />
                   <Legend />
-                  <Bar dataKey="EBITDA" fill={BRASS} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey={t("kpi_ebitda")} fill={BRASS} radius={[6, 6, 0, 0]} />
                   <Bar dataKey={t("gv_result")} fill={NAVY} radius={[6, 6, 0, 0]} />
                 </ComposedChart>
               </ResponsiveContainer>
