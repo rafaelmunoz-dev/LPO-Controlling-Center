@@ -22,7 +22,8 @@ export function EntityAvatar({ entity, logo, label, color, isGroup, size = 28, c
   const bg = color ?? entity?.color ?? "hsl(216 65% 11%)";
   const text = label ?? initials(entity?.code, entity?.name);
   const dim = { width: size, height: size };
-  const fontSize = Math.max(8, Math.round(size * 0.34));
+  const ratio = text.length >= 3 ? 0.3 : text.length === 2 ? 0.4 : 0.46;
+  const fontSize = Math.max(7, Math.round(size * ratio));
 
   return (
     <span
@@ -34,7 +35,7 @@ export function EntityAvatar({ entity, logo, label, color, isGroup, size = 28, c
       ) : isGroup ? (
         <Building2 className="text-white" style={{ width: size * 0.5, height: size * 0.5 }} />
       ) : (
-        <span className="font-semibold leading-none text-white" style={{ fontSize }}>
+        <span className="font-semibold leading-none tracking-tight text-white" style={{ fontSize }}>
           {text}
         </span>
       )}
