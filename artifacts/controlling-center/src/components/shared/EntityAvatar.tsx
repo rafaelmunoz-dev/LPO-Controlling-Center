@@ -11,16 +11,17 @@ interface EntityAvatarProps {
   className?: string;
 }
 
-function initials(code?: string, name?: string) {
-  if (code) return code.replace(/[^A-Za-z0-9&]/g, "").slice(0, 3).toUpperCase();
-  if (name) return name.slice(0, 2).toUpperCase();
+function initials(code?: string, name?: string, max = 3) {
+  if (code) return code.replace(/[^A-Za-z0-9&]/g, "").slice(0, max).toUpperCase();
+  if (name) return name.slice(0, Math.min(2, max)).toUpperCase();
   return "?";
 }
 
 export function EntityAvatar({ entity, logo, label, color, isGroup, size = 28, className = "" }: EntityAvatarProps) {
   const img = logo ?? entity?.logo ?? null;
   const bg = color ?? entity?.color ?? "hsl(216 65% 11%)";
-  const text = label ?? initials(entity?.code, entity?.name);
+  const maxChars = size >= 32 ? 3 : size >= 26 ? 2 : 1;
+  const text = label ?? initials(entity?.code, entity?.name, maxChars);
   const dim = { width: size, height: size };
   const ratio = text.length >= 3 ? 0.3 : text.length === 2 ? 0.4 : 0.46;
   const fontSize = Math.max(7, Math.round(size * ratio));
