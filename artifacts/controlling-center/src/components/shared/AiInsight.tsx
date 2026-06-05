@@ -45,7 +45,7 @@ export function AiInsight({ context }: { context: CopilotContext }) {
         {insights.map((ins, i) => {
           const Tone = TONE[ins.tone];
           return (
-            <div key={i} className="rounded-xl bg-white/60 border border-slate-200/70 p-3">
+            <div key={i} className="rounded-xl bg-muted/50 border border-slate-200/70 p-3">
               <div className="flex items-center gap-1.5 mb-1">
                 <Tone.icon className={`h-3.5 w-3.5 ${Tone.cls}`} />
                 <span className="text-xs font-semibold text-foreground">{ins.title}</span>

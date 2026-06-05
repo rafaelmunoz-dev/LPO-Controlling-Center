@@ -96,7 +96,7 @@ export function Sidebar() {
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                       isActive
                         ? "nav-item-active"
-                        : "text-sidebar-foreground/70 hover:bg-white/60 hover:text-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-muted hover:text-foreground"
                     }`}
                   >
                     <item.icon className={`h-4 w-4 ${isActive ? "text-brass" : ""}`} />
@@ -115,7 +115,7 @@ export function Sidebar() {
             type="button"
             data-testid="link-nav-copilot"
             onClick={() => setCopilotOpen(true)}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all text-sidebar-foreground/70 hover:bg-white/60 hover:text-foreground"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all text-sidebar-foreground/70 hover:bg-muted hover:text-foreground"
           >
             <Sparkles className="h-4 w-4 text-brass" />
             {t("ai_copilot")}

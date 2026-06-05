@@ -28,6 +28,14 @@ import { searchAll, groupViewKey, type SearchResult, type ViewKey } from "@/data
 import { can } from "@/data/governance";
 import lpoLogo from "@assets/image_1780570561463.png";
 
+const PERIOD_KEY: Record<string, string> = {
+  "Mai 2026": "per_may26",
+  "April 2026": "per_apr26",
+  "Q1 2026": "per_q1_26",
+  "Q2 2026": "per_q2_26",
+  "GJ 2026": "per_fy26",
+};
+
 export function Topbar() {
   const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities, groups, logout, allowedNav } = useAppStore();
   const activeGroups = groups.filter((g) => !g.archived);
@@ -73,7 +81,7 @@ export function Topbar() {
         <div className="w-px h-8 bg-border mx-1" />
 
         <Select value={selectedEntity} onValueChange={(val) => setEntity(val as ViewKey)}>
-          <SelectTrigger className="w-[210px] bg-white/60 border-slate-200/80 text-primary font-medium" data-testid="select-entity">
+          <SelectTrigger className="w-[210px] bg-muted/50 border-slate-200/80 text-primary font-medium" data-testid="select-entity">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -105,14 +113,14 @@ export function Topbar() {
         </Select>
 
         <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
-          <SelectTrigger className="w-[140px] bg-white/60 border-slate-200/80 text-sm hidden md:flex" data-testid="select-period">
+          <SelectTrigger className="w-[140px] bg-muted/50 border-slate-200/80 text-sm hidden md:flex" data-testid="select-period">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue />
             </div>
           </SelectTrigger>
           <SelectContent>
-            {PERIODS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            {PERIODS.map((p) => <SelectItem key={p} value={p}>{t(PERIOD_KEY[p] ?? "")}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -122,7 +130,7 @@ export function Topbar() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("search_placeholder")}
-            className="pl-9 pr-8 bg-white/60 border-slate-200/80 focus-visible:ring-brass/30 rounded-full h-9"
+            className="pl-9 pr-8 bg-muted/50 border-slate-200/80 focus-visible:ring-brass/30 rounded-full h-9"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSearchOpen(true); }}
             onFocus={() => setSearchOpen(true)}
@@ -142,7 +150,7 @@ export function Topbar() {
                   <button
                     key={i}
                     onClick={() => goTo(r)}
-                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-white/70"
+                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted"
                     data-testid={`search-result-${i}`}
                   >
                     <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-brass shrink-0 w-16">{r.type}</span>
@@ -194,7 +202,7 @@ export function Topbar() {
 
         {canReports && (
           <>
-            <Button variant="outline" size="sm" className="hidden lg:flex gap-2 bg-white/60" onClick={() => { navigate("/reports"); toast.success(t("export_started")); }} data-testid="button-export">
+            <Button variant="outline" size="sm" className="hidden lg:flex gap-2 bg-muted/50" onClick={() => { navigate("/reports"); toast.success(t("export_started")); }} data-testid="button-export">
               <Download className="h-4 w-4" />
               {t("export")}
             </Button>
@@ -208,7 +216,7 @@ export function Topbar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 pl-2 pr-1 ml-1 rounded-full hover:bg-white/60" data-testid="button-user-menu">
+            <Button variant="ghost" className="flex items-center gap-2 pl-2 pr-1 ml-1 rounded-full hover:bg-muted" data-testid="button-user-menu">
               <Avatar className="h-8 w-8 border border-border">
                 <AvatarImage src={currentUser?.avatar} alt={currentUser?.name} />
                 <AvatarFallback>{currentUser?.name.charAt(0)}</AvatarFallback>

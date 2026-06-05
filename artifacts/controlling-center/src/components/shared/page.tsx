@@ -44,10 +44,17 @@ const RISK_STYLES: Record<string, string> = {
   Niedrig: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
 };
 
+const RISK_I18N: Record<string, string> = { Hoch: "high", Mittel: "medium", Niedrig: "low" };
+
+export function riskLabel(t: (k: string) => string, s: string): string {
+  return RISK_I18N[s] ? t(RISK_I18N[s]) : s;
+}
+
 export function RiskBadge({ level }: { level: string }) {
+  const { t } = useTranslation();
   return (
     <Badge variant="outline" className={RISK_STYLES[level] ?? ""} data-testid={`badge-risk-${level}`}>
-      {level}
+      {RISK_I18N[level] ? t(RISK_I18N[level]) : level}
     </Badge>
   );
 }
@@ -82,10 +89,52 @@ const STATUS_TONES: Record<string, string> = {
   verloren: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
+export const STATUS_I18N: Record<string, string> = {
+  Verarbeitet: "st_verarbeitet",
+  Freigegeben: "st_freigegeben",
+  Bezahlt: "st_bezahlt",
+  Erhalten: "st_erhalten",
+  Bereit: "st_bereit",
+  Aktiv: "st_aktiv",
+  Übertroffen: "st_uebertroffen",
+  Erfüllt: "st_erfuellt",
+  "In Prüfung": "st_in_pruefung",
+  Eingereicht: "st_eingereicht",
+  Bestellt: "st_bestellt",
+  Offen: "st_offen",
+  "In Beobachtung": "st_in_beobachtung",
+  "Mock-Daten": "st_mock_daten",
+  Neu: "st_neu",
+  Entwurf: "st_entwurf",
+  Archiviert: "st_archiviert",
+  "Nicht verbunden": "st_nicht_verbunden",
+  Fehler: "st_fehler",
+  Abgelehnt: "st_abgelehnt",
+  Verfehlt: "st_verfehlt",
+  verloren: "st_verloren",
+  Geschlossen: "st_geschlossen",
+  Beurlaubt: "st_beurlaubt",
+  Ausgeschieden: "st_ausgeschieden",
+  "verfügbar": "st_verfuegbar",
+  zugewiesen: "st_zugewiesen",
+  "in Reparatur": "st_in_reparatur",
+  ausgemustert: "st_ausgemustert",
+  verkauft: "st_verkauft",
+  offen: "st_offen",
+  "gezählt": "st_gezaehlt",
+  abweichend: "st_abweichend",
+  fehlt: "st_fehlt",
+};
+
+export function statusLabel(t: (k: string) => string, s: string): string {
+  return STATUS_I18N[s] ? t(STATUS_I18N[s]) : s;
+}
+
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   return (
     <Badge variant="outline" className={STATUS_TONES[status] ?? "bg-muted text-muted-foreground"} data-testid={`badge-status-${status}`}>
-      {status}
+      {STATUS_I18N[status] ? t(STATUS_I18N[status]) : status}
     </Badge>
   );
 }

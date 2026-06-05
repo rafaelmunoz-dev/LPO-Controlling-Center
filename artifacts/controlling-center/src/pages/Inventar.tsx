@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/shared/page";
+import { PageHeader, statusLabel } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
@@ -120,7 +120,7 @@ export default function Inventar() {
   const generateLabels = async () => {
     if (!canEditInv) { toast.error(t("no_permission")); return; }
     const items = inventory.filter((i) => selected.includes(i.id));
-    if (items.length === 0) { toast.error("Bitte mindestens ein Gerät auswählen."); return; }
+    if (items.length === 0) { toast.error(t("toast_select_device")); return; }
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const labelW = 90, labelH = 50, marginX = 12, marginY = 14, gapY = 6;
     let x = marginX, y = marginY, col = 0;
@@ -149,7 +149,7 @@ export default function Inventar() {
       if (y + labelH > 285) { doc.addPage(); x = marginX; y = marginY; col = 0; }
     }
     doc.save(`inventar_labels_${selectedEntity}.pdf`);
-    toast.success(`${items.length} Etikett(en) als PDF erstellt.`);
+    toast.success(t("toast_labels_created", { count: items.length }));
   };
 
   const totalValue = all.reduce((a, i) => a + i.currentValue, 0);
@@ -223,7 +223,7 @@ export default function Inventar() {
                     <SelectTrigger className="w-40" data-testid="select-status-filter"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="alle">{t("inv_all_status")}</SelectItem>
-                      {["zugewiesen", "verfügbar", "in Reparatur", "verloren", "ausgemustert"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      {["zugewiesen", "verfügbar", "in Reparatur", "verloren", "ausgemustert"].map((s) => <SelectItem key={s} value={s}>{statusLabel(t, s)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -248,7 +248,7 @@ export default function Inventar() {
                       <TableCell className="text-muted-foreground">{i.assignedTo}</TableCell>
                       <TableCell className="text-right">{formatCurrency(i.currentValue)}</TableCell>
                       <TableCell className="text-muted-foreground">{i.depreciation}%</TableCell>
-                      <TableCell><Badge variant="outline" className={STATUS_TONE[i.status] ?? ""}>{i.status}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={STATUS_TONE[i.status] ?? ""}>{statusLabel(t, i.status)}</Badge></TableCell>
                       {(canEdit || canDelete) && (
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
@@ -274,7 +274,7 @@ export default function Inventar() {
                   <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-primary" /> <Term k="inventur">{t("inv_count_title")}</Term></CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">{t("inv_count_subtitle")}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { setCounts({}); toast.message("Zählung zurückgesetzt."); }} data-testid="button-reset-count"><RotateCcw className="h-4 w-4 mr-1.5" /> {t("common_reset")}</Button>
+                <Button variant="outline" size="sm" onClick={() => { setCounts({}); toast.message(t("toast_count_reset")); }} data-testid="button-reset-count"><RotateCcw className="h-4 w-4 mr-1.5" /> {t("common_reset")}</Button>
               </div>
               <div className="mt-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
@@ -299,7 +299,7 @@ export default function Inventar() {
                         <TableCell className="font-mono text-xs">{i.inventoryNumber}</TableCell>
                         <TableCell className="font-medium">{i.name}</TableCell>
                         <TableCell>{i.entity}</TableCell>
-                        <TableCell><Badge variant="outline" className={COUNT_TONE[st]}>{st}</Badge></TableCell>
+                        <TableCell><Badge variant="outline" className={COUNT_TONE[st]}>{statusLabel(t, st)}</Badge></TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
                             <Button size="icon" variant="outline" disabled={!canEditInv} className="h-7 w-7 text-emerald-600" onClick={() => setCount(i.id, "gezählt")} data-testid={`button-count-ok-${i.id}`}><CheckCircle2 className="h-4 w-4" /></Button>
@@ -313,7 +313,7 @@ export default function Inventar() {
                 </TableBody>
               </Table>
               <div className="flex justify-end mt-4">
-                <Button disabled={!canEditInv || countedTotal === 0} onClick={() => toast.success(`Inventur abgeschlossen: ${countedTotal} gezählt, ${discrepancies.length} Differenzen.`)} data-testid="button-finish-count">{t("finish_stocktaking")}</Button>
+                <Button disabled={!canEditInv || countedTotal === 0} onClick={() => toast.success(t("toast_stocktake_done", { counted: countedTotal, diff: discrepancies.length }))} data-testid="button-finish-count">{t("finish_stocktaking")}</Button>
               </div>
             </CardContent>
           </Card>
@@ -359,7 +359,7 @@ export default function Inventar() {
               <div className="space-y-1.5"><Label>{t("status")}</Label>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as InventoryStatus })}>
                   <SelectTrigger data-testid="select-inventory-status"><SelectValue /></SelectTrigger>
-                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{statusLabel(t, s)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>

@@ -26,6 +26,17 @@ import { defaultFirmForView, scopeByEntity, formatDate } from "@/data";
 import type { DocType, EntityCode, UploadItem } from "@/data/types";
 import { StatusBadge } from "@/components/shared/page";
 
+const DOCTYPE_KEY: Record<DocType, string> = {
+  Monatsbericht: "dt_monatsbericht",
+  Einkaufsliste: "dt_einkaufsliste",
+  Inventurliste: "dt_inventurliste",
+  Rechnungsliste: "dt_rechnungsliste",
+  "Bankübersicht": "dt_bankuebersicht",
+  Budgetdatei: "dt_budgetdatei",
+  Lieferantenliste: "dt_lieferantenliste",
+  Mitarbeiterliste: "dt_mitarbeiterliste",
+};
+
 interface Props {
   title?: string;
   docTypes: DocType[];
@@ -103,7 +114,7 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
             <div className="grid gap-4 py-2">
               <div className="grid gap-1.5">
                 <Label>{t("file_name")}</Label>
-                <Input value={fileName} onChange={(e) => setFileName(e.target.value)} placeholder="Monatsbericht_Mai" data-testid="input-upload-name" />
+                <Input value={fileName} onChange={(e) => setFileName(e.target.value)} placeholder={t("up_filename_placeholder")} data-testid="input-upload-name" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
@@ -111,7 +122,7 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
                   <Select value={docType} onValueChange={(v) => setDocType(v as DocType)}>
                     <SelectTrigger data-testid="select-upload-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {docTypes.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      {docTypes.map((d) => <SelectItem key={d} value={d}>{t(DOCTYPE_KEY[d] ?? "")}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -129,11 +140,11 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
                   <Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2026-05" />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label>Format</Label>
+                  <Label>{t("common_format")}</Label>
                   <Select value={format} onValueChange={(v) => setFormat(v as UploadItem["format"])}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["Excel", "CSV", "PDF", "Word", "Bild"].map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                      {["Excel", "CSV", "PDF", "Word", "Bild"].map((f) => <SelectItem key={f} value={f}>{f === "Bild" ? t("fmt_image") : f}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -152,7 +163,7 @@ export function UploadPanel({ title, docTypes, defaultDocType }: Props) {
       ) : (
         <div className="space-y-2">
           {relevant.slice(0, 6).map((u) => (
-            <div key={u.id} className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white/60 p-2.5">
+            <div key={u.id} className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-muted/50 p-2.5">
               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{u.fileName}</p>

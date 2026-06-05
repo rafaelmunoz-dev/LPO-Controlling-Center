@@ -365,9 +365,9 @@ export default function Finanzen() {
                     <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => compact(v)} width={60} />
                     <RTooltip formatter={(v: number) => currency(v)} />
                     <Legend />
-                    <Area type="monotone" name="Operativ" dataKey="operating" stroke={CHART.navy} fill={CHART.navy} fillOpacity={0.12} strokeWidth={2} />
-                    <Area type="monotone" name="Investition" dataKey="investing" stroke={CHART.red} fill={CHART.red} fillOpacity={0.1} strokeWidth={2} />
-                    <Area type="monotone" name="Finanzierung" dataKey="financing" stroke={CHART.teal} fill={CHART.teal} fillOpacity={0.12} strokeWidth={2} />
+                    <Area type="monotone" name={t("cf_op_short")} dataKey="operating" stroke={CHART.navy} fill={CHART.navy} fillOpacity={0.12} strokeWidth={2} />
+                    <Area type="monotone" name={t("cf_inv_short")} dataKey="investing" stroke={CHART.red} fill={CHART.red} fillOpacity={0.1} strokeWidth={2} />
+                    <Area type="monotone" name={t("cf_fin_short")} dataKey="financing" stroke={CHART.teal} fill={CHART.teal} fillOpacity={0.12} strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -402,7 +402,7 @@ export default function Finanzen() {
           <Card className="glass-card">
             <CardHeader>
               <CardTitle><Term k="konsolidierung">{t("tab_consolidation")}</Term></CardTitle>
-              <p className="text-sm text-muted-foreground">Gruppensumme im Abgleich mit der Summe aller Entitäten.</p>
+              <p className="text-sm text-muted-foreground">{t("fin_group_reconcile")}</p>
             </CardHeader>
             <CardContent>
               <Table>

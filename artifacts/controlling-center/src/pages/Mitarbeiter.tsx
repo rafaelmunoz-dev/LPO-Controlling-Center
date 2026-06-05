@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/shared/page";
+import { PageHeader, statusLabel } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import { scopeByEntity, isGroupView } from "@/data";
@@ -97,7 +97,7 @@ export default function Mitarbeiter() {
   const assign = () => {
     if (!canAssign) { toast.error(t("no_permission")); return; }
     const dev = inventory.find((i) => i.inventoryNumber === device);
-    if (!emp || !dev) { toast.error("Bitte Mitarbeiter und Gerät wählen."); return; }
+    if (!emp || !dev) { toast.error(t("toast_select_emp_device")); return; }
     const da: DeviceAssignment = {
       id: `DA-${Math.floor(Math.random() * 9000 + 1000)}`,
       employee: emp,
@@ -108,7 +108,7 @@ export default function Mitarbeiter() {
       confirmed: false,
     };
     addDeviceAssignment(da);
-    toast.success(`${dev.name} an ${emp} ausgegeben.`);
+    toast.success(t("toast_device_assigned", { device: dev.name, emp }));
     setOpen(false);
   };
 
@@ -162,7 +162,7 @@ export default function Mitarbeiter() {
                       <TableCell>{e.entity}</TableCell>
                       <TableCell className="text-muted-foreground">{e.location}</TableCell>
                       <TableCell>{e.assignedDevices.length}</TableCell>
-                      <TableCell><Badge variant="outline" className={EMP_STATUS[e.status]}>{e.status}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={EMP_STATUS[e.status]}>{statusLabel(t, e.status)}</Badge></TableCell>
                       {(canEdit || canDeleteAny) && (
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
@@ -259,7 +259,7 @@ export default function Mitarbeiter() {
               <div className="space-y-1.5"><Label>{t("status")}</Label>
                 <Select value={empForm.status} onValueChange={(v) => setEmpForm({ ...empForm, status: v as EmployeeStatus })}>
                   <SelectTrigger data-testid="select-employee-status"><SelectValue /></SelectTrigger>
-                  <SelectContent>{EMP_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <SelectContent>{EMP_STATES.map((s) => <SelectItem key={s} value={s}>{statusLabel(t, s)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>

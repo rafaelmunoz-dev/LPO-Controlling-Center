@@ -149,7 +149,7 @@ export default function GewinnVerlust() {
               const e = entities.find((x) => x.code === c.code);
               const loss = c.profit < 0;
               return (
-                <div key={c.code} className="rounded-xl border border-slate-200/70 bg-white/60 p-3" data-testid={`gv-entity-${c.code}`}>
+                <div key={c.code} className="rounded-xl border border-slate-200/70 bg-muted/50 p-3" data-testid={`gv-entity-${c.code}`}>
                   <div className="flex items-center gap-2 mb-2">
                     {e && <EntityAvatar entity={e} size={28} />}
                     <span className="font-semibold text-sm">{c.code}</span>

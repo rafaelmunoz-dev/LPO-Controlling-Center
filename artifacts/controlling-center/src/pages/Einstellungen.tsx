@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/components/shared/page";
+import { PageHeader, statusLabel } from "@/components/shared/page";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import { MS_ADAPTERS, groupViewKey, labelForView } from "@/data";
 import { EntitySettings } from "@/components/settings/EntitySettings";
@@ -45,13 +45,24 @@ const MS_STATUS_TONE: Record<string, string> = {
 
 type AdapterState = MsAdapter & { connected: boolean; lastSyncTime: string };
 
+const TONE_KEY: Record<string, string> = { factual: "tone_factual", concise: "tone_concise", detailed: "tone_detailed" };
+
+const MS_DESC_KEY: Record<string, string> = {
+  "Microsoft Forms": "ms_forms_desc",
+  SharePoint: "ms_sharepoint_desc",
+  Teams: "ms_teams_desc",
+  Outlook: "ms_outlook_desc",
+  Planner: "ms_planner_desc",
+  "Excel Online": "ms_excel_desc",
+};
+
 const EXTERNAL_APPS = [
-  { name: "Buchhaltung", description: "DATEV-Anbindung für Finanzbuchhaltung & Lohn", connected: true },
-  { name: "Bankdaten", description: "Kontoumsätze & Liquidität via Banking-Schnittstelle", connected: true },
-  { name: "Lieferantenportal", description: "Bestellungen & Lieferscheine der Lieferanten", connected: false },
-  { name: "Inventarsystem", description: "Bestände, Geräte & Inventur-Synchronisation", connected: true },
-  { name: "HR-System", description: "Mitarbeiterstammdaten & Personalkosten", connected: false },
-  { name: "Reporting-System", description: "Export an externe BI- & Reporting-Tools", connected: false },
+  { name: "Buchhaltung", nameKey: "app_buchhaltung", descKey: "app_buchhaltung_desc", connected: true },
+  { name: "Bankdaten", nameKey: "app_bankdaten", descKey: "app_bankdaten_desc", connected: true },
+  { name: "Lieferantenportal", nameKey: "app_lieferantenportal", descKey: "app_lieferantenportal_desc", connected: false },
+  { name: "Inventarsystem", nameKey: "app_inventarsystem", descKey: "app_inventarsystem_desc", connected: true },
+  { name: "HR-System", nameKey: "app_hr", descKey: "app_hr_desc", connected: false },
+  { name: "Reporting-System", nameKey: "app_reporting", descKey: "app_reporting_desc", connected: false },
 ];
 
 export default function Einstellungen() {
@@ -70,13 +81,13 @@ export default function Einstellungen() {
   );
   const [apps, setApps] = useState(EXTERNAL_APPS);
   const [security, setSecurity] = useState({ twoFactor: true, sso: false, auditLog: true, sessionTimeout: [30] });
-  const [copilot, setCopilot] = useState({ proactive: true, autoSummary: true, suggestActions: true, tone: "Sachlich" });
+  const [copilot, setCopilot] = useState({ proactive: true, autoSummary: true, suggestActions: true, tone: "factual" });
 
   const changeLang = (code: "de" | "en" | "es") => {
     if (!canAdminSettings) { toast.error(t("no_permission")); return; }
     setLanguage(code);
     i18n.changeLanguage(code);
-    toast.success(`Sprache: ${LANGS.find((l) => l.code === code)?.label}`);
+    toast.success(t("toast_language", { lang: LANGS.find((l) => l.code === code)?.label }));
   };
 
   const toggleAdapter = (service: string) => {
@@ -84,7 +95,7 @@ export default function Einstellungen() {
     setAdapters((prev) => prev.map((a) => {
       if (a.service !== service) return a;
       const connected = !a.connected;
-      toast[connected ? "success" : "message"](`${a.service} ${connected ? "verbunden" : "getrennt"}.`);
+      toast[connected ? "success" : "message"](t(connected ? "toast_connected" : "toast_disconnected", { name: a.service }));
       return { ...a, connected, status: connected ? "Bereit" : "Nicht verbunden" };
     }));
   };
@@ -92,9 +103,9 @@ export default function Einstellungen() {
   const syncAdapter = (service: string) => {
     if (!canAdminSettings) { toast.error(t("no_permission")); return; }
     const a = adapters.find((x) => x.service === service);
-    if (!a?.connected) { toast.error("Adapter ist nicht verbunden."); return; }
+    if (!a?.connected) { toast.error(t("toast_adapter_disconnected")); return; }
     setAdapters((prev) => prev.map((x) => x.service === service ? { ...x, lastSyncTime: new Date().toLocaleString("de-DE") } : x));
-    toast.success(`${a.service} synchronisiert.`);
+    toast.success(t("toast_synced", { service: a.service }));
   };
 
   const toggleApp = (name: string) => {
@@ -102,7 +113,7 @@ export default function Einstellungen() {
     setApps((prev) => prev.map((a) => {
       if (a.name !== name) return a;
       const connected = !a.connected;
-      toast[connected ? "success" : "message"](`${a.name} ${connected ? "verbunden" : "getrennt"}.`);
+      toast[connected ? "success" : "message"](t(connected ? "toast_connected" : "toast_disconnected", { name: t(a.nameKey) }));
       return { ...a, connected };
     }));
   };
@@ -202,7 +213,7 @@ export default function Einstellungen() {
                           <TableCell className="text-right">
                             {u.id === currentUser.id
                               ? <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><UserCheck className="h-4 w-4" /> {t("mit_active")}</span>
-                              : <Button size="sm" variant="outline" onClick={() => { setCurrentUser(u); toast.success(`Angemeldet als ${u.name} (${u.role}).`); }} data-testid={`button-switch-${u.id}`}>{t("set_switch")}</Button>}
+                              : <Button size="sm" variant="outline" onClick={() => { setCurrentUser(u); toast.success(t("toast_logged_in_as", { name: u.name, role: u.role })); }} data-testid={`button-switch-${u.id}`}>{t("set_switch")}</Button>}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -282,7 +293,7 @@ export default function Einstellungen() {
               <Separator />
               <div className="space-y-1.5">
                 <Label>{t("default_entity")}</Label>
-                <Select value={selectedEntity} onValueChange={(v) => { setEntity(v as typeof selectedEntity); toast.success(`Standard-Entität: ${labelForView(v as ViewKey)}`); }}>
+                <Select value={selectedEntity} onValueChange={(v) => { setEntity(v as typeof selectedEntity); toast.success(t("toast_default_entity", { entity: labelForView(v as ViewKey) })); }}>
                   <SelectTrigger data-testid="select-default-entity"><SelectValue /></SelectTrigger>
                   <SelectContent>{entityViews.map((v) => <SelectItem key={v} value={v}>{labelForView(v)}</SelectItem>)}</SelectContent>
                 </Select>
@@ -316,7 +327,7 @@ export default function Einstellungen() {
                         <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold">{a.service.slice(0, 2)}</div>
                         <div>
                           <CardTitle className="text-base">{a.service}</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">{a.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{MS_DESC_KEY[a.service] ? t(MS_DESC_KEY[a.service]) : a.description}</p>
                         </div>
                       </div>
                       <Switch checked={a.connected} disabled={!canAdminSettings} onCheckedChange={() => toggleAdapter(a.service)} data-testid={`switch-adapter-${a.service}`} />
@@ -326,7 +337,7 @@ export default function Einstellungen() {
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">{t("status")}</span>
                       {a.connected
-                        ? <Badge variant="outline" className={`gap-1 ${MS_STATUS_TONE[a.status] ?? MS_STATUS_TONE["Bereit"]}`}><CheckCircle2 className="h-3.5 w-3.5" /> {a.status}</Badge>
+                        ? <Badge variant="outline" className={`gap-1 ${MS_STATUS_TONE[a.status] ?? MS_STATUS_TONE["Bereit"]}`}><CheckCircle2 className="h-3.5 w-3.5" /> {statusLabel(t, a.status)}</Badge>
                         : <Badge variant="outline" className="gap-1 bg-slate-500/10 text-slate-600 border-slate-500/20"><XCircle className="h-3.5 w-3.5" /> {t("set_disconnected")}</Badge>}
                     </div>
                     <div className="flex items-center justify-between"><span className="text-muted-foreground">{t("set_last_sync")}</span><span className="font-medium">{a.lastSyncTime}</span></div>
@@ -351,8 +362,8 @@ export default function Einstellungen() {
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><Plug className="h-4 w-4" /></div>
                       <div>
-                        <div className="font-medium">{a.name}</div>
-                        <div className="text-xs text-muted-foreground">{a.description}</div>
+                        <div className="font-medium">{t(a.nameKey)}</div>
+                        <div className="text-xs text-muted-foreground">{t(a.descKey)}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -425,11 +436,11 @@ export default function Einstellungen() {
               <div className="space-y-2">
                 <Label>{t("set_accent_color")}</Label>
                 <div className="flex gap-2">
-                  <div className="h-9 w-9 rounded-lg ring-2 ring-offset-2 ring-primary" style={{ background: "hsl(216 65% 11%)" }} title="Navy" />
-                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(190 80% 42%)" }} title="Teal" />
-                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(217 80% 58%)" }} title="Blau" />
-                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(38 92% 52%)" }} title="Orange" />
-                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(160 70% 42%)" }} title="Grün" />
+                  <div className="h-9 w-9 rounded-lg ring-2 ring-offset-2 ring-primary" style={{ background: "hsl(216 65% 11%)" }} title={t("color_navy")} />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(190 80% 42%)" }} title={t("color_teal")} />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(217 80% 58%)" }} title={t("color_blue")} />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(38 92% 52%)" }} title={t("color_orange")} />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(160 70% 42%)" }} title={t("color_green")} />
                 </div>
                 <p className="text-xs text-muted-foreground">{t("set_accent_desc")}</p>
               </div>
@@ -454,9 +465,9 @@ export default function Einstellungen() {
               ))}
               <div className="pt-4 space-y-1.5">
                 <Label>{t("set_tone")}</Label>
-                <Select value={copilot.tone} disabled={!canAdminSettings} onValueChange={(v) => { setCopilot((c) => ({ ...c, tone: v })); toast.success(`Tonalität: ${v}`); }}>
+                <Select value={copilot.tone} disabled={!canAdminSettings} onValueChange={(v) => { setCopilot((c) => ({ ...c, tone: v })); toast.success(t("toast_tone", { tone: t(TONE_KEY[v]) })); }}>
                   <SelectTrigger data-testid="select-copilot-tone"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["Sachlich", "Prägnant", "Ausführlich"].map((tone) => <SelectItem key={tone} value={tone}>{tone}</SelectItem>)}</SelectContent>
+                  <SelectContent>{["factual", "concise", "detailed"].map((tone) => <SelectItem key={tone} value={tone}>{t(TONE_KEY[tone])}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </CardContent>

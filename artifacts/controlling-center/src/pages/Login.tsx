@@ -83,7 +83,7 @@ export default function Login() {
                           key={k}
                           type="button"
                           onClick={() => signIn(user, NAV_META[k].href)}
-                          className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-xs font-medium text-foreground/80 hover:border-brass/40 hover:text-brass transition-colors"
+                          className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground/80 hover:border-brass/40 hover:text-brass transition-colors"
                           data-testid={`link-direct-${user.id}-${k}`}
                         >
                           {t(NAV_META[k].labelKey)}

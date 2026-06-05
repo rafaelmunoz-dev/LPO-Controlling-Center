@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/shared/page";
+import { PageHeader, riskLabel } from "@/components/shared/page";
 import { can } from "@/data/governance";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { REPORTS, getFinance, getEntityComparison, formatCurrency, groupViewKey, labelForView } from "@/data";
@@ -19,6 +19,12 @@ import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 
 const PERIODS = ["Mai 2026", "Q2 2026", "Geschäftsjahr 2026"];
+const TYPE_KEY: Record<string, string> = {
+  Monatsbericht: "rep_type_month",
+  Quartalsbericht: "rep_type_quarter",
+  Jahresbericht: "rep_type_year",
+  "Ad-hoc-Analyse": "rep_type_adhoc",
+};
 const SECTIONS: { key: string; labelKey: string }[] = [
   { key: "kpis", labelKey: "rep_sec_kpis" },
   { key: "comparison", labelKey: "entity_comparison" },
@@ -37,7 +43,7 @@ export default function Reports() {
       ...entities.filter((e) => e.groupId === g.id && !e.archived).map((e) => e.code as ViewKey),
     ]);
   const [generating, setGenerating] = useState(false);
-  const [title, setTitle] = useState("Controlling-Bericht");
+  const [title, setTitle] = useState(t("rep_default_title"));
   const [type, setType] = useState("Monatsbericht");
   const [entity, setEntity] = useState<ViewKey>(selectedEntity);
   const [period, setPeriod] = useState(PERIODS[0]);
@@ -46,9 +52,28 @@ export default function Reports() {
 
   const toggleSection = (k: string) => setSections((s) => ({ ...s, [k]: !s[k] }));
 
+  const PERIOD_KEY: Record<string, string> = { "Mai 2026": "rep_period_may", "Geschäftsjahr 2026": "rep_period_fy" };
+  const REPORT_TYPE_KEY: Record<string, string> = { Finanzen: "finanzen", "Entitäten": "entitaeten", Einkauf: "einkauf", Inventar: "inventar", Risiko: "risk_risk", Strategie: "strategie", Freigaben: "freigaben" };
+  const RECURRENCE_KEY: Record<string, string> = { Monatlich: "rec_monatlich", Quartalsweise: "rec_quartalsweise", "Jährlich": "rec_jaehrlich", "Auf Abruf": "rec_aufabruf" };
+  const periodLabel = (p: string) => (PERIOD_KEY[p] ? t(PERIOD_KEY[p]) : p);
+  const categoryLabel = (c: string) => (REPORT_TYPE_KEY[c] ? t(REPORT_TYPE_KEY[c]) : c);
+  const recurrenceLabel = (p: string) => (RECURRENCE_KEY[p] ? t(RECURRENCE_KEY[p]) : p);
+  const reportTitle = (id: string) => t(`rt_${id.toLowerCase().replace("-", "")}_title`);
+  const reportDesc = (id: string) => t(`rt_${id.toLowerCase().replace("-", "")}_desc`);
+  const typeLabel = (tp: string) => (TYPE_KEY[tp] ? t(TYPE_KEY[tp]) : tp);
+
   const buildAiSummary = (view: ViewKey) => {
     const fin = getFinance(view);
-    return `${view} erzielt im Zeitraum ${period} einen Umsatz von ${formatCurrency(fin.revenue)} bei einer operativen Marge (EBITDA) von ${fin.ebitdaMargin.toFixed(1)} %. Die Liquidität liegt bei ${formatCurrency(fin.cash)} (Cash Runway ${fin.cashRunway.toFixed(1)} Monate), offene Forderungen betragen ${formatCurrency(fin.openInvoices)}. Risikolage: ${fin.riskLevel}. Empfehlung: Forderungsmanagement priorisieren und Margenentwicklung im Blick behalten.`;
+    return t("rep_ai_summary", {
+      entity: view,
+      period: periodLabel(period),
+      revenue: formatCurrency(fin.revenue),
+      margin: fin.ebitdaMargin.toFixed(1),
+      cash: formatCurrency(fin.cash),
+      runway: fin.cashRunway.toFixed(1),
+      open: formatCurrency(fin.openInvoices),
+      risk: riskLabel(t, fin.riskLevel),
+    });
   };
 
   const downloadDelimited = (delimiter: string, ext: string, label: string, view: ViewKey, docTitle: string) => {
@@ -80,7 +105,7 @@ export default function Reports() {
     a.download = `${docTitle.replace(/\s+/g, "_")}_${view}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Bericht als ${label} exportiert.`);
+    toast.success(t("toast_report_exported", { format: label }));
   };
 
   const generatePdf = (overrideTitle?: string, overrideEntity?: ViewKey) => {
@@ -161,14 +186,14 @@ export default function Reports() {
     doc.setFontSize(8); doc.setTextColor(150);
     doc.text("Demo-Bericht - LPO Group im Auftrag der MiGu Group - Vertraulich", 14, 285);
     doc.save(`${docTitle.replace(/\s+/g, "_")}_${view}.pdf`);
-    toast.success("Bericht als PDF erstellt.");
+    toast.success(t("rep_pdf_created"));
     setGenerating(false);
   };
 
   const saveDraft = () => {
     if (!canCreate) { toast.error(t("no_permission")); return; }
     addReportDraft(title, type, entity);
-    toast.success("Berichtsentwurf gespeichert.");
+    toast.success(t("rep_draft_saved"));
   };
 
   return (
@@ -191,7 +216,7 @@ export default function Reports() {
               <Label>{t("rep_report_type")}</Label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger data-testid="select-report-type"><SelectValue /></SelectTrigger>
-                <SelectContent>{["Monatsbericht", "Quartalsbericht", "Jahresbericht", "Ad-hoc-Analyse"].map((tp) => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}</SelectContent>
+                <SelectContent>{["Monatsbericht", "Quartalsbericht", "Jahresbericht", "Ad-hoc-Analyse"].map((tp) => <SelectItem key={tp} value={tp}>{typeLabel(tp)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
@@ -205,7 +230,7 @@ export default function Reports() {
               <Label>{t("period")}</Label>
               <Select value={period} onValueChange={setPeriod}>
                 <SelectTrigger data-testid="select-report-period"><SelectValue /></SelectTrigger>
-                <SelectContent>{PERIODS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                <SelectContent>{PERIODS.map((p) => <SelectItem key={p} value={p}>{periodLabel(p)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
@@ -257,9 +282,9 @@ export default function Reports() {
       <div className="grid gap-4 sm:grid-cols-3">
         {["Monatsbericht", "Quartalsbericht", "Jahresbericht"].map((tp) => (
           <Card key={tp} className="glass-card">
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> {tp}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> {typeLabel(tp)}</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">{t("rep_quick_desc", { type: tp, entity })}</p>
+              <p className="text-sm text-muted-foreground mb-3">{t("rep_quick_desc", { type: typeLabel(tp), entity })}</p>
               {canCreate && <Button variant="outline" size="sm" className="w-full" onClick={() => generatePdf(tp)} data-testid={`button-quick-${tp}`}><Download className="h-4 w-4 mr-1.5" /> {t("rep_create_pdf")}</Button>}
             </CardContent>
           </Card>
@@ -276,7 +301,7 @@ export default function Reports() {
                 {reportDrafts.map((d) => (
                   <TableRow key={d.id} data-testid={`row-draft-${d.id}`}>
                     <TableCell className="font-medium">{d.title}</TableCell>
-                    <TableCell><Badge variant="outline">{d.type}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{typeLabel(d.type)}</Badge></TableCell>
                     <TableCell>{d.entity}</TableCell>
                     <TableCell className="text-muted-foreground">{d.createdAt}</TableCell>
                     <TableCell className="text-right">{canCreate && <Button size="sm" variant="ghost" onClick={() => generatePdf(d.title, d.entity)} data-testid={`button-export-draft-${d.id}`}><Download className="h-4 w-4" /></Button>}</TableCell>
@@ -296,10 +321,10 @@ export default function Reports() {
             <TableBody>
               {REPORTS.map((r) => (
                 <TableRow key={r.id} data-testid={`row-report-${r.id}`}>
-                  <TableCell className="font-medium">{r.title}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-xs">{r.description}</TableCell>
-                  <TableCell><Badge variant="outline">{r.type}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {r.period}</TableCell>
+                  <TableCell className="font-medium">{reportTitle(r.id)}</TableCell>
+                  <TableCell className="text-muted-foreground max-w-xs">{reportDesc(r.id)}</TableCell>
+                  <TableCell><Badge variant="outline">{categoryLabel(r.type)}</Badge></TableCell>
+                  <TableCell className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {recurrenceLabel(r.period)}</TableCell>
                   <TableCell className="text-right">{canCreate && <Button size="sm" variant="ghost" onClick={() => generatePdf(r.title)} data-testid={`button-download-${r.id}`}><Download className="h-4 w-4" /></Button>}</TableCell>
                 </TableRow>
               ))}

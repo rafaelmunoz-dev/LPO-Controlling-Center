@@ -79,7 +79,7 @@ function LogoDropzone({ code, onUploaded }: { code: string; onUploaded: (dataUrl
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
-      className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors ${dragging ? "border-primary bg-primary/5 text-primary" : "border-slate-300 text-muted-foreground hover:border-primary/50 hover:bg-white/60"}`}
+      className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors ${dragging ? "border-primary bg-primary/5 text-primary" : "border-slate-300 text-muted-foreground hover:border-primary/50 hover:bg-muted"}`}
       data-testid={`dropzone-logo-${code}`}
     >
       <UploadCloud className="h-4 w-4 shrink-0" />
@@ -228,7 +228,7 @@ export function EntitySettings() {
     const c = comparison.find((x) => x.code === e.code);
     const active = selectedEntity === e.code;
     return (
-      <div key={e.code} className={`rounded-xl border bg-white/50 p-4 ${active ? "border-primary/40 ring-1 ring-primary/20" : "border-slate-200/80"}`} data-testid={`row-setting-entity-${e.code}`}>
+      <div key={e.code} className={`rounded-xl border bg-muted/40 p-4 ${active ? "border-primary/40 ring-1 ring-primary/20" : "border-slate-200/80"}`} data-testid={`row-setting-entity-${e.code}`}>
         <div className="flex items-start gap-3">
           <EntityAvatar entity={e} size={44} />
           <div className="min-w-0 flex-1">
@@ -362,7 +362,7 @@ export function EntitySettings() {
               <span className="font-semibold text-muted-foreground">{t("grp_archive_section")}</span>
             </div>
             {archivedGroups.map((g) => (
-              <div key={g.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/70 bg-white/60 px-3 py-2" data-testid={`archived-group-${g.id}`}>
+              <div key={g.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/70 bg-muted/50 px-3 py-2" data-testid={`archived-group-${g.id}`}>
                 <div className="flex items-center gap-2">
                   <EntityAvatar isGroup size={24} />
                   <span className="font-medium">{g.name}</span>
@@ -376,7 +376,7 @@ export function EntitySettings() {
               </div>
             ))}
             {archivedFirms.map((e) => (
-              <div key={e.code} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/70 bg-white/60 px-3 py-2" data-testid={`archived-entity-${e.code}`}>
+              <div key={e.code} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/70 bg-muted/50 px-3 py-2" data-testid={`archived-entity-${e.code}`}>
                 <div className="flex items-center gap-2">
                   <EntityAvatar entity={e} size={24} />
                   <span className="font-medium">{e.name}</span>
@@ -404,7 +404,7 @@ export function EntitySettings() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="create-code">{t("set_code")}</Label>
-                <Input id="create-code" value={createForm.code} onChange={(e) => setCreateForm((f) => ({ ...f, code: e.target.value }))} placeholder="z.B. LOG" data-testid="input-create-code" />
+                <Input id="create-code" value={createForm.code} onChange={(e) => setCreateForm((f) => ({ ...f, code: e.target.value }))} placeholder={t("ent_code_placeholder")} data-testid="input-create-code" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="create-color">{t("ent_color")}</Label>
@@ -459,7 +459,7 @@ export function EntitySettings() {
           </DialogHeader>
           <div className="space-y-1.5">
             <Label htmlFor="group-name">{t("name")}</Label>
-            <Input id="group-name" value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="z.B. Nordic Group" data-testid="input-group-name" />
+            <Input id="group-name" value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder={t("ent_group_placeholder")} data-testid="input-group-name" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setGroupCreateOpen(false)} data-testid="button-group-cancel">{t("common_cancel")}</Button>

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PageHeader, StatusBadge } from "@/components/shared/page";
+import { PageHeader, StatusBadge, statusLabel } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { scopeByEntity, formatCurrency } from "@/data";
 import type { Approval } from "@/data/types";
@@ -25,8 +25,8 @@ export default function Freigaben() {
   const decide = (a: Approval, status: "Freigegeben" | "Abgelehnt") => {
     if (!canApprove) { toast.error(t("no_permission")); return; }
     updateApprovalStatus(a.id, status, currentUser.name);
-    if (status === "Freigegeben") toast.success(`${a.id} freigegeben.`);
-    else toast.error(`${a.id} abgelehnt.`);
+    if (status === "Freigegeben") toast.success(t("toast_approved", { id: a.id }));
+    else toast.error(t("toast_rejected", { id: a.id }));
     setActive(null);
   };
 
@@ -119,7 +119,7 @@ export default function Freigaben() {
                     <div className="text-sm text-muted-foreground">{t("no_permission")}</div>
                   )
                 ) : (
-                  <div className="text-sm text-muted-foreground">{t("freig_decision")}: {active.status}{active.approvedBy ? ` ${t("freig_by")} ${active.approvedBy}` : ""}</div>
+                  <div className="text-sm text-muted-foreground">{t("freig_decision")}: {statusLabel(t, active.status)}{active.approvedBy ? ` ${t("freig_by")} ${active.approvedBy}` : ""}</div>
                 )}
               </DialogFooter>
             </>

@@ -86,7 +86,7 @@ export default function Einkauf() {
 
   const create = () => {
     if (!canCreatePR) { toast.error(t("no_permission")); return; }
-    if (!form.title.trim() || !form.amount) { toast.error("Bitte Titel und Betrag angeben."); return; }
+    if (!form.title.trim() || !form.amount) { toast.error(t("toast_title_amount_required")); return; }
     const pr: PurchaseRequest = {
       id: `PR-${Math.floor(Math.random() * 9000 + 1000)}`,
       title: form.title,
@@ -102,7 +102,7 @@ export default function Einkauf() {
       source: "Manuell",
     };
     addPurchaseRequest(pr);
-    toast.success(`Kaufanfrage ${pr.id} eingereicht.`);
+    toast.success(t("toast_pr_submitted", { id: pr.id }));
     setOpen(false);
     setForm({ ...form, title: "", amount: "", justification: "" });
     setOffers([]);
@@ -112,7 +112,7 @@ export default function Einkauf() {
     if (!canCreatePR) { toast.error(t("no_permission")); return; }
     const fr = FORM_RESPONSES.find((f) => f.id === id);
     if (!fr) return;
-    if (fr.converted || convertedIds.includes(id)) { toast.error("Formular wurde bereits umgewandelt."); return; }
+    if (fr.converted || convertedIds.includes(id)) { toast.error(t("toast_form_converted_already")); return; }
     const pr: PurchaseRequest = {
       id: `PR-${Math.floor(Math.random() * 9000 + 1000)}`,
       title: fr.fields[0]?.value ?? fr.form,
@@ -128,7 +128,7 @@ export default function Einkauf() {
     };
     addPurchaseRequest(pr);
     setConvertedIds((ids) => [...ids, id]);
-    toast.success(`Formular in Kaufanfrage ${pr.id} umgewandelt.`);
+    toast.success(t("toast_form_converted", { id: pr.id }));
   };
 
   const volume = prs.reduce((a, p) => a + p.amount, 0);
@@ -247,8 +247,8 @@ export default function Einkauf() {
                         <div className="flex gap-1 justify-end">
                           {["Eingereicht", "In Prüfung"].includes(p.status) && (
                             <>
-                              <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-emerald-600" onClick={() => { updatePRStatus(p.id, "Freigegeben"); toast.success(`${p.id} freigegeben.`); }} data-testid={`button-approve-${p.id}`}><CheckCircle2 className="h-4 w-4" /></Button>
-                              <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-destructive" onClick={() => { updatePRStatus(p.id, "Abgelehnt"); toast.error(`${p.id} abgelehnt.`); }} data-testid={`button-reject-${p.id}`}><XCircle className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-emerald-600" onClick={() => { updatePRStatus(p.id, "Freigegeben"); toast.success(t("toast_approved", { id: p.id })); }} data-testid={`button-approve-${p.id}`}><CheckCircle2 className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="outline" disabled={!canApprovePR} className="h-7 w-7 text-destructive" onClick={() => { updatePRStatus(p.id, "Abgelehnt"); toast.error(t("toast_rejected", { id: p.id })); }} data-testid={`button-reject-${p.id}`}><XCircle className="h-4 w-4" /></Button>
                             </>
                           )}
                           <PurchaseRequestLifecycle pr={p} />

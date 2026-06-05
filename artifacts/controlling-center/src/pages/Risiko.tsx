@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader, RiskBadge } from "@/components/shared/page";
+import { PageHeader, RiskBadge, statusLabel, riskLabel } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { scopeByEntity, PREMORTEMS, defaultFirmForView } from "@/data";
 import { can } from "@/data/governance";
@@ -116,7 +116,7 @@ export default function Risiko() {
                       <TableCell><RiskBadge level={r.probability} /></TableCell>
                       <TableCell>{r.owner}</TableCell>
                       <TableCell><TrendIcon trend={r.trend} /></TableCell>
-                      <TableCell className="text-muted-foreground">{r.status}</TableCell>
+                      <TableCell className="text-muted-foreground">{statusLabel(t, r.status)}</TableCell>
                       {(canEdit || canDelete) && (
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
@@ -140,15 +140,15 @@ export default function Risiko() {
             <CardContent>
               <div className="grid grid-cols-[auto_repeat(3,1fr)] gap-2">
                 <div></div>
-                {LEVELS.map((p) => <div key={p} className="text-center text-sm font-medium text-muted-foreground pb-1">{p}</div>)}
+                {LEVELS.map((p) => <div key={p} className="text-center text-sm font-medium text-muted-foreground pb-1">{riskLabel(t, p)}</div>)}
                 {[...LEVELS].reverse().map((impact) => (
                   <div key={impact} className="contents">
-                    <div className="flex items-center text-sm font-medium text-muted-foreground pr-2">{impact}</div>
+                    <div className="flex items-center text-sm font-medium text-muted-foreground pr-2">{riskLabel(t, impact)}</div>
                     {LEVELS.map((prob) => {
                       const items = cell(impact, prob);
                       return (
                         <div key={prob} className={`min-h-[90px] rounded-xl border p-2 ${heatColor(impact, prob)}`} data-testid={`matrix-${impact}-${prob}`}>
-                          {items.map((r) => <div key={r.id} className="text-xs bg-white/70 dark:bg-slate-900/70 rounded px-1.5 py-1 mb-1 truncate" title={r.title}>{r.title}</div>)}
+                          {items.map((r) => <div key={r.id} className="text-xs bg-muted/50 dark:bg-slate-900/70 rounded px-1.5 py-1 mb-1 truncate" title={r.title}>{r.title}</div>)}
                         </div>
                       );
                     })}
@@ -227,13 +227,13 @@ export default function Risiko() {
               <div className="space-y-1.5"><Label>{t("risk_impact")}</Label>
                 <Select value={form.impact} onValueChange={(v) => setForm({ ...form, impact: v as RiskLevel })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  <SelectContent>{LEVELS.map((l) => <SelectItem key={l} value={l}>{riskLabel(t, l)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>{t("risk_probability")}</Label>
                 <Select value={form.probability} onValueChange={(v) => setForm({ ...form, probability: v as RiskLevel })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  <SelectContent>{LEVELS.map((l) => <SelectItem key={l} value={l}>{riskLabel(t, l)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function Risiko() {
               <div className="space-y-1.5"><Label>{t("status")}</Label>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as typeof RISK_STATUS[number] })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{RISK_STATUS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <SelectContent>{RISK_STATUS.map((s) => <SelectItem key={s} value={s}>{statusLabel(t, s)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5"><Label>{t("risk_trend")}</Label>

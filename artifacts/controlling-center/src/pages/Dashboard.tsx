@@ -4,7 +4,7 @@ import { useAppStore } from "@/hooks/use-app-context";
 import { useFormat } from "@/hooks/use-format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader, RiskBadge } from "@/components/shared/page";
+import { PageHeader, RiskBadge, statusLabel } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import type { GlossaryKey } from "@/data";
@@ -46,6 +46,9 @@ const NAVY = CHART.navy;
 const BRASS = CHART.teal;
 const GREY = CHART.grey;
 const RED = CHART.red;
+const BLUE = CHART.blue;
+const AMBER = CHART.amber;
+const EMERALD = CHART.emerald;
 
 function Spark({ data, color }: { data: { v: number }[]; color: string }) {
   return (
@@ -89,8 +92,8 @@ function Kpi({
           <Term k={glossary}>{title}</Term>
         </CardTitle>
         <span
-          className="flex h-9 w-9 items-center justify-center rounded-full"
-          style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }}
+          className="flex h-10 w-10 items-center justify-center rounded-2xl"
+          style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, white)` }}
         >
           {icon}
         </span>
@@ -139,11 +142,11 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Kpi glossary="umsatz" title={t("kpi_revenue")} value={compact(f.revenue)} change={f.revenueChange} spark={spark("revenue")} color={NAVY} icon={<DollarSign className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
         <Kpi glossary="ebitda" title={t("kpi_ebitda")} value={compact(f.ebitda)} change={f.ebitdaChange} spark={spark("ebitda")} color={BRASS} icon={<TrendingUp className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
-        <Kpi glossary="ebitda_marge" title={t("kpi_margin")} value={`${number(Math.round(f.ebitdaMargin * 10) / 10)} %`} change={f.marginChange} color={BRASS} icon={<Percent className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
-        <Kpi glossary="nettoergebnis" title={t("kpi_net")} value={compact(f.netProfit)} change={f.netChange} spark={spark("profit")} color={NAVY} icon={<PiggyBank className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
-        <Kpi glossary="liquiditaet" title={t("kpi_cash")} value={compact(f.cash)} change={f.cashChange} color={GREY} icon={<Wallet className="h-4 w-4" />} onClick={() => navigate("/prognosen")} />
-        <Kpi glossary="cash_runway" title={t("kpi_runway")} value={`${number(Math.round(f.cashRunway * 10) / 10)} ${t("months")}`} color={GREY} icon={<Timer className="h-4 w-4" />} hint={t("kpi_runway")} onClick={() => navigate("/prognosen")} />
-        <Kpi glossary="offene_rechnungen" title={t("kpi_open_invoices")} value={compact(f.openInvoices)} color={GREY} icon={<ReceiptText className="h-4 w-4" />} hint={`${number(f.openInvoicesCount)} ${t("open")}`} onClick={() => navigate("/finanzen")} />
+        <Kpi glossary="ebitda_marge" title={t("kpi_margin")} value={`${number(Math.round(f.ebitdaMargin * 10) / 10)} %`} change={f.marginChange} color={BLUE} icon={<Percent className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
+        <Kpi glossary="nettoergebnis" title={t("kpi_net")} value={compact(f.netProfit)} change={f.netChange} spark={spark("profit")} color={EMERALD} icon={<PiggyBank className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
+        <Kpi glossary="liquiditaet" title={t("kpi_cash")} value={compact(f.cash)} change={f.cashChange} color={AMBER} icon={<Wallet className="h-4 w-4" />} onClick={() => navigate("/prognosen")} />
+        <Kpi glossary="cash_runway" title={t("kpi_runway")} value={`${number(Math.round(f.cashRunway * 10) / 10)} ${t("months")}`} color={BLUE} icon={<Timer className="h-4 w-4" />} hint={t("kpi_runway")} onClick={() => navigate("/prognosen")} />
+        <Kpi glossary="offene_rechnungen" title={t("kpi_open_invoices")} value={compact(f.openInvoices)} color={AMBER} icon={<ReceiptText className="h-4 w-4" />} hint={`${number(f.openInvoicesCount)} ${t("open")}`} onClick={() => navigate("/finanzen")} />
         <Kpi glossary="pre_mortem" title={t("kpi_risk")} value={t(f.riskLevel === "Hoch" ? "high" : f.riskLevel === "Mittel" ? "medium" : "low")} color={RED} icon={<AlertCircle className="h-4 w-4" />} hint={`${risks.filter((r) => r.status === "Offen").length} ${t("open")}`} valueClass={f.riskLevel === "Hoch" ? "text-destructive" : f.riskLevel === "Mittel" ? "text-amber-500" : "text-emerald-600"} onClick={() => navigate("/risiko")} />
       </div>
 
@@ -178,9 +181,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { label: "Operativer Cashflow", value: cashflow.operating },
-              { label: "Investitions-Cashflow", value: cashflow.investing },
-              { label: "Finanzierungs-Cashflow", value: cashflow.financing },
+              { label: t("cf_operating"), value: cashflow.operating },
+              { label: t("cf_investing"), value: cashflow.investing },
+              { label: t("cf_financing"), value: cashflow.financing },
               { label: t("difference"), value: cashflow.netChange, bold: true },
             ].map((r) => (
               <div key={r.label} className="flex items-center justify-between">
@@ -247,7 +250,7 @@ export default function Dashboard() {
                   <TableCell>{r.entity}</TableCell>
                   <TableCell><RiskBadge level={r.impact} /></TableCell>
                   <TableCell>{r.owner}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.status}</TableCell>
+                  <TableCell className="text-muted-foreground">{statusLabel(t, r.status)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

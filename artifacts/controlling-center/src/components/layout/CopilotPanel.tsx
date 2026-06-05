@@ -117,7 +117,7 @@ export function CopilotPanel() {
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-3">
           {messages.length === 0 && (
-            <div className="rounded-2xl bg-white/60 border border-slate-200/70 p-3 text-sm">
+            <div className="rounded-2xl bg-muted/50 border border-slate-200/70 p-3 text-sm">
               {t("copilot_subtitle")}. {selectedEntity}.
             </div>
           )}
@@ -127,7 +127,7 @@ export function CopilotPanel() {
                 className={`text-sm p-3 rounded-2xl max-w-[92%] ${
                   m.role === "user"
                     ? "brass-gradient text-white ml-auto rounded-br-sm"
-                    : "bg-white/70 border border-slate-200/70 rounded-tl-sm"
+                    : "bg-muted/50 border border-slate-200/70 rounded-tl-sm"
                 }`}
                 data-testid={`msg-${m.role}-${i}`}
               >
@@ -136,19 +136,19 @@ export function CopilotPanel() {
               {m.role === "bot" && m.question && (canTask || canReport || canRisk) && (
                 <div className="flex flex-wrap gap-1.5">
                   {canTask && (
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => saveTask(m)} data-testid={`action-task-${i}`}>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-muted/50" onClick={() => saveTask(m)} data-testid={`action-task-${i}`}>
                       <ListTodo className="h-3.5 w-3.5" />
                       {t("save_as_task")}
                     </Button>
                   )}
                   {canReport && (
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toReport(m)} data-testid={`action-report-${i}`}>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-muted/50" onClick={() => toReport(m)} data-testid={`action-report-${i}`}>
                       <FileText className="h-3.5 w-3.5" />
                       {t("add_to_report")}
                     </Button>
                   )}
                   {canRisk && (
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-white/60" onClick={() => toRisk(m)} data-testid={`action-risk-${i}`}>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-muted/50" onClick={() => toRisk(m)} data-testid={`action-risk-${i}`}>
                       <ShieldAlert className="h-3.5 w-3.5" />
                       {t("create_risk")}
                     </Button>
@@ -167,7 +167,7 @@ export function CopilotPanel() {
                 <Button
                   key={s}
                   variant="outline"
-                  className="w-full text-xs justify-start h-auto py-2 whitespace-normal text-left bg-white/60"
+                  className="w-full text-xs justify-start h-auto py-2 whitespace-normal text-left bg-muted/50"
                   onClick={() => send(s)}
                   data-testid={`button-suggestion-${s.slice(0, 10)}`}
                 >
@@ -183,7 +183,7 @@ export function CopilotPanel() {
                 <History className="h-3 w-3" /> {t("recent_analyses")}
               </div>
               {history.map((h) => (
-                <button key={h} onClick={() => send(h)} className="block w-full truncate rounded-lg px-2 py-1 text-left text-xs text-muted-foreground hover:bg-white/60">
+                <button key={h} onClick={() => send(h)} className="block w-full truncate rounded-lg px-2 py-1 text-left text-xs text-muted-foreground hover:bg-muted">
                   {h}
                 </button>
               ))}
@@ -197,7 +197,7 @@ export function CopilotPanel() {
         <div className="flex items-center gap-2">
           <Input
             placeholder={t("ask_placeholder")}
-            className="text-sm h-9 bg-white/60"
+            className="text-sm h-9 bg-muted/50"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
