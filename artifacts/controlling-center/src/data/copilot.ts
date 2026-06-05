@@ -37,11 +37,11 @@ const baseSuggestions = [
   "Welche Kaufanfragen sind offen?",
   "Wo weichen Ist-Werte vom Budget ab?",
   "Welche Uploads fehlen oder sind fehlerhaft?",
-  "Was bedeutet Gewinn oder Verlust (EBITDA)?",
+  "Was bedeutet Operativer Gewinn (EBITDA)?",
 ];
 
 const contextSuggestions: Partial<Record<CopilotContext, string[]>> = {
-  finanzen: ["Wie hat sich die Marge entwickelt?", "Wo weichen Ist-Werte vom Budget ab?", "Was bedeutet Gewinn oder Verlust (EBITDA)?", "Wie steht die Liquidität?"],
+  finanzen: ["Wie hat sich die Marge entwickelt?", "Wo weichen Ist-Werte vom Budget ab?", "Was bedeutet Operativer Gewinn (EBITDA)?", "Wie steht die Liquidität?"],
   einkauf: ["Welche Kaufanfragen sind offen?", "Welcher Lieferant ist am teuersten?", "Welche Anfragen brauchen Freigabe?"],
   inventar: ["Welche Geräte sind nicht zugewiesen?", "Wie hoch ist der Inventarwert?", "Welche Geräte sind in Reparatur?"],
   risiko: ["Welche Risiken entstehen im nächsten Monat?", "Welche Entität hat das höchste Risiko?", "Welche Risiken sind offen?"],
@@ -63,7 +63,7 @@ export function getInsights(context: CopilotContext, view: ViewKey): Insight[] {
       const budget = getBudget(view);
       const over = budget.filter((b) => b.actual > b.budget);
       return [
-        { title: "Ergebnislage", text: `Gewinn-oder-Verlust-Marge (EBITDA) bei ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp). Nettoergebnis ${fmt(net)}.`, tone: f.marginChange >= 0 ? "positive" : "warning" },
+        { title: "Ergebnislage", text: `Operative Marge (EBITDA) bei ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp). Nettoergebnis ${fmt(net)}.`, tone: f.marginChange >= 0 ? "positive" : "warning" },
         { title: "Budgetabweichung", text: over.length ? `${over.length} Kategorie(n) über Plan, v. a. ${over[0].category} (+${fmt(over[0].actual - over[0].budget)}).` : "Alle Kostenarten liegen im Budgetrahmen.", tone: over.length ? "warning" : "positive" },
       ];
     }
@@ -112,7 +112,7 @@ export function getInsights(context: CopilotContext, view: ViewKey): Insight[] {
     case "dashboard":
     default:
       return [
-        { title: "Gesamtbild", text: `Umsatz ${fmt(f.revenue)} (${f.revenueChange >= 0 ? "+" : ""}${f.revenueChange.toFixed(1)}%), Gewinn-oder-Verlust-Marge (EBITDA) ${f.ebitdaMargin.toFixed(1)}%, Liquidität ${fmt(f.cash)}.`, tone: f.revenueChange >= 0 ? "positive" : "warning" },
+        { title: "Gesamtbild", text: `Umsatz ${fmt(f.revenue)} (${f.revenueChange >= 0 ? "+" : ""}${f.revenueChange.toFixed(1)}%), Operative Marge (EBITDA) ${f.ebitdaMargin.toFixed(1)}%, Liquidität ${fmt(f.cash)}.`, tone: f.revenueChange >= 0 ? "positive" : "warning" },
         { title: "Aufmerksamkeit", text: `Cash Runway ${f.cashRunway.toFixed(1)} Monate. Offene Rechnungen ${fmt(f.openInvoices)} (${f.openInvoicesCount} Stück).`, tone: f.cashRunway < 10 ? "warning" : "neutral" },
       ];
   }
@@ -123,10 +123,10 @@ export function answerCopilot(question: string, view: ViewKey): string {
   const f = getFinance(view);
 
   if (q.includes("kosten") && (q.includes("steig") || q.includes("warum"))) {
-    return `Für ${view} liegen die Kosten bei ${fmt(f.revenue - f.ebitda)}. Haupttreiber sind Warenkosten (~60% vom Umsatz) und gestiegene Rohstoffpreise. Die Gewinn-oder-Verlust-Marge (EBITDA) beträgt aktuell ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp ggü. Vormonat).`;
+    return `Für ${view} liegen die Kosten bei ${fmt(f.revenue - f.ebitda)}. Haupttreiber sind Warenkosten (~60% vom Umsatz) und gestiegene Rohstoffpreise. Die Operative Marge (EBITDA) beträgt aktuell ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp ggü. Vormonat).`;
   }
   if (q.includes("marge") || q.includes("margin")) {
-    return `Die Gewinn-oder-Verlust-Marge (EBITDA) für ${view} liegt bei ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp ggü. Vormonat). Sie zeigt, wie viel operativer Gewinn aus jedem Euro Umsatz übrig bleibt.`;
+    return `Die Operative Marge (EBITDA) für ${view} liegt bei ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp ggü. Vormonat). Sie zeigt, wie viel operativer Gewinn aus jedem Euro Umsatz übrig bleibt.`;
   }
   if (q.includes("risiko") || q.includes("risk")) {
     if (q.includes("nächst") || q.includes("monat")) {
@@ -159,7 +159,7 @@ export function answerCopilot(question: string, view: ViewKey): string {
     return `Inventarwert aktuell ${fmt(value)}. Verfügbar zur Zuweisung: ${free} Geräte. Offene Rückgaben: 1 (Sofia Martín – iPad Pro).`;
   }
   if (q.includes("ebitda")) {
-    return `Gewinn oder Verlust (EBITDA) steht für „Earnings Before Interest, Taxes, Depreciation and Amortization" – also das Ergebnis vor Zinsen, Steuern und Abschreibungen. Es zeigt die operative Ertragskraft. Für ${view}: ${fmt(f.ebitda)} (${f.ebitdaMargin.toFixed(1)}% Marge).`;
+    return `Operativer Gewinn (EBITDA) steht für „Earnings Before Interest, Taxes, Depreciation and Amortization" – also das Ergebnis vor Zinsen, Steuern und Abschreibungen. Es zeigt die operative Ertragskraft. Für ${view}: ${fmt(f.ebitda)} (${f.ebitdaMargin.toFixed(1)}% Marge).`;
   }
   if (q.includes("umsatz") || q.includes("revenue")) {
     return `Umsatz für ${view}: ${fmt(f.revenue)} (${f.revenueChange >= 0 ? "+" : ""}${f.revenueChange.toFixed(1)}% ggü. Vormonat). Nettoergebnis: ${fmt(f.netProfit)}.`;

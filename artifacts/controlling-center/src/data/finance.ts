@@ -269,7 +269,7 @@ export function getProfitLoss(view: ViewKey): PLRow[] {
     { label: "Bruttogewinn", value: gross, explain: "Umsatz minus direkte Warenkosten.", bold: true },
     { label: "Personalkosten", value: -personnel, explain: "Löhne, Gehälter und Sozialabgaben." },
     { label: "Sonstige betriebliche Kosten", value: -other, explain: "Miete, Marketing, IT und weitere laufende Kosten." },
-    { label: "Gewinn oder Verlust (EBITDA)", value: ebitda, explain: "Ergebnis vor Zinsen, Steuern und Abschreibungen.", bold: true },
+    { label: "Operativer Gewinn (EBITDA)", value: ebitda, explain: "Ergebnis vor Zinsen, Steuern und Abschreibungen.", bold: true },
     { label: "Abschreibungen", value: -depreciation, explain: "Wertverlust von Anlagen und Maschinen über die Zeit." },
     { label: "EBIT", value: ebit, explain: "Operatives Ergebnis vor Zinsen und Steuern.", bold: true },
     { label: "Zinsaufwand", value: -interest, explain: "Kosten für Kredite und Finanzierungen." },

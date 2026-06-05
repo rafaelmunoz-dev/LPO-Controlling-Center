@@ -28,14 +28,14 @@ export const GLOSSARY: Record<GlossaryKey, { de: Entry; en: Entry; es: Entry }> 
     es: { term: "Ingresos", text: "Todos los ingresos por ventas y servicios en un período, antes de deducir costes." },
   },
   ebitda: {
-    de: { term: "Gewinn oder Verlust (EBITDA)", text: "Operativer Gewinn vor Zinsen, Steuern und Abschreibungen. Zeigt, wie profitabel das Kerngeschäft arbeitet." },
-    en: { term: "Profit or Loss (EBITDA)", text: "Operating profit before interest, taxes and depreciation. Shows how profitable the core business is." },
-    es: { term: "Ganancia o Pérdida (EBITDA)", text: "Beneficio operativo antes de intereses, impuestos y amortizaciones. Mide la rentabilidad del negocio base." },
+    de: { term: "Operativer Gewinn (EBITDA)", text: "Operativer Gewinn vor Zinsen, Steuern und Abschreibungen. Zeigt, wie profitabel das Kerngeschäft arbeitet." },
+    en: { term: "Operating Profit (EBITDA)", text: "Operating profit before interest, taxes and depreciation. Shows how profitable the core business is." },
+    es: { term: "Beneficio Operativo (EBITDA)", text: "Beneficio operativo antes de intereses, impuestos y amortizaciones. Mide la rentabilidad del negocio base." },
   },
   ebitda_marge: {
-    de: { term: "Gewinn-oder-Verlust-Marge (EBITDA)", text: "Gewinn oder Verlust (EBITDA) geteilt durch Umsatz. Je höher, desto mehr Gewinn bleibt aus jedem Euro Umsatz übrig." },
-    en: { term: "Profit-or-Loss Margin (EBITDA)", text: "Profit or loss (EBITDA) divided by revenue. The higher it is, the more profit remains from each euro of revenue." },
-    es: { term: "Margen de Ganancia o Pérdida (EBITDA)", text: "Ganancia o pérdida (EBITDA) dividida entre ingresos. Cuanto mayor, más beneficio queda de cada euro de ingreso." },
+    de: { term: "Operative Marge (EBITDA)", text: "Operativer Gewinn (EBITDA) geteilt durch Umsatz. Je höher, desto mehr Gewinn bleibt aus jedem Euro Umsatz übrig." },
+    en: { term: "Operating Margin (EBITDA)", text: "Operating profit (EBITDA) divided by revenue. The higher it is, the more profit remains from each euro of revenue." },
+    es: { term: "Margen Operativo (EBITDA)", text: "Beneficio operativo (EBITDA) dividido entre ingresos. Cuanto mayor, más beneficio queda de cada euro de ingreso." },
   },
   nettoergebnis: {
     de: { term: "Nettoergebnis", text: "Der Gewinn, der nach allen Kosten, Zinsen und Steuern übrig bleibt – die «Bottom Line»." },

@@ -43,7 +43,7 @@ export default function Reports() {
 
   const buildAiSummary = (view: ViewKey) => {
     const fin = getFinance(view);
-    return `${view} erzielt im Zeitraum ${period} einen Umsatz von ${formatCurrency(fin.revenue)} bei einer Gewinn-oder-Verlust-Marge (EBITDA) von ${fin.ebitdaMargin.toFixed(1)} %. Die Liquidität liegt bei ${formatCurrency(fin.cash)} (Cash Runway ${fin.cashRunway.toFixed(1)} Monate), offene Forderungen betragen ${formatCurrency(fin.openInvoices)}. Risikolage: ${fin.riskLevel}. Empfehlung: Forderungsmanagement priorisieren und Margenentwicklung im Blick behalten.`;
+    return `${view} erzielt im Zeitraum ${period} einen Umsatz von ${formatCurrency(fin.revenue)} bei einer operativen Marge (EBITDA) von ${fin.ebitdaMargin.toFixed(1)} %. Die Liquidität liegt bei ${formatCurrency(fin.cash)} (Cash Runway ${fin.cashRunway.toFixed(1)} Monate), offene Forderungen betragen ${formatCurrency(fin.openInvoices)}. Risikolage: ${fin.riskLevel}. Empfehlung: Forderungsmanagement priorisieren und Margenentwicklung im Blick behalten.`;
   };
 
   const downloadDelimited = (delimiter: string, ext: string, label: string, view: ViewKey, docTitle: string) => {
@@ -58,13 +58,13 @@ export default function Reports() {
       [],
       ["Kennzahl", "Wert"],
       ["Umsatz", String(fin.revenue)],
-      ["Gewinn oder Verlust (EBITDA)", String(fin.ebitda)],
+      ["Operativer Gewinn (EBITDA)", String(fin.ebitda)],
       ["Gewinn", String(fin.netProfit)],
       ["Liquidität", String(fin.cash)],
-      ["Gewinn-oder-Verlust-Marge (EBITDA) %", fin.ebitdaMargin.toFixed(1)],
+      ["Operative Marge (EBITDA) %", fin.ebitdaMargin.toFixed(1)],
       ["Offene Forderungen", String(fin.openInvoices)],
       [],
-      ["Entität", "Umsatz", "Gewinn oder Verlust (EBITDA)", "Risiko"],
+      ["Entität", "Umsatz", "Operativer Gewinn (EBITDA)", "Risiko"],
       ...comparison.map((c) => [c.code, String(c.revenue), String(c.ebitda), c.riskLevel]),
     ];
     const csv = lines.map((row) => row.map((cell) => /[",;\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell).join(delimiter)).join("\n");
@@ -116,10 +116,10 @@ export default function Reports() {
       doc.setFontSize(10); doc.setTextColor(60);
       const kpis: [string, string][] = [
         ["Umsatz", formatCurrency(fin.revenue)],
-        ["Gewinn oder Verlust (EBITDA)", formatCurrency(fin.ebitda)],
+        ["Operativer Gewinn (EBITDA)", formatCurrency(fin.ebitda)],
         ["Gewinn", formatCurrency(fin.netProfit)],
         ["Liquiditaet", formatCurrency(fin.cash)],
-        ["Gewinn-oder-Verlust-Marge (EBITDA)", `${fin.ebitdaMargin.toFixed(1)} %`],
+        ["Operative Marge (EBITDA)", `${fin.ebitdaMargin.toFixed(1)} %`],
         ["Offene Forderungen", formatCurrency(fin.openInvoices)],
       ];
       kpis.forEach(([k, v]) => { doc.text(k, 16, y); doc.text(v, 120, y); y += 7; });
@@ -130,7 +130,7 @@ export default function Reports() {
       doc.setFontSize(12); doc.setTextColor(20, 30, 60);
       doc.text("Entitaetsvergleich", 14, y); y += 8;
       doc.setFontSize(9); doc.setTextColor(60);
-      doc.text("Entitaet", 16, y); doc.text("Umsatz", 60, y); doc.text("Gewinn oder Verlust (EBITDA)", 100, y); doc.text("Risiko", 178, y); y += 2;
+      doc.text("Entitaet", 16, y); doc.text("Umsatz", 60, y); doc.text("Operativer Gewinn (EBITDA)", 100, y); doc.text("Risiko", 178, y); y += 2;
       doc.setDrawColor(230); doc.line(14, y, 196, y); y += 6;
       comparison.forEach((c) => {
         doc.text(c.code, 16, y); doc.text(formatCurrency(c.revenue), 60, y); doc.text(formatCurrency(c.ebitda), 100, y); doc.text(c.riskLevel, 178, y); y += 7;

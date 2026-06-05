@@ -62,14 +62,14 @@ export const USERS: AppUser[] = [
   },
   {
     id: "2",
-    name: "Thomas Berger",
+    name: "Clara Hoffmann",
     role: "Geschäftsführer",
     organisation: "LPO Group",
-    email: "t.berger@lpo-group.com",
+    email: "c.hoffmann@migu-group.com",
     language: "de",
-    avatar: "/avatars/thomas.png",
+    avatar: "/avatars/clara.png",
     entityAccess: ["MiGu Group Gesamt", "IMP", "C&A", "MKT", "CPE", "COSM"],
-    managedEntities: ["IMP", "C&A"],
+    managedEntities: ["IMP", "C&A", "MKT", "CPE", "COSM"],
     lastActivity: "2026-05-30 09:40",
     tasks: ["Strategie Österreich freigeben", "Quartalsbericht sichten"],
   },
@@ -373,7 +373,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "lpo-cc-store",
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<AppState> | undefined;
@@ -392,6 +392,15 @@ export const useAppStore = create<AppState>()(
         }
         if (state && (!state.balanceItems || state.balanceItems.length === 0)) {
           state.balanceItems = buildBalanceSeed();
+        }
+        if (state && state.currentUser) {
+          const known = USERS.find((u) => u.id === state.currentUser!.id);
+          if (known) {
+            state.currentUser = known;
+          } else {
+            state.currentUser = USERS[0];
+            state.isAuthenticated = false;
+          }
         }
         return state as AppState;
       },
