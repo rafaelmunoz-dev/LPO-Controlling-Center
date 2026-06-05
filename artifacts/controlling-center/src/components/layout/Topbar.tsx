@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, Fragment } from "react";
-import { useAppStore, USERS, PERIODS } from "@/hooks/use-app-context";
+import { useAppStore, PERIODS } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
 import { Bell, Search, Download, FilePlus2, Globe, ChevronDown, CalendarDays, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
+import { useClerk } from "@clerk/react";
+import { basePath } from "@/auth/clerk";
 import { toast } from "sonner";
 import { searchAll, groupViewKey, type SearchResult, type ViewKey } from "@/data";
 import { can } from "@/data/governance";
@@ -37,12 +39,13 @@ const PERIOD_KEY: Record<string, string> = {
 };
 
 export function Topbar() {
-  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, setCurrentUser, tasks, entities, groups, logout, allowedNav } = useAppStore();
+  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, tasks, entities, groups, allowedNav } = useAppStore();
   const activeGroups = groups.filter((g) => !g.archived);
   const firmsOfGroup = (groupId: string) => entities.filter((e) => e.groupId === groupId && !e.archived);
   const canReports = allowedNav().includes("reports") && can(currentUser.role, "reports:create");
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
+  const { signOut } = useClerk();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -229,29 +232,12 @@ export function Topbar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{t("switch_user")}</DropdownMenuLabel>
+            <DropdownMenuLabel className="flex flex-col gap-0.5">
+              <span className="font-medium">{currentUser.name}</span>
+              <span className="text-xs font-normal text-muted-foreground">{currentUser.organisation}</span>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {USERS.map((user) => (
-              <DropdownMenuItem
-                key={user.id}
-                onClick={() => setCurrentUser(user)}
-                className={currentUser?.id === user.id ? "bg-brass/10" : ""}
-                data-testid={`switch-user-${user.id}`}
-              >
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm">{user.name}</span>
-                    <span className="text-[0.65rem] text-muted-foreground">{user.role}</span>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => logout()} className="text-destructive focus:text-destructive" data-testid="button-logout">
+            <DropdownMenuItem onClick={() => signOut({ redirectUrl: basePath || "/" })} className="text-destructive focus:text-destructive" data-testid="button-logout">
               <LogOut className="h-4 w-4 mr-2" /> {t("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>

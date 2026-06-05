@@ -21,13 +21,8 @@ import type {
   ViewKey,
 } from "@/data/types";
 import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
-import { RISKS, STRATEGY_DECISIONS } from "@/data/governance";
-import { APPROVALS, DEVICE_ASSIGNMENTS, EMPLOYEES, INVENTORY, PURCHASE_REQUESTS, SUPPLIERS, UPLOADS } from "@/data/operations";
 import {
   setFormatLocale,
-  ENTITIES,
-  buildBalanceSeed,
-  GROUPS,
   DEFAULT_GROUP_ID,
   groupViewKey,
   groupIdFromView,
@@ -57,62 +52,34 @@ export interface ReportDraft {
 export const PERIODS = ["Mai 2026", "April 2026", "Q1 2026", "Q2 2026", "GJ 2026"] as const;
 export type Period = (typeof PERIODS)[number];
 
-export const USERS: AppUser[] = [
-  {
-    id: "1",
-    name: "Maria Keller",
-    role: "Controller",
-    organisation: "LPO Group",
-    email: "m.keller@lpo-group.com",
-    language: "de",
-    avatar: "/avatars/maria.png",
-    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "IMP", "C&A", "MKT", "CPE", "COSM"],
-    lastActivity: "2026-05-30 09:12",
-    tasks: ["Freigabe Baukran Q3 prüfen", "Monatsabschluss Mai abschließen"],
-  },
-  {
-    id: "2",
-    name: "Clara Hoffmann",
-    role: "Geschäftsführer",
-    organisation: "LPO Group",
-    email: "c.hoffmann@migu-group.com",
-    language: "de",
-    avatar: "/avatars/clara.png",
-    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "IMP", "C&A", "MKT", "CPE", "COSM"],
-    managedEntities: ["IMP", "C&A", "MKT", "CPE", "COSM"],
-    lastActivity: "2026-05-30 09:40",
-    tasks: ["Strategie Österreich freigeben", "Quartalsbericht sichten"],
-  },
-  {
-    id: "3",
-    name: "Daniel Weber",
-    role: "Finanzbuchhalter",
-    organisation: "LPO Group",
-    email: "d.weber@lpo-group.com",
-    language: "de",
-    avatar: "/avatars/daniel.png",
-    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "IMP", "C&A"],
-    lastActivity: "2026-05-30 08:47",
-    tasks: ["Bankauszug Mai hochladen", "Inventar IMP ausbuchen"],
-  },
-  {
-    id: "4",
-    name: "Sofia Martín",
-    role: "Mitarbeiter",
-    organisation: "LPO Group",
-    email: "s.martin@lpo-group.com",
-    language: "es",
-    avatar: "/avatars/sofia.png",
-    entityAccess: [groupViewKey(DEFAULT_GROUP_ID), "COSM", "CPE", "MKT"],
-    lastActivity: "2026-05-29 17:33",
-    tasks: ["Kaufanfrage PR-2048 einreichen"],
-  },
-];
+// Placeholder until a real session is established from the Clerk user + the
+// org membership returned by /api/me. The app shell is never rendered with this
+// value (the auth gate waits for an active membership + loaded data first).
+const EMPTY_USER: AppUser = {
+  id: "",
+  name: "",
+  role: "Mitarbeiter",
+  organisation: "",
+  email: "",
+  language: "de",
+  avatar: "",
+  entityAccess: [],
+  managedEntities: [],
+  lastActivity: "",
+  tasks: [],
+};
 
-const INITIAL_TASKS: AppTask[] = [
-  { id: "T-1001", title: "Freigabe Baukran Q3 prüfen", context: "Freigaben", createdAt: "2026-05-28", done: false },
-  { id: "T-1002", title: "Monatsabschluss Mai abschließen", context: "Finanzen", createdAt: "2026-05-29", done: false },
-];
+// The DB-backed domains, loaded for the active organization after sign-in.
+export interface HydratePayload {
+  groups: CompanyGroup[];
+  entities: EntityMeta[];
+  employees: Employee[];
+  suppliers: Supplier[];
+  purchaseRequests: PurchaseRequest[];
+  bankTransactions: BankTransaction[];
+  inventory: InventoryItem[];
+  balanceItems: BalanceLineItem[];
+}
 
 interface AppState {
   selectedEntity: ViewKey;
@@ -126,8 +93,13 @@ interface AppState {
   addManagedEntity: (code: EntityCode) => void;
 
   isAuthenticated: boolean;
-  login: (user: AppUser) => void;
-  logout: () => void;
+  dataReady: boolean;
+  // Establishes the signed-in identity from the org membership.
+  setSession: (user: AppUser) => void;
+  // Loads the org's DB-backed domains into the store (called once after sign-in).
+  hydrate: (payload: HydratePayload) => void;
+  // Clears all session + org data (called on sign-out / user switch).
+  resetData: () => void;
 
   entities: EntityMeta[];
   addEntity: (meta: EntityMeta) => void;
@@ -244,7 +216,7 @@ export const useAppStore = create<AppState>()(
     setFormatLocale(lang);
     set({ language: lang });
   },
-  currentUser: USERS[0],
+  currentUser: EMPTY_USER,
   setCurrentUser: (user) => set({ currentUser: user }),
   addManagedEntity: (code) =>
     set((s) => {
@@ -254,30 +226,61 @@ export const useAppStore = create<AppState>()(
     }),
 
   isAuthenticated: false,
-  login: (user) => {
+  dataReady: false,
+  setSession: (user) => {
     setFormatLocale(user.language);
-    set((s) => ({
-      currentUser: user,
-      isAuthenticated: true,
-      language: user.language,
-      auditLog: [
-        { id: `AL-${Date.now()}`, timestamp: nowStamp(), user: user.name, role: user.role, action: "auth:login", detail: `${user.name} angemeldet (${user.role})` },
-        ...s.auditLog,
-      ],
-    }));
+    set({ currentUser: user, isAuthenticated: true, language: user.language });
   },
-  logout: () => {
-    const u = get().currentUser;
-    set((s) => ({
+  hydrate: (payload) => {
+    setRegistry(payload.entities, payload.groups);
+    set((s) => {
+      const allViews: ViewKey[] = [
+        ...payload.groups.filter((g) => !g.archived).map((g) => groupViewKey(g.id)),
+        ...payload.entities.filter((e) => !e.archived).map((e) => e.code),
+      ];
+      return {
+        groups: payload.groups,
+        entities: payload.entities,
+        employees: payload.employees,
+        suppliers: payload.suppliers,
+        purchaseRequests: payload.purchaseRequests,
+        bankTransactions: payload.bankTransactions,
+        inventory: payload.inventory,
+        balanceItems: payload.balanceItems,
+        selectedEntity: firstActiveView(payload.groups, payload.entities),
+        currentUser: { ...s.currentUser, entityAccess: allViews },
+        dataReady: true,
+      };
+    });
+  },
+  resetData: () => {
+    setRegistry([], []);
+    set({
+      currentUser: EMPTY_USER,
       isAuthenticated: false,
-      auditLog: [
-        { id: `AL-${Date.now()}`, timestamp: nowStamp(), user: u.name, role: u.role, action: "auth:logout", detail: `${u.name} abgemeldet` },
-        ...s.auditLog,
-      ],
-    }));
+      dataReady: false,
+      selectedEntity: groupViewKey(DEFAULT_GROUP_ID),
+      entities: [],
+      groups: [],
+      employees: [],
+      suppliers: [],
+      purchaseRequests: [],
+      bankTransactions: [],
+      inventory: [],
+      balanceItems: [],
+      uploads: [],
+      approvals: [],
+      deviceAssignments: [],
+      strategyDecisions: [],
+      risks: [],
+      vendorMappings: [],
+      auditLog: [],
+      tasks: [],
+      reportDrafts: [],
+    });
   },
 
-  entities: ENTITIES.map((e) => ({ ...e })),
+  entities: [],
   addEntity: (meta) => set((s) => ({ entities: [...s.entities, meta] })),
   updateEntity: (code, patch) =>
     set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, ...patch } : e)) })),
@@ -294,7 +297,7 @@ export const useAppStore = create<AppState>()(
   setEntityLogo: (code, logo) =>
     set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, logo: logo ?? undefined } : e)) })),
 
-  groups: GROUPS.map((g) => ({ ...g })),
+  groups: [],
   addGroup: (name) => {
     const id = `g-${Date.now()}`;
     set((s) => ({ groups: [...s.groups, { id, name }] }));
@@ -332,7 +335,7 @@ export const useAppStore = create<AppState>()(
 
   allowedNav: () => ROLE_PERMISSIONS[get().currentUser.role],
 
-  uploads: UPLOADS,
+  uploads: [],
   addUpload: (u) => set((s) => ({ uploads: [u, ...s.uploads] })),
   updateUploadStatus: (id, status) =>
     set((s) => ({ uploads: s.uploads.map((u) => (u.id === id ? { ...u, status } : u)) })),
@@ -368,7 +371,7 @@ export const useAppStore = create<AppState>()(
 
   vendorMappings: [],
 
-  purchaseRequests: PURCHASE_REQUESTS,
+  purchaseRequests: [],
   addPurchaseRequest: (p) => set((s) => ({ purchaseRequests: [p, ...s.purchaseRequests] })),
   updatePRStatus: (id, status) =>
     set((s) => ({ purchaseRequests: s.purchaseRequests.map((p) => (p.id === id ? { ...p, status } : p)) })),
@@ -454,7 +457,7 @@ export const useAppStore = create<AppState>()(
     return ok;
   },
 
-  approvals: APPROVALS,
+  approvals: [],
   updateApprovalStatus: (id, status, approver) =>
     set((s) => ({
       approvals: s.approvals.map((a) =>
@@ -463,20 +466,20 @@ export const useAppStore = create<AppState>()(
     })),
   addApproval: (a) => set((s) => ({ approvals: [a, ...s.approvals] })),
 
-  deviceAssignments: DEVICE_ASSIGNMENTS,
+  deviceAssignments: [],
   addDeviceAssignment: (d) => set((s) => ({ deviceAssignments: [d, ...s.deviceAssignments] })),
 
-  suppliers: SUPPLIERS.map((s) => ({ ...s })),
+  suppliers: [],
   addSupplier: (s) => set((st) => ({ suppliers: [s, ...st.suppliers] })),
   updateSupplier: (id, patch) => set((st) => ({ suppliers: st.suppliers.map((s) => (s.id === id ? { ...s, ...patch } : s)) })),
   removeSupplier: (id) => set((st) => ({ suppliers: st.suppliers.filter((s) => s.id !== id) })),
 
-  employees: EMPLOYEES.map((e) => ({ ...e })),
+  employees: [],
   addEmployee: (e) => set((st) => ({ employees: [e, ...st.employees] })),
   updateEmployee: (id, patch) => set((st) => ({ employees: st.employees.map((e) => (e.id === id ? { ...e, ...patch } : e)) })),
   removeEmployee: (id) => set((st) => ({ employees: st.employees.filter((e) => e.id !== id) })),
 
-  inventory: INVENTORY.map((i) => ({ ...i })),
+  inventory: [],
   addInventoryItem: (i) => set((st) => ({ inventory: [i, ...st.inventory] })),
   updateInventoryItem: (id, patch) => set((st) => ({ inventory: st.inventory.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
   removeInventoryItem: (id) =>
@@ -487,17 +490,17 @@ export const useAppStore = create<AppState>()(
       ),
     })),
 
-  strategyDecisions: STRATEGY_DECISIONS.map((d) => ({ ...d })),
+  strategyDecisions: [],
   addStrategyDecision: (d) => set((st) => ({ strategyDecisions: [d, ...st.strategyDecisions] })),
   updateStrategyDecision: (id, patch) => set((st) => ({ strategyDecisions: st.strategyDecisions.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
   removeStrategyDecision: (id) => set((st) => ({ strategyDecisions: st.strategyDecisions.filter((d) => d.id !== id) })),
 
-  risks: RISKS.map((r) => ({ ...r })),
+  risks: [],
   addRisk: (r) => set((s) => ({ risks: [r, ...s.risks] })),
   updateRisk: (id, patch) => set((s) => ({ risks: s.risks.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
   removeRisk: (id) => set((s) => ({ risks: s.risks.filter((r) => r.id !== id) })),
 
-  balanceItems: buildBalanceSeed(),
+  balanceItems: [],
   addBalanceItem: (item) => set((s) => ({ balanceItems: [...s.balanceItems, item] })),
   updateBalanceItem: (id, patch) =>
     set((s) => ({ balanceItems: s.balanceItems.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
@@ -512,7 +515,7 @@ export const useAppStore = create<AppState>()(
       ].slice(0, 500),
     })),
 
-  tasks: INITIAL_TASKS,
+  tasks: [],
   addTask: (title, context) =>
     set((s) => ({
       tasks: [{ id: `T-${Date.now()}`, title, context, createdAt: new Date().toISOString().slice(0, 10), done: false }, ...s.tasks],
@@ -526,101 +529,15 @@ export const useAppStore = create<AppState>()(
     })),
     }),
     {
-      name: "lpo-cc-store",
-      version: 5,
+      // Only the user's UI language preference is persisted locally. All business
+      // data is org-scoped in the database and loaded per session — never cached
+      // in localStorage, so there is no cross-tenant/cross-user bleed.
+      name: "lpo-cc-prefs-v1",
+      version: 1,
       storage: createJSONStorage(() => localStorage),
-      migrate: (persisted, version) => {
-        const state = persisted as Partial<AppState> | undefined;
-        if (state && version < 2 && state.currentUser) {
-          const legacyRoleMap: Record<string, AppUser["role"]> = {
-            Admin: "Controller",
-            Controller: "Controller",
-            "Management Viewer": "Geschäftsführer",
-            "Finance Analyst": "Finanzbuchhalter",
-            "Procurement Manager": "Finanzbuchhalter",
-            "Inventory Manager": "Finanzbuchhalter",
-            "Entity Manager": "Mitarbeiter",
-          };
-          const mapped = legacyRoleMap[state.currentUser.role as string] ?? "Mitarbeiter";
-          state.currentUser = { ...state.currentUser, role: mapped };
-        }
-        if (state && (!state.balanceItems || state.balanceItems.length === 0)) {
-          state.balanceItems = buildBalanceSeed();
-        }
-        if (state && state.currentUser) {
-          const known = USERS.find((u) => u.id === state.currentUser!.id);
-          if (known) {
-            state.currentUser = known;
-          } else {
-            state.currentUser = USERS[0];
-            state.isAuthenticated = false;
-          }
-        }
-        // v5: groups become first-class. Seed a default group, give every firm a
-        // groupId/archived default, and remap the legacy group view key.
-        if (state && version < 5) {
-          const OLD = "MiGu Group Gesamt";
-          const NEW = groupViewKey(DEFAULT_GROUP_ID);
-          const anyState = state as Record<string, unknown>;
-          if (!Array.isArray(anyState.groups) || (anyState.groups as unknown[]).length === 0) {
-            anyState.groups = GROUPS.map((g) => ({ ...g }));
-          }
-          if (Array.isArray(state.entities)) {
-            state.entities = state.entities.map((e) => ({
-              ...e,
-              groupId: e.groupId ?? DEFAULT_GROUP_ID,
-              archived: e.archived ?? false,
-            }));
-          }
-          if ((state.selectedEntity as string) === OLD) state.selectedEntity = NEW;
-          if (Array.isArray(state.balanceItems)) {
-            state.balanceItems = state.balanceItems.map((b) =>
-              (b.view as string) === OLD ? { ...b, view: NEW } : b
-            );
-          }
-          if (state.currentUser && Array.isArray(state.currentUser.entityAccess)) {
-            state.currentUser = {
-              ...state.currentUser,
-              entityAccess: state.currentUser.entityAccess.map((v) => ((v as string) === OLD ? NEW : v)),
-            };
-          }
-          if (Array.isArray(state.reportDrafts)) {
-            state.reportDrafts = state.reportDrafts.map((d) =>
-              (d.entity as string) === OLD ? { ...d, entity: NEW } : d
-            );
-          }
-        }
-        return state as AppState;
-      },
-      partialize: (s) => ({
-        selectedEntity: s.selectedEntity,
-        period: s.period,
-        language: s.language,
-        currentUser: s.currentUser,
-        isAuthenticated: s.isAuthenticated,
-        entities: s.entities,
-        groups: s.groups,
-        uploads: s.uploads,
-        purchaseRequests: s.purchaseRequests,
-        approvals: s.approvals,
-        deviceAssignments: s.deviceAssignments,
-        suppliers: s.suppliers,
-        employees: s.employees,
-        inventory: s.inventory,
-        strategyDecisions: s.strategyDecisions,
-        risks: s.risks,
-        balanceItems: s.balanceItems,
-        auditLog: s.auditLog,
-        tasks: s.tasks,
-        reportDrafts: s.reportDrafts,
-        bankTransactions: s.bankTransactions,
-        vendorMappings: s.vendorMappings,
-      }),
+      partialize: (s) => ({ language: s.language }),
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          setFormatLocale(state.language);
-          setRegistry(state.entities, state.groups);
-        }
+        if (state) setFormatLocale(state.language);
       },
     }
   )

@@ -3,6 +3,7 @@
 - [Controlling Center entities](controlling-center-entities.md) — entities are mutable store state; every list/compare/search/select consumer must read the store, not static ENTITIES/ENTITY_CODES.
 - [Controlling Center groups](controlling-center-groups.md) — "group" is first-class (ViewKey group:<id>); use data/groups.ts helpers + registry; soft-archive only; exclude archived everywhere.
 - [Radix Select avatar gotcha](radix-select-value-rendering.md) — SelectValue re-renders the selected SelectItem's full children; don't also render an icon in the trigger or it doubles.
+- [SaaS auth & tenancy](controlling-center-saas-authz.md) — server role gate (canWriteDomain) must mirror governance.ts; new orgs start empty; invites Controller-only; org-scoping is a separate always-on check.
 - [Controlling Center i18n](controlling-center-i18n.md) — German enum/domain values render verbatim across the UI; route every select/badge/table/legend/tooltip/placeholder through a t() map, not just nav.
 - [PR lifecycle cross-links](pr-lifecycle-links.md) — PRs link to bank tx + inventory; delete paths must clear back-references or the PR orphans; stage gating reuses governance constants.
 - [Controlling Center CRUD gating](controlling-center-crud-gating.md) — capability can() checks must guard BOTH the rendered buttons AND inside save/delete handlers; UI-only gating is a client-side bypass.

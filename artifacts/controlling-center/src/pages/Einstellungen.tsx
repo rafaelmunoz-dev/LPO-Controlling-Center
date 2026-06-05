@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useAppStore, USERS } from "@/hooks/use-app-context";
+import { useAppStore } from "@/hooks/use-app-context";
+import { TeamSettings } from "@/components/settings/TeamSettings";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ const EXTERNAL_APPS = [
 ];
 
 export default function Einstellungen() {
-  const { language, setLanguage, currentUser, setCurrentUser, selectedEntity, setEntity, entities, groups } = useAppStore();
+  const { language, setLanguage, currentUser, selectedEntity, setEntity, entities, groups } = useAppStore();
   const canAdminSettings = SETTINGS_ADMIN_ROLES.includes(currentUser.role);
   const entityViews: ViewKey[] = groups
     .filter((g) => !g.archived)
@@ -192,35 +193,7 @@ export default function Einstellungen() {
             </TabsList>
 
             <TabsContent value="users">
-              <Card className="glass-card">
-                <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> {t("set_users")}</CardTitle><p className="text-sm text-muted-foreground">{t("set_users_desc")}</p></CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader><TableRow><TableHead>{t("set_users")}</TableHead><TableHead>{t("set_role")}</TableHead><TableHead>{t("set_organisation")}</TableHead><TableHead>{t("set_entity_access")}</TableHead><TableHead>{t("set_last_activity")}</TableHead><TableHead className="text-right">{t("common_action")}</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {USERS.map((u) => (
-                        <TableRow key={u.id} data-testid={`row-user-${u.id}`} className={u.id === currentUser.id ? "bg-primary/5" : ""}>
-                          <TableCell>
-                            <div className="flex items-center gap-2.5">
-                              <Avatar className="h-8 w-8"><AvatarImage src={u.avatar} /><AvatarFallback>{u.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback></Avatar>
-                              <div><div className="font-medium">{u.name}</div><div className="text-xs text-muted-foreground">{u.email}</div></div>
-                            </div>
-                          </TableCell>
-                          <TableCell><Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{u.role}</Badge></TableCell>
-                          <TableCell>{u.organisation}</TableCell>
-                          <TableCell className="text-muted-foreground">{u.entityAccess.length} {t("entitaeten")}</TableCell>
-                          <TableCell className="text-muted-foreground">{u.lastActivity}</TableCell>
-                          <TableCell className="text-right">
-                            {u.id === currentUser.id
-                              ? <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><UserCheck className="h-4 w-4" /> {t("mit_active")}</span>
-                              : <Button size="sm" variant="outline" onClick={() => { setCurrentUser(u); toast.success(t("toast_logged_in_as", { name: u.name, role: u.role })); }} data-testid={`button-switch-${u.id}`}>{t("set_switch")}</Button>}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+              <TeamSettings />
             </TabsContent>
 
             <TabsContent value="roles">

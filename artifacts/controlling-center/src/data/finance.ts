@@ -33,9 +33,8 @@ export const ENTITIES: EntityMeta[] = [
   { code: "COSM", name: "MiGu Cosmetics GmbH", description: "Kosmetik & Konsumgüter", location: "Düsseldorf", employees: 53, color: "#f43f5e", groupId: DEFAULT_GROUP_ID },
 ];
 
-// Seed the live registry with curated data so first-render aggregation (and the
-// balance-sheet seed below) is correct before the store hydrates and takes over.
-setRegistry(ENTITIES, GROUPS);
+// NOTE: the live registry is owned by the store (see use-app-context). It is
+// seeded empty and populated from the org's DB-backed data after sign-in.
 
 interface EntityProfile {
   revenue: number;
