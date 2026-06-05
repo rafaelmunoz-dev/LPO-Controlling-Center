@@ -27,7 +27,8 @@ const emptySupplier = (): SupplierForm => ({ name: "", category: "", country: ""
 export default function Einkauf() {
   const { t } = useTranslation();
   const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser, suppliers, addSupplier, updateSupplier, removeSupplier, logAction } = useAppStore();
-  const prs = scopeByEntity(purchaseRequests, selectedEntity);
+  const ownPRsOnly = currentUser.role === "Mitarbeiter";
+  const prs = scopeByEntity(purchaseRequests, selectedEntity).filter((p) => !ownPRsOnly || p.requestedBy === currentUser.name);
   const forms = scopeByEntity(FORM_RESPONSES, selectedEntity);
   const canCreatePR = CREATE_PR_ROLES.includes(currentUser.role);
   const canApprovePR = APPROVER_ROLES.includes(currentUser.role);
