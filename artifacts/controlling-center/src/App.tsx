@@ -13,6 +13,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Finanzen from "@/pages/Finanzen";
+import Belege from "@/pages/Belege";
 import Umsatz from "@/pages/Umsatz";
 import Einkauf from "@/pages/Einkauf";
 import Inventar from "@/pages/Inventar";
@@ -54,6 +55,7 @@ function Router() {
       <Switch>
         <Route path="/">{() => <Guarded navKey="dashboard" component={Dashboard} />}</Route>
         <Route path="/finanzen">{() => <Guarded navKey="finanzen" component={Finanzen} />}</Route>
+        <Route path="/belege">{() => <Guarded navKey="belege" component={Belege} />}</Route>
         <Route path="/umsatz">{() => <Guarded navKey="umsatz" component={Umsatz} />}</Route>
         <Route path="/einkauf">{() => <Guarded navKey="einkauf" component={Einkauf} />}</Route>
         <Route path="/inventar">{() => <Guarded navKey="inventar" component={Inventar} />}</Route>

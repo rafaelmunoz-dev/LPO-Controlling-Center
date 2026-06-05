@@ -47,6 +47,34 @@ export interface BudgetRow {
   actual: number;
 }
 
+export type ExpenseStatus = "needs-assignment" | "booked";
+export type SuggestionSource = "learned" | "ai" | "heuristic";
+
+export interface BankTransaction {
+  id: string;
+  date: string; // ISO yyyy-mm-dd
+  payee: string; // counterparty / Empfänger
+  description: string; // Verwendungszweck
+  amount: number; // positive expense amount in EUR
+  entity?: EntityCode;
+  category?: string; // budget category
+  status: ExpenseStatus;
+  suggestionSource?: SuggestionSource | null;
+  suggestionReason?: string;
+  importedAt: string;
+  bookedBy?: string;
+  bookedAt?: string;
+}
+
+export interface VendorMapping {
+  key: string; // normalized payee key
+  label: string; // human-readable vendor label
+  entity: EntityCode;
+  category: string;
+  count: number; // confirmations (confidence)
+  updatedAt: string;
+}
+
 export interface CashflowBlock {
   operating: number;
   investing: number;

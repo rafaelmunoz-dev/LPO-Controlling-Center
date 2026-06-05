@@ -19,6 +19,7 @@ import {
   Sparkles,
   Building2,
   ScrollText,
+  ReceiptText,
 } from "lucide-react";
 
 interface NavItem {
@@ -37,6 +38,7 @@ const GROUPS: { group: string; items: NavItem[] }[] = [
     group: "nav_finance",
     items: [
       { href: "/finanzen", key: "finanzen", label: "finanzen", icon: PieChart },
+      { href: "/belege", key: "belege", label: "belege", icon: ReceiptText },
       { href: "/umsatz", key: "umsatz", label: "umsatz", icon: Coins },
       { href: "/gewinn-verlust", key: "gewinnverlust", label: "gewinnverlust", icon: Scale },
       { href: "/entitaeten", key: "entitaeten", label: "entitaeten", icon: Building2 },

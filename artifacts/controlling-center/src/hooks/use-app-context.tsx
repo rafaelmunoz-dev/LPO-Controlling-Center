@@ -5,6 +5,7 @@ import type {
   AppUser,
   AuditEntry,
   BalanceLineItem,
+  BankTransaction,
   DeviceAssignment,
   Employee,
   EntityCode,
@@ -15,12 +16,14 @@ import type {
   StrategyDecision,
   Supplier,
   UploadItem,
+  VendorMapping,
   ViewKey,
 } from "@/data/types";
 import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
 import { RISKS, STRATEGY_DECISIONS } from "@/data/governance";
 import { APPROVALS, DEVICE_ASSIGNMENTS, EMPLOYEES, INVENTORY, PURCHASE_REQUESTS, SUPPLIERS, UPLOADS } from "@/data/operations";
 import { setFormatLocale, ENTITIES, buildBalanceSeed } from "@/data";
+import { learnMapping } from "@/data/bank";
 import type { CopilotContext } from "@/data/copilot";
 
 type Language = "de" | "en" | "es";
@@ -135,6 +138,14 @@ interface AppState {
   uploads: UploadItem[];
   addUpload: (u: UploadItem) => void;
   updateUploadStatus: (id: string, status: UploadItem["status"]) => void;
+
+  bankTransactions: BankTransaction[];
+  importBankTransactions: (txs: BankTransaction[]) => void;
+  assignTransaction: (id: string, patch: { entity?: EntityCode; category?: string; suggestionSource?: BankTransaction["suggestionSource"]; suggestionReason?: string }) => void;
+  bookTransaction: (id: string) => void;
+  removeBankTransaction: (id: string) => void;
+
+  vendorMappings: VendorMapping[];
 
   purchaseRequests: PurchaseRequest[];
   addPurchaseRequest: (p: PurchaseRequest) => void;
@@ -264,6 +275,32 @@ export const useAppStore = create<AppState>()(
   updateUploadStatus: (id, status) =>
     set((s) => ({ uploads: s.uploads.map((u) => (u.id === id ? { ...u, status } : u)) })),
 
+  bankTransactions: [],
+  importBankTransactions: (txs) => set((s) => ({ bankTransactions: [...txs, ...s.bankTransactions] })),
+  assignTransaction: (id, patch) =>
+    set((s) => ({
+      bankTransactions: s.bankTransactions.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    })),
+  bookTransaction: (id) =>
+    set((s) => {
+      const tx = s.bankTransactions.find((t) => t.id === id);
+      if (!tx || !tx.entity || !tx.category) return {};
+      const booked: BankTransaction = {
+        ...tx,
+        status: "booked",
+        bookedBy: s.currentUser.name,
+        bookedAt: new Date().toISOString().slice(0, 10),
+      };
+      return {
+        bankTransactions: s.bankTransactions.map((t) => (t.id === id ? booked : t)),
+        vendorMappings: learnMapping(s.vendorMappings, booked),
+      };
+    }),
+  removeBankTransaction: (id) =>
+    set((s) => ({ bankTransactions: s.bankTransactions.filter((t) => t.id !== id) })),
+
+  vendorMappings: [],
+
   purchaseRequests: PURCHASE_REQUESTS,
   addPurchaseRequest: (p) => set((s) => ({ purchaseRequests: [p, ...s.purchaseRequests] })),
   updatePRStatus: (id, status) =>
@@ -336,7 +373,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "lpo-cc-store",
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted, version) => {
         const state = persisted as Partial<AppState> | undefined;
@@ -378,6 +415,8 @@ export const useAppStore = create<AppState>()(
         auditLog: s.auditLog,
         tasks: s.tasks,
         reportDrafts: s.reportDrafts,
+        bankTransactions: s.bankTransactions,
+        vendorMappings: s.vendorMappings,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) setFormatLocale(state.language);

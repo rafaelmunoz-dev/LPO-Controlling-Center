@@ -7,6 +7,7 @@ export * from "./governance";
 export * from "./copilot";
 export * from "./glossary";
 export * from "./search";
+export * from "./bank";
 
 export function scopeByEntity<T extends { entity: EntityCode }>(items: T[], view: ViewKey): T[] {
   if (view === "MiGu Group Gesamt") return items;

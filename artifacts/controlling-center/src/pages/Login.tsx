@@ -12,6 +12,7 @@ import lpoLogo from "@assets/image_1780570561463.png";
 const NAV_META: Record<NavKey, { href: string; labelKey: string }> = {
   dashboard: { href: "/", labelKey: "dashboard" },
   finanzen: { href: "/finanzen", labelKey: "finanzen" },
+  belege: { href: "/belege", labelKey: "belege" },
   umsatz: { href: "/umsatz", labelKey: "umsatz" },
   entitaeten: { href: "/entitaeten", labelKey: "entitaeten" },
   gewinnverlust: { href: "/gewinn-verlust", labelKey: "gewinnverlust" },

@@ -178,6 +178,18 @@ export function getEntityComparison(entities: EntityMeta[] = ENTITIES): EntityCo
   });
 }
 
+// Budget categories an imported bank expense can be booked against. The strings
+// must match the BudgetRow.category labels produced by getBudget so booked
+// amounts overlay onto the right "actual".
+export const EXPENSE_BUDGET_CATEGORIES = [
+  "Warenkosten",
+  "Personalkosten",
+  "Marketing",
+  "IT & Software",
+  "Sonstige Op. Kosten",
+] as const;
+export type ExpenseBudgetCategory = (typeof EXPENSE_BUDGET_CATEGORIES)[number];
+
 export function getBudget(view: ViewKey): BudgetRow[] {
   const f = getFinance(view);
   const r = f.revenue;
@@ -189,6 +201,18 @@ export function getBudget(view: ViewKey): BudgetRow[] {
     { category: "IT & Software", budget: Math.round(r * 0.03), actual: Math.round(r * 0.029) },
     { category: "Sonstige Op. Kosten", budget: Math.round(r * 0.04), actual: Math.round(r * 0.043) },
   ];
+}
+
+// Overlay booked bank-expense amounts (keyed by category) onto the budget rows'
+// "actual" so confirmed bookings become visible in the finance budget view.
+export function applyBookingsToBudget(
+  rows: BudgetRow[],
+  bookedByCategory: Record<string, number>,
+): BudgetRow[] {
+  return rows.map((row) => {
+    const extra = bookedByCategory[row.category];
+    return extra ? { ...row, actual: row.actual + extra } : row;
+  });
 }
 
 export function getCashflow(view: ViewKey): CashflowBlock {

@@ -24,6 +24,7 @@ import {
   getBudget,
   getEntityComparison,
   getFinance,
+  applyBookingsToBudget,
 } from "@/data";
 import { can } from "@/data/governance";
 import { CHART, PIE_COLORS } from "@/lib/chart";
@@ -263,12 +264,19 @@ function BilanzTab() {
 }
 
 export default function Finanzen() {
-  const { selectedEntity, entities } = useAppStore();
+  const { selectedEntity, entities, bankTransactions } = useAppStore();
   const { t } = useTranslation();
   const { currency, compact, number } = useFormat();
   const plo = getPLOverview(selectedEntity);
   const cf = getCashflow(selectedEntity);
-  const budget = getBudget(selectedEntity);
+  const isGroup = selectedEntity === "MiGu Group Gesamt";
+  const bookedByCategory = bankTransactions.reduce<Record<string, number>>((acc, tx) => {
+    if (tx.status !== "booked" || !tx.category) return acc;
+    if (!isGroup && tx.entity !== selectedEntity) return acc;
+    acc[tx.category] = (acc[tx.category] ?? 0) + tx.amount;
+    return acc;
+  }, {});
+  const budget = applyBookingsToBudget(getBudget(selectedEntity), bookedByCategory);
   const comparison = getEntityComparison(entities);
   const group = getFinance("MiGu Group Gesamt");
 

@@ -74,6 +74,7 @@ export const REPORTS: ReportDef[] = [
 export const NAV_KEYS = [
   "dashboard",
   "finanzen",
+  "belege",
   "umsatz",
   "entitaeten",
   "gewinnverlust",
@@ -93,7 +94,7 @@ export type NavKey = (typeof NAV_KEYS)[number];
 export const ROLE_PERMISSIONS: Record<Role, NavKey[]> = {
   Controller: [...NAV_KEYS],
   "Geschäftsführer": [...NAV_KEYS],
-  "Finanzbuchhalter": ["einkauf", "finanzen", "inventar"],
+  "Finanzbuchhalter": ["einkauf", "finanzen", "belege", "inventar"],
   "Mitarbeiter": ["einkauf"],
 };
 
