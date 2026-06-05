@@ -73,7 +73,7 @@ export function Sidebar() {
   const allowed = allowedNav();
 
   return (
-    <aside className="w-64 glass-panel border-r border-white/40 h-[calc(100vh-64px)] flex flex-col justify-between overflow-y-auto thin-scroll">
+    <aside className="w-64 glass-panel border-r border-white/40 min-h-[calc(100vh-64px)] flex flex-col">
       <nav className="p-3 space-y-5">
         {GROUPS.map((group) => {
           const items = group.items.filter((i) => allowed.includes(i.key));

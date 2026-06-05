@@ -84,7 +84,7 @@ export function CopilotPanel() {
 
   return (
     <div
-      className={`${expanded ? "w-[34rem]" : "w-96"} glass-panel border-l border-white/40 flex flex-col shadow-xl z-40 h-[calc(100vh-64px)] transition-all`}
+      className={`${expanded ? "w-[34rem]" : "w-96"} glass-panel border-l border-white/40 flex flex-col shadow-xl z-40 sticky top-16 self-start h-[calc(100vh-64px)] transition-all`}
     >
       <div className="p-4 border-b border-white/40 flex items-center justify-between">
         <div className="flex items-center gap-2 text-primary font-medium">
