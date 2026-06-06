@@ -9,6 +9,9 @@ fails to reload, or the sync loop retries a 403 forever.
 
 1. **Schema** `lib/db/src/schema/domain.ts` — add `domainTable("...")` + register
    in `DOMAIN_TABLES`. Then run `pnpm --filter @workspace/db push` to apply.
+   NOTE: api-server typechecks against `lib/db/dist/*.d.ts`, not the TS source, so
+   the new `DomainKind` won't propagate (TS2322/TS2353 on the new kind) until you
+   rebuild declarations: `cd lib/db && npx tsc -b` (the package has no build script).
 2. **Records route** `artifacts/api-server/src/routes/records.ts` — add the URL
    path segment → DomainKind in `KINDS`. `entityCodeOf` keys off a `data.entity`
    field; collections without one (e.g. audit log) resolve to null, which is fine.

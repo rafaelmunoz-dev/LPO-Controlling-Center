@@ -7,6 +7,7 @@ import type {
   Employee,
   EntityMeta,
   InventoryItem,
+  PreMortem,
   PurchaseRequest,
   Risk,
   StrategyDecision,
@@ -152,6 +153,7 @@ export type DomainKind =
   | "inventory"
   | "balanceItems"
   | "risks"
+  | "premortems"
   | "strategyDecisions"
   | "approvals"
   | "uploads"
@@ -167,6 +169,7 @@ const KIND_PATH: Record<DomainKind, string> = {
   inventory: "inventory",
   balanceItems: "balance-items",
   risks: "risks",
+  premortems: "premortems",
   strategyDecisions: "strategy-decisions",
   approvals: "approvals",
   uploads: "uploads",
@@ -183,6 +186,7 @@ export interface DomainMap {
   inventory: InventoryItem;
   balanceItems: BalanceLineItem;
   risks: Risk;
+  premortems: PreMortem;
   strategyDecisions: StrategyDecision;
   approvals: Approval;
   uploads: UploadItem;

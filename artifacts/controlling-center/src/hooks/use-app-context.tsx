@@ -12,6 +12,7 @@ import type {
   EntityCode,
   EntityMeta,
   InventoryItem,
+  PreMortem,
   PurchaseRequest,
   Risk,
   StrategyDecision,
@@ -80,6 +81,7 @@ export interface HydratePayload {
   inventory: InventoryItem[];
   balanceItems: BalanceLineItem[];
   risks: Risk[];
+  premortems: PreMortem[];
   strategyDecisions: StrategyDecision[];
   approvals: Approval[];
   uploads: UploadItem[];
@@ -180,6 +182,11 @@ interface AppState {
   updateRisk: (id: string, patch: Partial<Omit<Risk, "id">>) => void;
   removeRisk: (id: string) => void;
 
+  premortems: PreMortem[];
+  addPreMortem: (p: PreMortem) => void;
+  updatePreMortem: (id: string, patch: Partial<Omit<PreMortem, "id">>) => void;
+  removePreMortem: (id: string) => void;
+
   balanceItems: BalanceLineItem[];
   addBalanceItem: (item: BalanceLineItem) => void;
   updateBalanceItem: (id: string, patch: Partial<Omit<BalanceLineItem, "id">>) => void;
@@ -247,6 +254,7 @@ export const useAppStore = create<AppState>()(
         inventory: payload.inventory,
         balanceItems: payload.balanceItems,
         risks: payload.risks,
+        premortems: payload.premortems,
         strategyDecisions: payload.strategyDecisions,
         approvals: payload.approvals,
         uploads: payload.uploads,
@@ -277,6 +285,7 @@ export const useAppStore = create<AppState>()(
       deviceAssignments: [],
       strategyDecisions: [],
       risks: [],
+      premortems: [],
       vendorMappings: [],
       auditLog: [],
       tasks: [],
@@ -505,6 +514,11 @@ export const useAppStore = create<AppState>()(
   addRisk: (r) => set((s) => ({ risks: [r, ...s.risks] })),
   updateRisk: (id, patch) => set((s) => ({ risks: s.risks.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
   removeRisk: (id) => set((s) => ({ risks: s.risks.filter((r) => r.id !== id) })),
+
+  premortems: [],
+  addPreMortem: (p) => set((s) => ({ premortems: [p, ...s.premortems] })),
+  updatePreMortem: (id, patch) => set((s) => ({ premortems: s.premortems.map((p) => (p.id === id ? { ...p, ...patch } : p)) })),
+  removePreMortem: (id) => set((s) => ({ premortems: s.premortems.filter((p) => p.id !== id) })),
 
   balanceItems: [],
   addBalanceItem: (item) => set((s) => ({ balanceItems: [...s.balanceItems, item] })),

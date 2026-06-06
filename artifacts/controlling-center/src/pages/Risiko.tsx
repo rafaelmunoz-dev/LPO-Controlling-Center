@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, RiskBadge, statusLabel, riskLabel } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { scopeByEntity, PREMORTEMS, defaultFirmForView } from "@/data";
+import { scopeByEntity, defaultFirmForView } from "@/data";
 import { can } from "@/data/governance";
 import type { PreMortem, Risk, EntityCode, RiskLevel } from "@/data/types";
 import { ShieldAlert, TrendingUp, TrendingDown, Minus, FlaskConical, Plus, Pencil, Trash2 } from "lucide-react";
@@ -33,11 +34,20 @@ function TrendIcon({ trend }: { trend: string }) {
 type RiskForm = Omit<Risk, "id">;
 const emptyRisk = (entity: EntityCode): RiskForm => ({ title: "", entity, impact: "Mittel", probability: "Mittel", owner: "", status: "Offen", trend: "flat" });
 
+type PreMortemForm = Omit<PreMortem, "id">;
+const emptyPreMortem = (entity: EntityCode): PreMortemForm => ({
+  project: "", entity, goal: "", expectedBenefit: "", assumptions: "", whatCouldGoWrong: "",
+  mostLikelyRisk: "", mostDangerousRisk: "", earlyWarnings: "", countermeasures: "", owner: "", reviewDate: "",
+});
+
 export default function Risiko() {
   const { t } = useTranslation();
-  const { selectedEntity, risks: allRisks, currentUser, addRisk, updateRisk, removeRisk, logAction, entities } = useAppStore();
+  const {
+    selectedEntity, risks: allRisks, currentUser, addRisk, updateRisk, removeRisk, logAction, entities,
+    premortems: allPremortems, addPreMortem, updatePreMortem, removePreMortem,
+  } = useAppStore();
   const risks = scopeByEntity(allRisks, selectedEntity);
-  const premortems = scopeByEntity(PREMORTEMS, selectedEntity);
+  const premortems = scopeByEntity(allPremortems, selectedEntity);
   const [active, setActive] = useState<PreMortem | null>(null);
 
   const canCreate = can(currentUser.role, "risiko:create");
@@ -47,6 +57,11 @@ export default function Risiko() {
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<RiskForm>(emptyRisk("IMP"));
+
+  const [pmOpen, setPmOpen] = useState(false);
+  const [pmEditId, setPmEditId] = useState<string | null>(null);
+  const [pmDeleteId, setPmDeleteId] = useState<string | null>(null);
+  const [pmForm, setPmForm] = useState<PreMortemForm>(emptyPreMortem("IMP"));
 
   const openCreate = () => {
     setEditId(null);
@@ -77,6 +92,53 @@ export default function Risiko() {
     toast.success(t("common_delete"));
     setDeleteId(null);
   };
+
+  const openPmCreate = () => {
+    setPmEditId(null);
+    setPmForm(emptyPreMortem(defaultFirmForView(selectedEntity) ?? "IMP"));
+    setPmOpen(true);
+  };
+  const openPmEdit = (p: PreMortem) => {
+    setActive(null);
+    setPmEditId(p.id);
+    const { id: _id, ...rest } = p;
+    setPmForm(rest);
+    setPmOpen(true);
+  };
+  const savePm = () => {
+    if (pmEditId ? !canEdit : !canCreate) { toast.error(t("no_permission")); return; }
+    if (!pmForm.project.trim()) { toast.error(t("risk_project")); return; }
+    if (pmEditId) {
+      updatePreMortem(pmEditId, pmForm);
+      logAction(t("risk_premortem_edit"), `${pmForm.project} (${pmForm.entity})`);
+      toast.success(t("risk_premortem_edit"));
+    } else {
+      addPreMortem({ ...pmForm, id: `PM-${Math.floor(Math.random() * 9000 + 1000)}` });
+      logAction(t("risk_premortem_create"), `${pmForm.project} (${pmForm.entity})`);
+      toast.success(t("risk_premortem_create"));
+    }
+    setPmOpen(false);
+  };
+  const confirmPmDelete = () => {
+    if (!pmDeleteId) return;
+    if (!canDelete) { toast.error(t("no_permission")); return; }
+    const p = allPremortems.find((x) => x.id === pmDeleteId);
+    removePreMortem(pmDeleteId);
+    logAction(t("common_delete"), `${p?.project ?? pmDeleteId}`);
+    toast.success(t("common_delete"));
+    setPmDeleteId(null);
+  };
+
+  const pmField = (key: keyof PreMortemForm, label: string, multiline = true) => (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      {multiline ? (
+        <Textarea rows={2} value={pmForm[key]} onChange={(e) => setPmForm({ ...pmForm, [key]: e.target.value })} data-testid={`input-premortem-${key}`} />
+      ) : (
+        <Input value={pmForm[key]} onChange={(e) => setPmForm({ ...pmForm, [key]: e.target.value })} data-testid={`input-premortem-${key}`} />
+      )}
+    </div>
+  );
 
   const cell = (impact: string, prob: string) => risks.filter((r) => r.impact === impact && r.probability === prob);
   const heatColor = (impact: string, prob: string) => {
@@ -165,13 +227,22 @@ export default function Risiko() {
         </TabsContent>
 
         <TabsContent value="premortem">
+          {canCreate && (
+            <div className="flex justify-end mb-4">
+              <Button onClick={openPmCreate} data-testid="button-add-premortem"><Plus className="h-4 w-4 mr-1.5" /> {t("risk_premortem_create")}</Button>
+            </div>
+          )}
           <div className="grid gap-4 md:grid-cols-2">
             {premortems.map((p) => (
               <Card key={p.id} className="glass-card cursor-pointer" onClick={() => setActive(p)} data-testid={`card-premortem-${p.id}`}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base flex items-center gap-2"><FlaskConical className="h-4 w-4 text-primary" /> {p.project}</CardTitle>
-                    <Badge variant="outline">{p.entity}</Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline">{p.entity}</Badge>
+                      {canEdit && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openPmEdit(p); }} data-testid={`button-edit-premortem-${p.id}`}><Pencil className="h-3.5 w-3.5" /></Button>}
+                      {canDelete && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); setPmDeleteId(p.id); }} data-testid={`button-delete-premortem-${p.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground">{p.goal}</p>
                 </CardHeader>
@@ -206,6 +277,39 @@ export default function Risiko() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pmOpen} onOpenChange={setPmOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{pmEditId ? t("risk_premortem_edit") : t("risk_premortem_create")}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              {pmField("project", t("risk_project"), false)}
+              <div className="space-y-1.5"><Label>{t("entity")}</Label>
+                <Select value={pmForm.entity} onValueChange={(v) => setPmForm({ ...pmForm, entity: v as EntityCode })}>
+                  <SelectTrigger data-testid="select-premortem-entity"><SelectValue /></SelectTrigger>
+                  <SelectContent>{entities.filter((e) => !e.archived).map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            {pmField("goal", t("risk_goal"))}
+            {pmField("expectedBenefit", t("risk_expected_benefit"))}
+            {pmField("assumptions", t("risk_assumptions"))}
+            {pmField("whatCouldGoWrong", t("risk_what_wrong"))}
+            {pmField("mostLikelyRisk", t("risk_most_likely"))}
+            {pmField("mostDangerousRisk", t("risk_most_dangerous"))}
+            {pmField("earlyWarnings", t("risk_early_warnings"))}
+            {pmField("countermeasures", t("risk_countermeasures"))}
+            <div className="grid grid-cols-2 gap-3">
+              {pmField("owner", t("owner"), false)}
+              <div className="space-y-1.5"><Label>{t("strat_review")}</Label><Input type="date" value={pmForm.reviewDate} onChange={(e) => setPmForm({ ...pmForm, reviewDate: e.target.value })} data-testid="input-premortem-reviewDate" /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPmOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={savePm} data-testid="button-save-premortem">{t("common_save")}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -265,6 +369,16 @@ export default function Risiko() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-risk">{t("common_delete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pmDeleteId} onOpenChange={(o) => !o && setPmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{t("common_delete_confirm_title")}</AlertDialogTitle><AlertDialogDescription>{t("common_delete_confirm_desc")}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-premortem">{t("common_delete")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

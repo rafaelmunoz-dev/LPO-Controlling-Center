@@ -16,6 +16,7 @@ const KINDS: Record<string, DomainKind> = {
   inventory: "inventory",
   "balance-items": "balanceItems",
   risks: "risks",
+  premortems: "premortems",
   "strategy-decisions": "strategyDecisions",
   approvals: "approvals",
   uploads: "uploads",
