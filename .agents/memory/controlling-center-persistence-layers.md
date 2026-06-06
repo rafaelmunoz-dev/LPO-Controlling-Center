@@ -29,3 +29,13 @@ fails to reload, or the sync loop retries a 403 forever.
 **Why:** the sync is a snapshot-diff loop keyed by `ID_FIELD`; an unregistered
 kind never diffs (no persist) and an unauthorized write retries on every store
 change. New orgs intentionally start empty — no seeding for any of these.
+
+**CRITICAL — the `push` step is the silent killer.** Adding a `domainTable` to
+schema does NOT create the DB table; you MUST run `pnpm --filter @workspace/db
+run push`. If skipped, `loadOrgData()` (a single `Promise.all` over ALL domains)
+gets a 500 from that one missing table's GET, which rejects the whole load, and
+AuthedApp drops every signed-in active-org user to the error screen — a full
+outage, not a degraded feature. Express 5 forwards the async handler error as
+500. Seen for `premortems` (schema+route+sync all wired, table never pushed).
+When auditing persistence, verify tables EXIST in the live DB (count rows), not
+just that code references them.
