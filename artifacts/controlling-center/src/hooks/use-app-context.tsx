@@ -79,6 +79,11 @@ export interface HydratePayload {
   bankTransactions: BankTransaction[];
   inventory: InventoryItem[];
   balanceItems: BalanceLineItem[];
+  risks: Risk[];
+  strategyDecisions: StrategyDecision[];
+  approvals: Approval[];
+  uploads: UploadItem[];
+  auditLog: AuditEntry[];
 }
 
 interface AppState {
@@ -247,6 +252,11 @@ export const useAppStore = create<AppState>()(
         bankTransactions: payload.bankTransactions,
         inventory: payload.inventory,
         balanceItems: payload.balanceItems,
+        risks: payload.risks,
+        strategyDecisions: payload.strategyDecisions,
+        approvals: payload.approvals,
+        uploads: payload.uploads,
+        auditLog: payload.auditLog,
         selectedEntity: firstActiveView(payload.groups, payload.entities),
         currentUser: { ...s.currentUser, entityAccess: allViews },
         dataReady: true,

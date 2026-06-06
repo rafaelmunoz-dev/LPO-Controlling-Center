@@ -15,6 +15,11 @@ const KINDS: Record<string, DomainKind> = {
   "bank-transactions": "bankTransactions",
   inventory: "inventory",
   "balance-items": "balanceItems",
+  risks: "risks",
+  "strategy-decisions": "strategyDecisions",
+  approvals: "approvals",
+  uploads: "uploads",
+  "audit-log": "auditLog",
 };
 
 function resolveKind(param: string | string[] | undefined): DomainKind | null {

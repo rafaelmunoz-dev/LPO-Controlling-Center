@@ -10,3 +10,4 @@
 - [Controlling Center scoped permissions](controlling-center-scoped-permissions.md) — Geschäftsführer add/delete employees & companies only within their group (managedEntities); use canScoped/userManagesEntity vs target company, not just can(role).
 - [OpenAI AI server lib build](openai-ai-server-lib-build.md) — referencing lib/integrations-openai-ai-server triggers TS6305 until you tsc -b its declarations; its image/client.ts has pre-existing null errors that block the build.
 - [Clerk managed production](clerk-managed-production.md) — Replit-managed Clerk: never manually swap to live keys; prod is automatic on publish, dev-key warning is expected.
+- [Controlling Center persistence layers](controlling-center-persistence-layers.md) — adding a new org-scoped persisted collection means editing 6 layers in lockstep (schema, records route, auth role gate, api.ts, data-sync, store hydrate); append-by-anyone needs all roles or sync 403-loops.

@@ -39,6 +39,11 @@ export const purchaseRequests = domainTable("purchase_requests");
 export const bankTransactions = domainTable("bank_transactions");
 export const inventory = domainTable("inventory");
 export const balanceItems = domainTable("balance_items");
+export const risks = domainTable("risks");
+export const strategyDecisions = domainTable("strategy_decisions");
+export const approvals = domainTable("approvals");
+export const uploads = domainTable("uploads");
+export const auditLog = domainTable("audit_log");
 
 export const DOMAIN_TABLES = {
   groups,
@@ -49,6 +54,11 @@ export const DOMAIN_TABLES = {
   bankTransactions,
   inventory,
   balanceItems,
+  risks,
+  strategyDecisions,
+  approvals,
+  uploads,
+  auditLog,
 } as const;
 
 export type DomainKind = keyof typeof DOMAIN_TABLES;

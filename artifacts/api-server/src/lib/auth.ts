@@ -137,6 +137,15 @@ const DOMAIN_WRITE_ROLES: Record<DomainKind, Role[]> = {
   // Bank statements & inventory: Controller and Finanzbuchhalter.
   bankTransactions: ["Controller", "Finanzbuchhalter"],
   inventory: ["Controller", "Finanzbuchhalter"],
+  // Risk register & strategy decisions → Controller only (risiko:* / strategie:*).
+  risks: ["Controller"],
+  strategyDecisions: ["Controller"],
+  // Approvals are managed by the approver roles (APPROVER_ROLES).
+  approvals: ["Controller", "Geschäftsführer"],
+  // Document uploads: Controller and Finanzbuchhalter (UPLOAD_ROLES).
+  uploads: ["Controller", "Finanzbuchhalter"],
+  // Audit-log entries are appended for actions by any signed-in member.
+  auditLog: ["Controller", "Geschäftsführer", "Finanzbuchhalter", "Mitarbeiter"],
 };
 
 export function canWriteDomain(opts: {

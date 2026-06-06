@@ -1,4 +1,6 @@
 import type {
+  Approval,
+  AuditEntry,
   BalanceLineItem,
   BankTransaction,
   CompanyGroup,
@@ -6,7 +8,10 @@ import type {
   EntityMeta,
   InventoryItem,
   PurchaseRequest,
+  Risk,
+  StrategyDecision,
   Supplier,
+  UploadItem,
 } from "@/data/types";
 
 // Same-origin API. BASE_URL ends with "/" (e.g. "/"), so this yields "/api".
@@ -134,7 +139,12 @@ export type DomainKind =
   | "purchaseRequests"
   | "bankTransactions"
   | "inventory"
-  | "balanceItems";
+  | "balanceItems"
+  | "risks"
+  | "strategyDecisions"
+  | "approvals"
+  | "uploads"
+  | "auditLog";
 
 const KIND_PATH: Record<DomainKind, string> = {
   groups: "groups",
@@ -145,6 +155,11 @@ const KIND_PATH: Record<DomainKind, string> = {
   bankTransactions: "bank-transactions",
   inventory: "inventory",
   balanceItems: "balance-items",
+  risks: "risks",
+  strategyDecisions: "strategy-decisions",
+  approvals: "approvals",
+  uploads: "uploads",
+  auditLog: "audit-log",
 };
 
 export interface DomainMap {
@@ -156,6 +171,11 @@ export interface DomainMap {
   bankTransactions: BankTransaction;
   inventory: InventoryItem;
   balanceItems: BalanceLineItem;
+  risks: Risk;
+  strategyDecisions: StrategyDecision;
+  approvals: Approval;
+  uploads: UploadItem;
+  auditLog: AuditEntry;
 }
 
 export const listRecords = <K extends DomainKind>(kind: K) =>

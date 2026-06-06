@@ -12,6 +12,11 @@ const KINDS: api.DomainKind[] = [
   "bankTransactions",
   "inventory",
   "balanceItems",
+  "risks",
+  "strategyDecisions",
+  "approvals",
+  "uploads",
+  "auditLog",
 ];
 
 // Primary-key field per domain (entities are keyed by their stable firm code).
@@ -24,6 +29,11 @@ const ID_FIELD: Record<api.DomainKind, string> = {
   bankTransactions: "id",
   inventory: "id",
   balanceItems: "id",
+  risks: "id",
+  strategyDecisions: "id",
+  approvals: "id",
+  uploads: "id",
+  auditLog: "id",
 };
 
 type Snapshot = Record<string, string>; // recordId -> JSON.stringify(record)
@@ -36,6 +46,11 @@ const snapshots: Record<api.DomainKind, Snapshot> = {
   bankTransactions: {},
   inventory: {},
   balanceItems: {},
+  risks: {},
+  strategyDecisions: {},
+  approvals: {},
+  uploads: {},
+  auditLog: {},
 };
 
 let enabled = false;
@@ -66,6 +81,11 @@ export async function loadOrgData(): Promise<void> {
     bankTransactions,
     inventory,
     balanceItems,
+    risks,
+    strategyDecisions,
+    approvals,
+    uploads,
+    auditLog,
   ] = await Promise.all([
     api.listRecords("groups"),
     api.listRecords("entities"),
@@ -75,6 +95,11 @@ export async function loadOrgData(): Promise<void> {
     api.listRecords("bankTransactions"),
     api.listRecords("inventory"),
     api.listRecords("balanceItems"),
+    api.listRecords("risks"),
+    api.listRecords("strategyDecisions"),
+    api.listRecords("approvals"),
+    api.listRecords("uploads"),
+    api.listRecords("auditLog"),
   ]);
 
   useAppStore.getState().hydrate({
@@ -86,6 +111,11 @@ export async function loadOrgData(): Promise<void> {
     bankTransactions,
     inventory,
     balanceItems,
+    risks,
+    strategyDecisions,
+    approvals,
+    uploads,
+    auditLog,
   });
 
   for (const kind of KINDS) snapshots[kind] = snapshotOf(kind, rows(kind));
