@@ -362,8 +362,8 @@ export default function Einstellungen() {
               <div className="space-y-2">
                 <Label>{t("set_accent_color")}</Label>
                 <div className="flex gap-2">
-                  <div className="h-9 w-9 rounded-lg ring-2 ring-offset-2 ring-primary" style={{ background: "hsl(216 65% 11%)" }} title={t("color_navy")} />
-                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(190 80% 42%)" }} title={t("color_teal")} />
+                  <div className="h-9 w-9 rounded-lg ring-2 ring-offset-2 ring-primary" style={{ background: "hsl(214 52% 24%)" }} title={t("color_navy")} />
+                  <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(160 60% 45%)" }} title={t("color_teal")} />
                   <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(217 80% 58%)" }} title={t("color_blue")} />
                   <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(38 92% 52%)" }} title={t("color_orange")} />
                   <div className="h-9 w-9 rounded-lg" style={{ background: "hsl(160 70% 42%)" }} title={t("color_green")} />

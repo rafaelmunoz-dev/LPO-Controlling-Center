@@ -40,7 +40,7 @@ export default function InvitePrompt({
         <div className="mb-6 flex items-center gap-3">
           <img src={`${basePath}/logo.svg`} alt="LPO Controlling Center" className="h-9 w-auto" />
         </div>
-        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Mail className="h-6 w-6" />
         </div>
         <h1 className="text-xl font-semibold text-slate-900">{t("inv_title")}</h1>

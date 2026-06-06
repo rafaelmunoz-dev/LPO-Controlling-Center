@@ -57,7 +57,7 @@ function RootGate() {
   if (!isLoaded) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-slate-50">
-        <Loader2 className="h-7 w-7 animate-spin text-teal-500" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
       </div>
     );
   }

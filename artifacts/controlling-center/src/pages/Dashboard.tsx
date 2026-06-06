@@ -44,7 +44,7 @@ import {
 import { CHART } from "@/lib/chart";
 
 const NAVY = CHART.navy;
-const BRASS = CHART.teal;
+const BRASS = CHART.gold;
 const GREY = CHART.grey;
 const RED = CHART.red;
 const BLUE = CHART.blue;

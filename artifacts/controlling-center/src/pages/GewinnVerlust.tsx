@@ -28,7 +28,7 @@ import {
 import { CHART } from "@/lib/chart";
 
 const NAVY = CHART.navy;
-const BRASS = CHART.teal;
+const BRASS = CHART.gold;
 const RED = CHART.red;
 const EMERALD = CHART.emerald;
 

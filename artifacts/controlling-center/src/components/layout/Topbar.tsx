@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NavBar } from "./NavBar";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import { AdminBadge } from "@/components/shared/AdminBadge";
 import { Input } from "@/components/ui/input";
@@ -82,7 +83,8 @@ export function Topbar() {
   const openTasks = tasks.filter((task) => !task.done);
 
   return (
-    <header className="h-16 glass-panel border-b border-white/40 flex items-center justify-between px-4 sticky top-0 z-50">
+    <header className="app-header">
+      <div className="h-16 flex items-center justify-between px-4 gap-4">
       <div className="flex items-center gap-5">
         <div className="flex items-center gap-3">
           <img src={lpoLogo} alt="LPO International" className="h-7 w-auto" data-testid="img-logo" />
@@ -265,6 +267,10 @@ export function Topbar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+      </div>
+      <div className="px-4 pb-2.5">
+        <NavBar />
       </div>
     </header>
   );

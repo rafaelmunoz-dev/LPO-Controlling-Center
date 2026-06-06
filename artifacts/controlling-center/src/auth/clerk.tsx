@@ -49,7 +49,7 @@ export const clerkAppearance = {
     colorInput: "#ffffff",
     colorInputForeground: "#0a1a33",
     colorNeutral: "#dbe2ea",
-    fontFamily: "'Inter', system-ui, sans-serif",
+    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
     borderRadius: "1rem",
   },
   elements: {
@@ -61,7 +61,7 @@ export const clerkAppearance = {
     headerSubtitle: "text-slate-500",
     socialButtonsBlockButtonText: "text-slate-700 font-medium",
     formFieldLabel: "text-slate-700",
-    footerActionLink: "text-teal-600 hover:text-teal-700 font-medium",
+    footerActionLink: "text-[#1E3A5F] hover:text-[#1E3A5F]/80 font-medium",
     footerActionText: "text-slate-500",
     dividerText: "text-slate-400",
     logoImage: "h-9 w-auto",

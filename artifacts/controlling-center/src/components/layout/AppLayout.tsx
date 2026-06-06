@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { CopilotPanel } from "./CopilotPanel";
 
@@ -8,8 +7,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <Topbar />
       <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6 bg-white dark:bg-slate-900/50">
+        <main className="flex-1 p-6">
           {children}
         </main>
         <CopilotPanel />

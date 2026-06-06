@@ -29,7 +29,7 @@ export default function Landing() {
 
       <main className="mx-auto max-w-6xl px-6">
         <section className="py-16 sm:py-24">
-          <span className="inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700 ring-1 ring-teal-100">
+          <span className="inline-flex items-center rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/10">
             {t("landing_badge")}
           </span>
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">

@@ -167,7 +167,7 @@ export function AuthedApp() {
   if (state.phase === "loading") {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-slate-50 text-slate-500">
-        <Loader2 className="h-7 w-7 animate-spin text-teal-500" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
         <p className="text-sm">{t("loading_workspace")}</p>
       </div>
     );

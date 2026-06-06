@@ -19,7 +19,7 @@ function initials(code?: string, name?: string, max = 3) {
 
 export function EntityAvatar({ entity, logo, label, color, isGroup, size = 28, className = "" }: EntityAvatarProps) {
   const img = logo ?? entity?.logo ?? null;
-  const bg = color ?? entity?.color ?? "hsl(216 65% 11%)";
+  const bg = color ?? entity?.color ?? "hsl(214 52% 24%)";
   const maxChars = size >= 32 ? 3 : size >= 26 ? 2 : 1;
   const text = label ?? initials(entity?.code, entity?.name, maxChars);
   const dim = { width: size, height: size };

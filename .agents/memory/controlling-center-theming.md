@@ -5,7 +5,7 @@ description: How the controlling-center app's accent color is wired, and how to 
 
 # Controlling Center theming
 
-The app (`artifacts/controlling-center`) is themed through CSS variables in `src/index.css`. The legacy accent was called "brass" (gold). The brand accent is now **teal** but the code still uses the name `brass` everywhere.
+The app (`artifacts/controlling-center`) is themed through CSS variables in `src/index.css`. The design system is **Navy / White / Gold** (Plus Jakarta Sans font): navy primary (`--foreground` ~`214 52% 24%`), white bg, gold accent used sparingly. The accent token is still named `brass` everywhere in the code, and its value is now **gold** `hsl(43 65% 56%)` (it briefly was teal in an earlier iteration — ignore that). `--accent` mirrors `--brass`.
 
 **Key wiring:** a single `--brass` HSL var in `:root`/`.dark` plus `--color-brass: hsl(var(--brass))` in the `@theme inline` block drives ALL accent usage — both the custom classes (`.brass-gradient`, `.brass-ring`, `.nav-item-active`) and the Tailwind-generated utilities (`text-brass`, `bg-brass/10`, `ring-brass/30`, `decoration-brass/70`). To re-tint the whole accent, change `--brass` only; do NOT reintroduce a custom `.text-brass` class (it conflicts with the generated utility).
 

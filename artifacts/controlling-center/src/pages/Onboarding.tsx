@@ -114,7 +114,7 @@ export default function Onboarding({ onActivated }: { onActivated: OnActivated }
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
               key={i}
-              className={`h-1.5 flex-1 rounded-full ${i < step ? "bg-teal-500" : "bg-slate-200"}`}
+              className={`h-1.5 flex-1 rounded-full ${i < step ? "bg-primary" : "bg-slate-200"}`}
             />
           ))}
         </div>
@@ -122,7 +122,7 @@ export default function Onboarding({ onActivated }: { onActivated: OnActivated }
           {t("onb_progress", { current: step, total: TOTAL_STEPS })}
         </p>
 
-        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           {stepIcon}
         </div>
 
@@ -142,7 +142,7 @@ export default function Onboarding({ onActivated }: { onActivated: OnActivated }
                 data-testid="input-org-name"
               />
             </div>
-            <div className="mt-4 flex items-center gap-2 rounded-lg bg-teal-50/60 p-3 text-xs text-teal-700">
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-primary/5 p-3 text-xs text-primary">
               <ShieldCheck className="h-4 w-4 shrink-0" />
               {t("onb_admin_note")}
             </div>

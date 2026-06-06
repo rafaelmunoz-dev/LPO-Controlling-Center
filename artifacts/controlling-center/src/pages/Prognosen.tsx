@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { CHART } from "@/lib/chart";
 
 const NAVY = CHART.navy;
-const BRASS = CHART.teal;
+const BRASS = CHART.gold;
 const RED = CHART.red;
 
 export default function Prognosen() {
