@@ -1,0 +1,332 @@
+Bitte führe einen vollständigen Language & Translation Readiness Audit für das bestehende LPO Controlling Center durch.
+
+Ziel:
+Wir müssen prüfen, ob der Sprachschalter DE / EN / ES wirklich vollständig funktioniert und ob die App bei Sprachwechsel ganzheitlich übersetzt wird.
+
+WICHTIG:
+Bitte zuerst keinen Code ändern.
+Erstelle zuerst nur einen ehrlichen IST-Stand-Report.
+
+Prüfe bitte sehr kritisch:
+
+1. Sprachschalter allgemein
+- Funktioniert der Sprachschalter technisch?
+- Kann man zwischen Deutsch, Englisch und Spanisch wechseln?
+- Bleibt die Sprache nach Seitenwechsel erhalten?
+- Bleibt die Sprache nach Reload erhalten?
+- Wird die Sprache global angewendet oder nur lokal auf einzelne Komponenten?
+- Gibt es Flackern oder Mischsprache beim Wechsel?
+
+2. Vollständigkeit der Übersetzung
+Prüfe, ob wirklich ALLES übersetzt wird, nicht nur Navigation.
+
+Bitte prüfen:
+- Hauptnavigation
+- Topbar
+- Buttons
+- Dropdowns
+- Tabs
+- Tabellenüberschriften
+- Tabelleninhalte
+- Status-Badges
+- KPI-Karten
+- Diagrammtitel
+- Diagramm-Legenden
+- Tooltips
+- Infotexte
+- Erklärtexte
+- leere Zustände
+- Fehlermeldungen
+- Toast-Nachrichten
+- Modale
+- Upload-Dialoge
+- Formularfelder
+- Platzhaltertexte
+- Suchfelder
+- Filter
+- Report-Vorlagen
+- AI-Copilot-Fragen
+- AI-Copilot-Antworten
+- Risiko- und Pre-Mortem-Inhalte
+- Strategie-Bewertungen
+- Freigabeprozesse
+- Microsoft-Integrationstexte
+- Einstellungen
+- Benutzerprofile
+- Rollenbezeichnungen
+- Dokumenttypen
+- Exporttexte
+
+3. Inhalte, nicht nur UI
+Bitte besonders prüfen, ob auch echte Inhalte übersetzt werden.
+
+Nicht ausreichend:
+- Menü wird übersetzt
+- Buttons werden übersetzt
+
+Erforderlich:
+- ganze Dashboard-Inhalte
+- KPI-Beschreibungen
+- Fachbegriff-Erklärungen
+- Risiko-Beschreibungen
+- Pre-Mortem-Fragen
+- Strategie-Texte
+- Report-Zusammenfassungen
+- AI-Insight-Cards
+- Upload-Historien
+- Freigabe-Kommentare
+- Mock-Daten mit Textinhalten
+- Statusmeldungen
+- Beispiel-Fragen
+- Hilfetexte
+
+4. Harte Texte im Code
+Suche nach hardcoded Texten in:
+- Komponenten
+- Pages
+- Mock-Daten
+- Tabellen
+- Formularen
+- Modalen
+- Toasts
+- AI-Copilot
+- Reports
+- Settings
+- Integrationen
+
+Bitte identifiziere alle deutschen, englischen oder spanischen Texte, die nicht über das i18n-System laufen.
+
+Erstelle eine Tabelle:
+
+Datei | Komponente | Hardcoded Text | Sprache | Sollte übersetzt werden? | Priorität
+
+5. i18n-Struktur
+Prüfe:
+- Gibt es eine saubere i18n-Struktur?
+- Gibt es Übersetzungsdateien für DE, EN und ES?
+- Sind die Keys konsistent?
+- Gibt es fehlende Keys?
+- Gibt es ungenutzte Keys?
+- Gibt es Fallbacks?
+- Gibt es Fehler, wenn ein Key fehlt?
+- Sind alle Sprachen gleich vollständig?
+- Gibt es verschachtelte Keys für Module?
+
+Gewünschte Struktur:
+- common
+- navigation
+- dashboard
+- finance
+- entities
+- purchasing
+- inventory
+- employees
+- approvals
+- forecasts
+- risks
+- premortem
+- strategy
+- reports
+- settings
+- integrations
+- aiCopilot
+- uploads
+- validation
+- tooltips
+- statuses
+
+6. Fachbegriffe
+Prüfe, ob Finanz- und Controlling-Begriffe sauber und verständlich übersetzt sind.
+
+Beispiele:
+Deutsch:
+- Umsatz
+- Kosten
+- EBITDA
+- EBITDA-Marge
+- Nettoergebnis
+- Cashflow
+- Liquidität
+- Cash Runway
+- Budget vs. Ist
+- Konsolidierung
+- Intercompany
+- Pre-Mortem
+
+Englisch:
+- Revenue
+- Costs
+- EBITDA
+- EBITDA Margin
+- Net Profit
+- Cash Flow
+- Liquidity
+- Cash Runway
+- Budget vs. Actual
+- Consolidation
+- Intercompany
+- Pre-Mortem
+
+Spanisch:
+- Ingresos
+- Costes
+- EBITDA
+- Margen EBITDA
+- Beneficio neto
+- Flujo de caja
+- Liquidez
+- Autonomía de caja
+- Presupuesto vs. Real
+- Consolidación
+- Intercompany / Operaciones internas
+- Pre-Mortem / Análisis previo de fracaso
+
+Bitte prüfen:
+- Sind die Begriffe fachlich korrekt?
+- Sind sie für Nicht-Experten einfach erklärt?
+- Gibt es Tooltips in allen drei Sprachen?
+- Sind die Erklärungen nicht zu kompliziert?
+
+7. Zahlen, Datum, Währung und Formate
+Prüfe auch die Lokalisierung von Formaten:
+
+Deutsch:
+- 128,5 Mio. €
+- 27. Mai 2024
+- KW 21
+- 14,6 %
+
+Englisch:
+- €128.5M
+- May 27, 2024
+- Week 21
+- 14.6%
+
+Spanisch:
+- 128,5 M €
+- 27 de mayo de 2024
+- Semana 21
+- 14,6 %
+
+Bitte prüfen:
+- Werden Zahlen korrekt formatiert?
+- Werden Währungen korrekt angezeigt?
+- Werden Datumsformate korrekt angezeigt?
+- Werden Prozentwerte korrekt angezeigt?
+- Werden Wochen/Monate übersetzt?
+- Werden Diagrammachsen lokalisiert?
+
+8. Formulare & Validierung
+Prüfe:
+- Formularlabels übersetzt?
+- Placeholder übersetzt?
+- Pflichtfeldhinweise übersetzt?
+- Validierungsfehler übersetzt?
+- Erfolgsmeldungen übersetzt?
+- Abbruch-/Speichern-Buttons übersetzt?
+- Upload-Fehler übersetzt?
+
+9. Reports & Export
+Prüfe:
+- Werden Reporttitel übersetzt?
+- Werden Reportabschnitte übersetzt?
+- Werden AI-Zusammenfassungen übersetzt oder bleiben sie in einer Sprache?
+- Werden exportierte PDFs/Excel/CSV in der gewählten Sprache erstellt?
+- Sind Spaltennamen im Export übersetzt?
+- Sind Statuswerte im Export übersetzt?
+
+10. AI Copilot
+Prüfe:
+- Versteht der Copilot die aktuell gewählte Sprache?
+- Antwortet er in der gewählten Sprache?
+- Sind vorgeschlagene Fragen übersetzt?
+- Sind AI Insight Cards übersetzt?
+- Werden Fachbegriffe in der jeweiligen Sprache erklärt?
+- Gibt es noch simulierte Antworten nur auf Deutsch?
+- Gibt es Mischsprache?
+
+11. Benutzerprofile & Rollen
+Prüfe:
+- Rollen werden übersetzt?
+- Rechtebeschreibungen werden übersetzt?
+- Profiltexte werden übersetzt?
+- Systemmeldungen zu Rollen und Rechten werden übersetzt?
+
+12. Einstellungen
+Prüfe den gesamten Bereich Einstellungen:
+- Allgemein
+- Benutzer & Rollen
+- Sprache
+- Entitäten
+- Microsoft 365
+- Externe Apps
+- Datenimport
+- Sicherheit
+- Design
+- AI Copilot
+
+Wird wirklich alles übersetzt?
+Auch Verbindungstexte, Statusmeldungen, Beschreibungen und Hilfetexte?
+
+13. Bewertung je Sprache
+Erstelle am Ende eine Bewertung:
+
+Deutsch:
+- Vollständigkeit %
+- Qualität %
+- Fachliche Korrektheit %
+- UX-Reife %
+
+Englisch:
+- Vollständigkeit %
+- Qualität %
+- Fachliche Korrektheit %
+- UX-Reife %
+
+Spanisch:
+- Vollständigkeit %
+- Qualität %
+- Fachliche Korrektheit %
+- UX-Reife %
+
+14. Go-Live-Einschätzung
+Bitte klar bewerten:
+
+- Sprache vollständig produktionsreif: Ja/Nein
+- Deutsch produktionsreif: Ja/Nein
+- Englisch produktionsreif: Ja/Nein
+- Spanisch produktionsreif: Ja/Nein
+- Größtes Sprachrisiko
+- Kritischste fehlende Übersetzungen
+- Sind gemischte Sprachen vorhanden?
+- Ist die App für internationale Nutzung am Montag geeignet?
+
+15. Prioritätenliste
+Erstelle eine klare To-do-Liste:
+
+A. Muss sofort behoben werden
+B. Sollte vor Montag behoben werden
+C. Kann nach Go-Live verbessert werden
+
+16. Danach:
+Bitte erst nach dem Audit konkrete Fixes vorschlagen.
+Noch keinen Code ändern, bis ich die Freigabe gebe.
+
+Ausgabeformat:
+
+“Language & Translation Readiness Audit – LPO Controlling Center”
+
+Dann:
+
+1. Executive Summary
+2. Kritische Sprachprobleme
+3. Vollständigkeitsprüfung je Bereich
+4. Hardcoded Text Audit
+5. Fehlende i18n Keys
+6. Format- und Lokalisierungsprüfung
+7. AI Copilot Sprachprüfung
+8. Reports & Export Sprachprüfung
+9. Bewertung DE / EN / ES
+10. Go-Live Empfehlung
+11. Priorisierte To-do-Liste
+12. Empfohlener nächster Replit-Prompt zur Behebung

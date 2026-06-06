@@ -1,0 +1,64 @@
+📋 Copy-Paste-Prompt (zusammen mit Screenshot verwenden)
+Übernimm das Designkonzept aus dem beigefügten Screenshot 1:1 und wende es 
+verbindlich auf die gesamte App an. Dieses Design ist NICHT verhandelbar — halte 
+dich exakt an die folgenden Spezifikationen. Erfinde keine eigenen Farben, 
+Schriften oder Formen.
+=== SCHRIFTART ===
+- Eine einzige Schrift für alles: "Plus Jakarta Sans" (Google Fonts)
+- Gewichte: 400, 500, 600, 700, 800
+- Einbinden via: 
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+- Überschriften: bold (700) bis extrabold (800), enges Tracking (tracking-tight)
+- Fließtext: 400/500, Labels in UPPERCASE mit weitem Tracking (tracking-wider), 
+  klein (text-xs) und in gedämpftem Grau
+=== FARBPALETTE (exakt, HSL) ===
+- Hintergrund: reines Weiß  → #FFFFFF (hsl 0 0% 100%)
+- Primärfarbe / Text: Marineblau "Navy" → #1E3A5F (hsl 214 52% 24%)
+- Gold-Akzent: #D4A94A (hsl 43 65% 56%) — sparsam für Highlights, Aktiv-Zustände, 
+  Verläufe und Häkchen
+- Gedämpfter Text: hsl 214 20% 50% (graublau)
+- Rahmen / Trennlinien: sehr hell, hsl 214 20% 90%
+- Muted-Flächen (Hover, Chips): hsl 214 20% 96%
+- Fehler / Löschen: Rot #EF4444 (hsl 0 84% 60%)
+- Chart-Palette: Navy (214 52% 24%), Gold (43 65% 56%), Teal (160 60% 45%), 
+  Lila (280 65% 60%), Pink (340 75% 55%)
+- WICHTIG: Heller Modus als Standard, weißer Hintergrund, Navy als dominante Farbe, 
+  Gold nur als Akzent (niemals flächig).
+=== FORMEN & RADIEN ===
+- Basis-Radius: 0.75rem (12px)
+- Karten / Container: stark abgerundet — rounded-3xl (≈28px). Das ist das 
+  Markenzeichen: großzügig runde Ecken überall.
+- Buttons & Inputs: rounded-2xl (≈16px) bis rounded-full (Pills)
+- Badges / Status-Chips: rounded-full (vollständig rund, Pillen-Form)
+- Avatare: kreisrund
+=== SCHATTEN (weich, navy-getönt) ===
+- Schatten sind immer in Navy eingefärbt, niemals neutrales Schwarz:
+  Beispiel: 0 1px 3px rgba(30,58,95,0.04), 0 8px 32px rgba(30,58,95,0.06)
+- Sehr weich, großflächig, geringe Deckkraft → schwebender, premium-Eindruck
+- Karten haben dezente Schatten + 1px helle Rahmen kombiniert
+=== LAYOUT-PRINZIPIEN ===
+- KEINE klassische Sidebar. Stattdessen: horizontale Navigation oben als 
+  Pillen-Tabs (pill nav), zentriert/links im Header.
+- Header: "frosted glass" — halbtransparent weiß mit backdrop-blur (Milchglas-Effekt), 
+  klebt oben (sticky).
+- Großzügige Weißräume, luftige Abstände (viel padding, p-6 bis p-8).
+- Inhalte in Karten mit weißem Hintergrund, runden Ecken, weichem Schatten.
+- Aktive Nav-Pille: Navy-Hintergrund mit weißer Schrift ODER zarte Navy-Tönung 
+  (bg-primary/5) mit Navy-Text.
+=== INTERAKTIONS-DETAILS ===
+- Hover-Zustände: zarte Hintergrund-Tönung (bg-muted/40), sanfte Übergänge 
+  (transition-colors / transition-all).
+- Aktive Auswahl: Gold-Häkchen (Check-Icon) oder Navy-Punkt.
+- Icons: durchgehend "lucide-react" (dünne, moderne Linien-Icons), 
+  Größe 16-20px, in Navy oder Muted-Grau.
+- Optional dezente Animationen mit framer-motion (sanftes Einblenden/Slide).
+=== GESAMTEINDRUCK / VIBE ===
+Premium, ruhig, vertrauenswürdig, "Enterprise-SaaS für Profis". 
+Viel Weiß, Navy als seriöses Fundament, Gold als edler Akzent. 
+Runde, weiche Formen statt harter Kanten. Nichts grell, nichts verspielt — 
+elegant und aufgeräumt.
+=== VERBINDLICHKEIT ===
+Halte dich strikt an diese Tokens. Wenn du eine neue Komponente baust, leite ihr 
+Aussehen aus genau diesen Werten ab (Navy/Weiß/Gold, rounded-3xl Karten, 
+navy-getönte Schatten, Plus Jakarta Sans, Pill-Nav, frosted Header). 
+Weiche nur ab, wenn ich es ausdrücklich verlange.

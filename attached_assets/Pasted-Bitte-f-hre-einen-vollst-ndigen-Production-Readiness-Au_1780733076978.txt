@@ -1,0 +1,347 @@
+Bitte führe einen vollständigen Production-Readiness-Audit für das bestehende LPO Controlling Center durch.
+
+Ziel:
+Wir wollen heute entscheiden, ob die App wirklich bereit ist, am Montag im Unternehmen produktiv eingesetzt zu werden, um die MiGu Group und ihre Entitäten IMP, C&A, MKT, CPE und COSM zu kontrollieren, Finanzdaten auszuwerten, Strategien zu bewerten, Risiken zu erkennen, Inventar zu verwalten, Kaufanfragen zu dokumentieren und Reports zu erstellen.
+
+WICHTIG:
+Bitte sei ehrlich und kritisch.
+Nicht beschönigen.
+Nicht nur sagen, dass alles gut aussieht.
+Prüfe die App wie ein externer CTO, Controller, Produktmanager und QA-Tester.
+
+Bitte ändere zuerst keinen Code.
+Erstelle zuerst einen IST-Stand-Report.
+
+Prüfe folgende Bereiche:
+
+1. Allgemeine Einsatzbereitschaft
+- Läuft die App stabil?
+- Gibt es Build-Fehler?
+- Gibt es TypeScript-Fehler?
+- Gibt es Console Errors?
+- Gibt es kaputte Seiten?
+- Gibt es kaputte Buttons?
+- Gibt es tote Links?
+- Gibt es leere Bereiche?
+- Gibt es unfertige Mockup-Komponenten?
+- Gibt es Platzhaltertexte wie lorem ipsum, TODO, coming soon, placeholder, demo only?
+
+2. Publishing Readiness
+- Kann die App aktuell deployed werden?
+- Funktioniert der Build?
+- Funktioniert Routing nach Deployment?
+- Gibt es Environment Variables, die fehlen?
+- Gibt es API Keys, die fehlen?
+- Sind sensible Daten hart im Code gespeichert?
+- Gibt es Fehler bei Reload auf Unterseiten?
+- Funktioniert Responsive Design auf Desktop, Tablet und Mobile?
+- Funktioniert Export/Report-Erstellung mindestens als Mock oder echter Export?
+
+3. Datenstatus
+Prüfe genau:
+- Welche Daten sind echte verwendbare Daten?
+- Welche Daten sind Mock-Daten?
+- Welche Daten sind Platzhalter?
+- Welche Daten fehlen vollständig?
+- Wo steht nur Demo-Logik?
+- Wo werden Uploads nur simuliert?
+- Wo werden Microsoft-Integrationen nur simuliert?
+- Wo gibt es keine persistente Speicherung?
+- Welche Daten gehen nach Reload verloren?
+
+Bitte erstelle eine klare Tabelle:
+
+Bereich | Aktueller Status | Echte Funktion? | Mock/Platzhalter? | Risiko | Was fehlt?
+
+4. Fachliche Vollständigkeit Controlling
+Prüfe, ob folgende Funktionen wirklich nutzbar sind:
+
+- MiGu Group Gesamtansicht
+- Entitätsansicht IMP
+- Entitätsansicht C&A
+- Entitätsansicht MKT
+- Entitätsansicht CPE
+- Entitätsansicht COSM
+- Finanzübersicht
+- Umsatz
+- Kosten
+- EBITDA
+- EBITDA-Marge
+- Nettoergebnis
+- Cashflow
+- Liquidität
+- Cash Runway
+- Budget vs. Ist
+- Prognosen
+- Entitätenvergleich
+- Risikoübersicht
+- Reports
+
+Prüfe:
+- Ändern sich Daten wirklich je Entität?
+- Sind Berechnungen logisch?
+- Sind Begriffe erklärt?
+- Sind Zahlen konsistent?
+- Werden falsche oder unrealistische Zahlen angezeigt?
+- Gibt es Rundungsfehler?
+- Sind Währungen einheitlich?
+- Sind Zeitraumfilter funktionsfähig?
+
+5. Upload-Funktionen
+Prüfe, ob Uploads wirklich fachlich sinnvoll eingebaut sind:
+
+Finanzen:
+- Monatsbericht hochladen
+- Rechnungsliste hochladen
+- Bankübersicht hochladen
+- Budgetdatei hochladen
+
+Einkauf:
+- Einkaufsliste hochladen
+- Lieferantenliste hochladen
+- Microsoft Forms Antworten importieren
+
+Inventar:
+- Inventurliste hochladen
+- Geräteliste hochladen
+- Etiketten aus Liste erstellen
+
+Mitarbeiter & Geräte:
+- Mitarbeiterliste hochladen
+- Gerätezuweisungen importieren
+
+Prüfe:
+- Öffnet sich ein Upload-Dialog?
+- Werden Dateien angenommen?
+- Werden Dateitypen geprüft?
+- Kann man Entität und Zeitraum zuweisen?
+- Gibt es Upload-Historie?
+- Werden Daten tatsächlich verarbeitet oder nur angezeigt?
+- Gibt es Fehlerhandling?
+- Gibt es Status: Neu, In Prüfung, Verarbeitet, Fehler, Archiviert?
+
+6. Einkauf & Kaufanfragen
+Prüfe:
+- Kann man Kaufanfragen erstellen?
+- Werden sie gespeichert?
+- Kann man Status ändern?
+- Gibt es Freigabeprozess?
+- Sind Lieferanten hinterlegt?
+- Gibt es Kategorien?
+- Können Dateien angehängt werden?
+- Gibt es Microsoft Forms Mock-Import?
+- Kann eine Forms-Antwort in eine Kaufanfrage umgewandelt werden?
+
+7. Inventar & Etiketten
+Prüfe:
+- Gibt es eine Inventarliste?
+- Kann man Inventar hinzufügen?
+- Kann man Inventar bearbeiten?
+- Kann man Geräte Mitarbeitern zuweisen?
+- Gibt es QR-Code oder Barcode?
+- Kann man Etiketten erzeugen?
+- Kann man Etiketten als PDF exportieren?
+- Gibt es Druckvorschau?
+- Gibt es Status je Gegenstand?
+- Gibt es Garantie-/Wartungshinweise?
+- Gibt es Inventarnummern?
+
+8. Mitarbeiter & Geräte
+Prüfe:
+- Gibt es Mitarbeiterprofile?
+- Gibt es generierte Avatar-/Profilbilder?
+- Sind Rollen und Entitäten zugewiesen?
+- Können Geräte zugewiesen werden?
+- Gibt es Übergabeprotokoll?
+- Gibt es Rückgabeprozess?
+- Gibt es offene Rückgaben?
+- Gibt es Gerätehistorie?
+
+9. Freigabeprozesse
+Prüfe:
+- Gibt es Freigaben für Kaufanfragen?
+- Gibt es Freigaben für Rechnungen?
+- Gibt es Freigaben für Budgetüberschreitungen?
+- Gibt es Freigaben für neue Lieferanten?
+- Gibt es Freigaben für Inventar-Ausmusterung?
+- Gibt es Freigaben für größere Investitionen?
+- Gibt es Freigaben für Strategieentscheidungen?
+- Wird dokumentiert:
+  - Wer hat angefragt?
+  - Wer hat geprüft?
+  - Wer hat freigegeben?
+  - Wann?
+  - Warum?
+  - Mit welchen Dokumenten?
+  - Mit welchem Risiko?
+
+10. Risiko & Pre-Mortem
+Prüfe:
+- Kann man Risiken erfassen?
+- Kann man Risiken bewerten?
+- Kann man Pre-Mortem Analysen erstellen?
+- Gibt es Felder für:
+  - Projekt
+  - Entität
+  - Ziel
+  - Annahmen
+  - Was könnte schiefgehen?
+  - wahrscheinlichstes Risiko
+  - gefährlichstes Risiko
+  - Frühwarnsignale
+  - Gegenmaßnahmen
+  - Verantwortliche Person
+  - Review-Datum
+- Sind Risiken mit Strategie, Freigaben oder Entitäten verknüpft?
+
+11. Strategie Bewertung
+Prüfe:
+- Kann man Strategieentscheidungen erfassen?
+- Gibt es erwartete Kennzahlen?
+- Gibt es tatsächliche Kennzahlen?
+- Gibt es Review-Datum?
+- Gibt es Bewertung?
+- Gibt es Learnings?
+- Gibt es Zusammenhang zu Risiken und Pre-Mortem?
+- Kann ein Strategie-Report erstellt werden?
+
+12. Reports & Export
+Prüfe:
+- Monatsbericht
+- Quartalsbericht
+- Jahresbericht
+- Entitätsbericht
+- Einkaufsbericht
+- Inventarbericht
+- Risiko-Bericht
+- Strategie-Bericht
+- Freigabe-Bericht
+
+Prüfe:
+- Kann man Berichte wirklich erstellen?
+- Kann man Entität wählen?
+- Kann man Zeitraum wählen?
+- Kann man Inhalte auswählen?
+- Gibt es AI-Zusammenfassung?
+- Funktioniert PDF Export?
+- Funktioniert Excel Export?
+- Funktioniert CSV Export?
+
+13. AI Copilot
+Prüfe:
+- Ist der AI Copilot nur Deko oder wirklich sinnvoll eingebaut?
+- Gibt es kontextbezogene Hinweise?
+- Gibt es Fragenvorschläge?
+- Kann der Copilot Seitenkontext verstehen?
+- Kann er Fachbegriffe erklären?
+- Kann er Risiken erkennen?
+- Kann er Aufgaben, Reports oder Risiken aus Antworten erstellen?
+- Gibt es klare Grenzen, wenn noch keine echte KI angebunden ist?
+
+Bitte kennzeichne:
+- echte AI-Funktion
+- simulierte AI-Funktion
+- fehlende AI-Funktion
+
+14. Einstellungen & Integrationen
+Prüfe den Bereich Einstellungen mit Tabs:
+
+- Allgemein
+- Benutzer & Rollen
+- Sprache
+- Entitäten
+- Microsoft 365
+- Externe Apps
+- Datenimport
+- Sicherheit
+- Design
+- AI Copilot
+
+Prüfe:
+- Gibt es diese Tabs?
+- Sind sie sinnvoll befüllt?
+- Kann man Einstellungen speichern?
+- Gibt es Mock-Verbindungen?
+- Gibt es Status pro Verbindung?
+- Gibt es klare Hinweise, was noch echte API-Anbindung braucht?
+
+15. Mehrsprachigkeit
+Prüfe:
+- Funktioniert Deutsch?
+- Funktioniert Englisch?
+- Funktioniert Spanisch?
+- Wird die ganze App übersetzt oder nur Teile?
+- Gibt es harte deutsche Texte im Code?
+- Gibt es fehlende Übersetzungen?
+- Bleibt die Sprache nach Reload erhalten?
+
+16. Benutzer, Rollen & Sicherheit
+Prüfe:
+- Gibt es Benutzerprofile?
+- Gibt es Rollen?
+- Gibt es Rechte?
+- Sind Seiten geschützt?
+- Gibt es Login?
+- Gibt es Logout?
+- Gibt es Session?
+- Gibt es Mandanten-/Entitätenrechte?
+- Gibt es sensible Daten?
+- Ist die App aktuell sicher genug für echte Unternehmensdaten?
+
+Bitte ehrlich sagen, ob produktiver Einsatz mit echten Daten aktuell vertretbar ist.
+
+17. UX & Design
+Prüfe:
+- Wirkt die App professionell genug für Montag?
+- Passt sie zu LPO Group?
+- Ist sie High-End genug?
+- Ist sie verständlich für Nicht-Finanzexperten?
+- Ist die Navigation logisch?
+- Sind Uploads richtig integriert?
+- Ist die App zu voll oder übersichtlich?
+- Gibt es graue Flächen, die noch entfernt werden sollten?
+- Ist Liquid Glass hochwertig und nicht verspielt?
+- Sind Tabellen lesbar?
+- Sind Buttons eindeutig?
+- Sind leere Zustände professionell?
+
+18. Prioritätenliste bis Montag
+Erstelle am Ende eine klare Prioritätenliste:
+
+A. Muss heute noch erledigt werden
+B. Sollte vor Montag erledigt werden
+C. Kann nach dem Go-Live erledigt werden
+D. Nicht kritisch
+
+19. Go-Live Entscheidung
+Bitte gib eine klare Bewertung:
+
+- Production Ready: Ja/Nein
+- Demo Ready: Ja/Nein
+- Intern nutzbar mit Mock-Daten: Ja/Nein
+- Nutzbar mit echten Unternehmensdaten: Ja/Nein
+- Größtes Risiko
+- Wichtigste fehlende Funktion
+- Geschätzter Aufwand bis echte Einsatzbereitschaft
+
+20. Danach:
+Wenn du den Audit abgeschlossen hast, schlage konkrete Fixes vor.
+Bitte erst nach dem Bericht Änderungen am Code vornehmen oder auf meine Freigabe warten.
+
+Ausgabeformat:
+Bitte sehr klar, ehrlich und tabellarisch.
+
+Start mit:
+“Production Readiness Audit – LPO Controlling Center”
+
+Dann:
+1. Executive Summary
+2. Kritische Findings
+3. Bereichsprüfung
+4. Mock- und Platzhalterdaten
+5. Fehlende Funktionen
+6. Sicherheits- und Datenrisiken
+7. UX/UI Bewertung
+8. Go-Live Empfehlung
+9. Priorisierte To-do-Liste
+10. Empfohlener nächster Replit-Prompt zur Behebung
