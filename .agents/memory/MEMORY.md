@@ -9,3 +9,4 @@
 - [Controlling Center CRUD gating](controlling-center-crud-gating.md) — capability can() checks must guard BOTH the rendered buttons AND inside save/delete handlers; UI-only gating is a client-side bypass.
 - [Controlling Center scoped permissions](controlling-center-scoped-permissions.md) — Geschäftsführer add/delete employees & companies only within their group (managedEntities); use canScoped/userManagesEntity vs target company, not just can(role).
 - [OpenAI AI server lib build](openai-ai-server-lib-build.md) — referencing lib/integrations-openai-ai-server triggers TS6305 until you tsc -b its declarations; its image/client.ts has pre-existing null errors that block the build.
+- [Clerk managed production](clerk-managed-production.md) — Replit-managed Clerk: never manually swap to live keys; prod is automatic on publish, dev-key warning is expected.
