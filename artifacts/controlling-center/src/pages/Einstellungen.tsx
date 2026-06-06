@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader, statusLabel } from "@/components/shared/page";
 import { UploadPanel } from "@/components/shared/UploadPanel";
+import { SimulatedNotice } from "@/components/shared/SimNotice";
 import { MS_ADAPTERS, groupViewKey, labelForView } from "@/data";
 import { EntitySettings } from "@/components/settings/EntitySettings";
 import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS, SETTINGS_ADMIN_ROLES } from "@/data/governance";
@@ -235,6 +236,7 @@ export default function Einstellungen() {
         {/* MICROSOFT 365 */}
         <TabsContent value="microsoft">
           <div className="space-y-6">
+            <SimulatedNotice text={t("sim_ms_note")} />
             <div className="grid gap-4 sm:grid-cols-3">
               <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{adapters.length}</div><div className="text-sm text-muted-foreground mt-1">{t("set_adapters")}</div></CardContent></Card>
               <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-emerald-600">{connectedAdapters}</div><div className="text-sm text-muted-foreground mt-1">{t("set_connected")}</div></CardContent></Card>
@@ -274,7 +276,8 @@ export default function Einstellungen() {
         </TabsContent>
 
         {/* EXTERNE APPS */}
-        <TabsContent value="apps">
+        <TabsContent value="apps" className="space-y-4">
+          <SimulatedNotice text={t("sim_apps_note")} />
           <Card className="glass-card">
             <CardHeader><CardTitle className="flex items-center gap-2"><AppWindow className="h-4 w-4 text-primary" /> {t("set_external_apps")}</CardTitle><p className="text-sm text-muted-foreground">{t("set_external_apps_desc")}</p></CardHeader>
             <CardContent>
@@ -316,7 +319,8 @@ export default function Einstellungen() {
         </TabsContent>
 
         {/* SICHERHEIT */}
-        <TabsContent value="sicherheit">
+        <TabsContent value="sicherheit" className="space-y-4">
+          <SimulatedNotice text={t("sim_security_note")} />
           <Card className="glass-card max-w-2xl">
             <CardHeader><CardTitle className="flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> {t("settings_security")}</CardTitle></CardHeader>
             <CardContent className="space-y-1">

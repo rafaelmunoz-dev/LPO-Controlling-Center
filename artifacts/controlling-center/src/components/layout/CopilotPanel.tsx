@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
-import { X, Send, Sparkles, ListTodo, FileText, ShieldAlert, Maximize2, Minimize2, History } from "lucide-react";
+import { X, Send, Sparkles, ListTodo, FileText, ShieldAlert, Maximize2, Minimize2, History, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -111,6 +111,13 @@ export function CopilotPanel() {
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCopilotOpen(false)} data-testid="button-close-copilot">
             <X className="h-4 w-4" />
           </Button>
+        </div>
+      </div>
+
+      <div className="px-4 pt-3">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[0.7rem] leading-snug text-amber-700" data-testid="notice-copilot-simulated">
+          <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+          <span>{t("sim_copilot_note")}</span>
         </div>
       </div>
 
