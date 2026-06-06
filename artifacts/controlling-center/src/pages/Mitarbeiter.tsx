@@ -15,7 +15,7 @@ import { PageHeader, statusLabel } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import { scopeByEntity, isGroupView } from "@/data";
-import { can, canScoped, userGroupEntities } from "@/data/governance";
+import { can } from "@/data/governance";
 import type { DeviceAssignment, Employee, EntityCode, EmployeeStatus } from "@/data/types";
 import { Users, CheckCircle2, Laptop, FileSignature, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -41,12 +41,12 @@ export default function Mitarbeiter() {
   const assignments = deviceAssignments.filter((a) => isGroupView(selectedEntity) || empNames.includes(a.employee));
   const devices = scopeByEntity(inventory, selectedEntity).filter((i) => i.status === "verfügbar");
 
-  // Companies the current user may add employees to: Controller → all; Geschäftsführer → their group.
-  const manageableCodes: EntityCode[] = currentUser.role === "Controller" ? entities.filter((e) => !e.archived).map((e) => e.code) : userGroupEntities(currentUser);
+  // Permission levels are org-wide (no per-company scoping): any non-archived company is manageable.
+  const manageableCodes: EntityCode[] = entities.filter((e) => !e.archived).map((e) => e.code);
   const canCreate = can(currentUser.role, "mitarbeiter:create") && manageableCodes.length > 0;
   const canEdit = can(currentUser.role, "mitarbeiter:edit");
   const canDeleteAny = can(currentUser.role, "mitarbeiter:delete") && manageableCodes.length > 0;
-  const canDeleteRow = (e: Employee) => canScoped(currentUser, "mitarbeiter:delete", e.entity);
+  const canDeleteRow = (_e: Employee) => can(currentUser.role, "mitarbeiter:delete");
   const canAssign = can(currentUser.role, "assignment:create");
 
   const [open, setOpen] = useState(false);
@@ -68,7 +68,7 @@ export default function Mitarbeiter() {
   const saveEmp = () => {
     if (empEditId) {
       if (!canEdit) { toast.error(t("no_permission")); return; }
-    } else if (!canScoped(currentUser, "mitarbeiter:create", empForm.entity)) {
+    } else if (!can(currentUser.role, "mitarbeiter:create")) {
       toast.error(t("no_permission")); return;
     }
     if (!empForm.name.trim()) { toast.error(t("name")); return; }
@@ -87,7 +87,7 @@ export default function Mitarbeiter() {
   const confirmEmpDelete = () => {
     if (!empDeleteId) return;
     const e = allEmployees.find((x) => x.id === empDeleteId);
-    if (!e || !canScoped(currentUser, "mitarbeiter:delete", e.entity)) { toast.error(t("no_permission")); return; }
+    if (!e || !can(currentUser.role, "mitarbeiter:delete")) { toast.error(t("no_permission")); return; }
     removeEmployee(empDeleteId);
     logAction(t("common_delete"), e.name);
     toast.success(t("common_delete"));

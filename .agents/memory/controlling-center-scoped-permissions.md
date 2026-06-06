@@ -1,18 +1,30 @@
 ---
-name: Controlling Center entity-scoped permissions
-description: How per-company (group) scoping layers on top of the role/capability system for Geschäftsführer
+name: Controlling Center role model (3-tier, org-wide)
+description: The permission model is 3 org-wide levels (Admin/Mitarbeiter/Betrachter) — NO per-company scoping. Supersedes the old Controller/Geschäftsführer/managedEntities scheme.
 ---
 
-The Controlling Center has two permission layers that must be used together:
-1. Role/capability: `can(role, cap)` from `data/governance.ts` — role-level yes/no.
-2. Entity scope: `userManagesEntity(user, entityCode)` and `canScoped(user, cap, entityCode)`.
+The Controlling Center role model was overhauled away from 4 functional roles
+(Controller/Geschäftsführer/Finanzbuchhalter/Mitarbeiter + per-group
+`managedEntities` scoping) to **3 org-wide permission levels** plus a free-text
+`jobTitle` (cosmetic only, never used for authorization).
 
-**Rule:** a Geschäftsführer (GF) may add/delete employees and companies, but **only inside their own group**. The group is `AppUser.managedEntities?: EntityCode[]`. Controller is always global (returns true regardless of `managedEntities`). Other roles are false. Employee/company create/delete must call `canScoped`/`userManagesEntity` against the **target company**, not just `can(role, cap)`.
+- **Admin** — full rights incl. structural (groups/companies), system settings, audit, delete, approvals.
+- **Mitarbeiter** — operational create/edit on non-structural domains; **never delete**, no structural changes, no system settings.
+- **Betrachter** — read-only.
 
-**Why:** Task #6's four-role model made GF view+approve only; a later task intentionally re-granted GF scoped create/delete for employees & companies. UI-only or role-only gating is a broken-access-control bug — the handler is the real enforcement point (see controlling-center-crud-gating.md).
+**There is no per-company scoping anymore.** Gating is purely role→capability:
+`can(role, cap)` and `isAdmin(role)` from `data/governance.ts`. The old
+`canScoped`, `userManagesEntity`, `userGroupEntities`, `addManagedEntity` and any
+`role === "Controller"`/`"Geschäftsführer"` branches were **removed** — do not
+reintroduce them. Manageable companies = all non-archived entities for anyone
+holding the capability.
+
+**Why:** Product decision (Org/Identity overhaul) replaced functional roles with
+simple permission levels; scoping added complexity users didn't want. The DB
+`managedEntities` columns were kept (unused) to avoid a destructive migration.
 
 **How to apply:**
-- Per-row delete: gate the button AND the handler with `canScoped(user, "<domain>:delete", row.entity)`.
-- Add: limit the entity picker to manageable companies (Controller → all store entities; GF → `userGroupEntities(user)`); re-check `canScoped(user, "<domain>:create", form.entity)` in the save handler.
-- Company create: role-gated by `ENTITY_CREATE_ROLES` (Controller+GF); a GF's new company auto-joins their group via the store's `addManagedEntity(code)`. Company delete: `userManagesEntity`. Company content edit/logo stays Controller-only (`ENTITY_EDIT_ROLES`).
-- Demo GF (Thomas Berger) has `managedEntities: ["IMP","C&A"]` (a subset) so scoping is visibly demonstrable.
+- Gate both the rendered button AND the save/delete handler with `can(role, cap)` (UI-only gating is a client bypass — see controlling-center-crud-gating.md).
+- First user in a new org becomes Admin; role changes go through `PATCH /members/:id/role` with a server-side **last-admin guard** (409, message contains `last_admin`).
+- Server `canWriteDomain` in api-server `lib/auth.ts` must mirror this matrix; `isOrgAdmin` = `Admin` only.
+- Render role labels via `t(\`role_${role.toLowerCase()}\`)` → `role_admin`/`role_mitarbeiter`/`role_betrachter`.

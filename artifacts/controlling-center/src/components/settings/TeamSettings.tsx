@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Copy, Loader2, Mail, Send, Trash2, UserCheck, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,17 +18,15 @@ import {
 import { toast } from "sonner";
 import { useAppStore } from "@/hooks/use-app-context";
 import { basePath } from "@/auth/clerk";
+import { AdminBadge } from "@/components/shared/AdminBadge";
+import { isAdmin } from "@/data/governance";
 import * as api from "@/lib/api";
 
-const ROLES: api.MembershipRole[] = [
-  "Controller",
-  "Geschäftsführer",
-  "Finanzbuchhalter",
-  "Mitarbeiter",
-];
-// Mirror the server: team management / invitations are Controller-only
-// (isOrgAdmin in api-server, SETTINGS_ADMIN_ROLES in governance).
-const ADMIN_ROLES: api.MembershipRole[] = ["Controller"];
+const ROLES: api.MembershipRole[] = ["Admin", "Mitarbeiter", "Betrachter"];
+
+function roleLabelKey(role: api.MembershipRole): string {
+  return `role_${role.toLowerCase()}`;
+}
 
 function inviteLink(token: string): string {
   return `${window.location.origin}${basePath}/sign-up?invite=${token}`;
@@ -46,7 +44,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
 export function TeamSettings() {
   const { t } = useTranslation();
   const currentUser = useAppStore((s) => s.currentUser);
-  const isAdmin = ADMIN_ROLES.includes(currentUser.role as api.MembershipRole);
+  const admin = isAdmin(currentUser.role);
 
   const [members, setMembers] = useState<api.Membership[]>([]);
   const [invitations, setInvitations] = useState<api.Invitation[]>([]);
@@ -55,13 +53,14 @@ export function TeamSettings() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<api.MembershipRole>("Mitarbeiter");
   const [sending, setSending] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const [m, inv] = await Promise.all([
         api.listMembers(),
-        isAdmin ? api.listInvitations() : Promise.resolve<api.Invitation[]>([]),
+        admin ? api.listInvitations() : Promise.resolve<api.Invitation[]>([]),
       ]);
       setMembers(m);
       setInvitations(inv);
@@ -70,7 +69,7 @@ export function TeamSettings() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [admin]);
 
   useEffect(() => {
     refresh();
@@ -111,6 +110,23 @@ export function TeamSettings() {
     }
   };
 
+  const changeRole = async (m: api.Membership, next: api.MembershipRole) => {
+    if (next === m.role || updatingRole) return;
+    setUpdatingRole(m.id);
+    try {
+      const updated = await api.updateMemberRole(m.id, next);
+      setMembers((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      toast.success(t("team_role_updated"));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("last_admin")) toast.error(t("team_last_admin"));
+      else toast.error(t("team_role_update_error"));
+      console.error("[team] updateMemberRole failed", err);
+    } finally {
+      setUpdatingRole(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card className="glass-card">
@@ -132,6 +148,7 @@ export function TeamSettings() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("set_users")}</TableHead>
+                  <TableHead>{t("team_job_title")}</TableHead>
                   <TableHead>{t("set_role")}</TableHead>
                   <TableHead className="text-right" />
                 </TableRow>
@@ -143,14 +160,38 @@ export function TeamSettings() {
                     <TableRow key={m.clerkUserId} data-testid={`row-member-${m.clerkUserId}`} className={isYou ? "bg-primary/5" : ""}>
                       <TableCell>
                         <div className="flex items-center gap-2.5">
-                          <Avatar className="h-8 w-8"><AvatarFallback>{(m.name || m.email).charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={m.avatar || undefined} alt={m.name || m.email} />
+                            <AvatarFallback>{(m.name || m.email).charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
                           <div>
-                            <div className="font-medium">{m.name || m.email}</div>
+                            <div className="font-medium flex items-center gap-1.5">
+                              {m.name || m.email}
+                              {m.role === "Admin" && <AdminBadge />}
+                            </div>
                             <div className="text-xs text-muted-foreground">{m.email}</div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell><Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{m.role}</Badge></TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{m.jobTitle || "—"}</TableCell>
+                      <TableCell>
+                        {admin ? (
+                          <Select
+                            value={m.role}
+                            onValueChange={(v) => changeRole(m, v as api.MembershipRole)}
+                            disabled={updatingRole === m.id}
+                          >
+                            <SelectTrigger className="h-8 w-[150px]" data-testid={`select-role-${m.clerkUserId}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ROLES.map((r) => <SelectItem key={r} value={r}>{t(roleLabelKey(r))}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{t(roleLabelKey(m.role))}</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         {isYou && <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><UserCheck className="h-4 w-4" /> {t("team_you")}</span>}
                       </TableCell>
@@ -163,7 +204,7 @@ export function TeamSettings() {
         </CardContent>
       </Card>
 
-      {isAdmin && (
+      {admin && (
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -189,7 +230,7 @@ export function TeamSettings() {
                 <Select value={role} onValueChange={(v) => setRole(v as api.MembershipRole)}>
                   <SelectTrigger data-testid="select-invite-role"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{t(roleLabelKey(r))}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -212,7 +253,7 @@ export function TeamSettings() {
                     >
                       <div className="min-w-0">
                         <div className="truncate font-medium">{inv.email}</div>
-                        <div className="text-xs text-muted-foreground">{inv.role}</div>
+                        <div className="text-xs text-muted-foreground">{t(roleLabelKey(inv.role))}</div>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         <Button size="sm" variant="ghost" onClick={() => copyLink(inv.token)} data-testid={`button-copy-${inv.id}`}>

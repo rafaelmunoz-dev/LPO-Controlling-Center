@@ -1,6 +1,4 @@
 import type {
-  AppUser,
-  EntityCode,
   PreMortem,
   ReportDef,
   Risk,
@@ -91,27 +89,34 @@ export const NAV_KEYS = [
 ] as const;
 export type NavKey = (typeof NAV_KEYS)[number];
 
+// Navigation access per permission level. System settings & audit are Admin-only;
+// everything else is readable by every member.
+const NON_ADMIN_NAV: NavKey[] = NAV_KEYS.filter(
+  (k) => k !== "einstellungen" && k !== "audit",
+);
+
 export const ROLE_PERMISSIONS: Record<Role, NavKey[]> = {
-  Controller: [...NAV_KEYS],
-  "Geschäftsführer": [...NAV_KEYS],
-  "Finanzbuchhalter": ["einkauf", "finanzen", "belege", "inventar"],
-  "Mitarbeiter": ["einkauf"],
+  Admin: [...NAV_KEYS],
+  Mitarbeiter: [...NON_ADMIN_NAV],
+  Betrachter: [...NON_ADMIN_NAV],
 };
 
-export const APPROVER_ROLES: Role[] = ["Controller", "Geschäftsführer"];
-export const CREATE_PR_ROLES: Role[] = ["Controller", "Finanzbuchhalter", "Mitarbeiter"];
-// Who may upload documents (e.g. Finanzbuchhalter uploading bank statements).
-export const UPLOAD_ROLES: Role[] = ["Controller", "Finanzbuchhalter"];
-// Who may further-process an upload (mark "Verarbeitet") — Controller only per spec.
-export const UPLOAD_PROCESS_ROLES: Role[] = ["Controller"];
-export const INVENTORY_EDIT_ROLES: Role[] = ["Controller", "Finanzbuchhalter"];
-// Who may change system/integration configuration in Einstellungen (connect/sync adapters & apps).
-export const SETTINGS_ADMIN_ROLES: Role[] = ["Controller"];
-export const ENTITY_EDIT_ROLES: Role[] = ["Controller"];
-export const ENTITY_ADMIN_ROLES: Role[] = ["Controller"];
-// Who may create a new company. Controller adds globally; a Geschäftsführer adds
-// into their own group (the new company is auto-assigned to that group).
-export const ENTITY_CREATE_ROLES: Role[] = ["Controller", "Geschäftsführer"];
+// Approvals (Freigaben) are an Admin governance action.
+export const APPROVER_ROLES: Role[] = ["Admin"];
+// Purchase requests are operational: Admin + Mitarbeiter may create.
+export const CREATE_PR_ROLES: Role[] = ["Admin", "Mitarbeiter"];
+// Who may upload documents.
+export const UPLOAD_ROLES: Role[] = ["Admin", "Mitarbeiter"];
+// Who may further-process an upload (mark "Verarbeitet") — Admin only.
+export const UPLOAD_PROCESS_ROLES: Role[] = ["Admin"];
+// Inventory is operational create/edit; delete is Admin-only (see capabilities).
+export const INVENTORY_EDIT_ROLES: Role[] = ["Admin", "Mitarbeiter"];
+// Who may change system/integration configuration in Einstellungen.
+export const SETTINGS_ADMIN_ROLES: Role[] = ["Admin"];
+// Structural domains (company groups & companies) are Admin-only.
+export const ENTITY_EDIT_ROLES: Role[] = ["Admin"];
+export const ENTITY_ADMIN_ROLES: Role[] = ["Admin"];
+export const ENTITY_CREATE_ROLES: Role[] = ["Admin"];
 
 export type Capability =
   | "risiko:create" | "risiko:edit" | "risiko:delete"
@@ -132,36 +137,24 @@ const ALL_CAPS: Capability[] = [
   "assignment:create", "reports:create", "tasks:create",
 ];
 
+// Mitarbeiter: operational create/edit on domain data, but NEVER delete.
+const MITARBEITER_CAPS: Capability[] = ALL_CAPS.filter(
+  (c) => !c.endsWith(":delete"),
+);
+
 export const ROLE_CAPABILITIES: Record<Role, Capability[]> = {
-  Controller: [...ALL_CAPS],
-  // Geschäftsführer may add/delete employees, but only within their own group
-  // (enforced via canScoped / userManagesEntity).
-  "Geschäftsführer": ["mitarbeiter:create", "mitarbeiter:delete"],
-  "Finanzbuchhalter": ["inventar:create", "inventar:edit", "inventar:delete"],
-  "Mitarbeiter": [],
+  Admin: [...ALL_CAPS],
+  Mitarbeiter: [...MITARBEITER_CAPS],
+  Betrachter: [],
 };
 
 export function can(role: Role, cap: Capability): boolean {
   return ROLE_CAPABILITIES[role]?.includes(cap) ?? false;
 }
 
-// The set of companies a user may manage (add/delete employees & companies within).
-export function userGroupEntities(user: AppUser): EntityCode[] {
-  return user.managedEntities ?? [];
-}
-
-// True when the user may manage the given company: Controller is always global;
-// a Geschäftsführer only for companies inside their own group.
-export function userManagesEntity(user: AppUser, entity: EntityCode): boolean {
-  if (user.role === "Controller") return true;
-  if (user.role === "Geschäftsführer") return userGroupEntities(user).includes(entity);
-  return false;
-}
-
-// Scope-aware capability check: the user's role must hold the capability AND the
-// target company must be within the user's manageable group.
-export function canScoped(user: AppUser, cap: Capability, entity: EntityCode): boolean {
-  return can(user.role, cap) && userManagesEntity(user, entity);
+// Admin is the elevated permission level (full rights incl. structural & system).
+export function isAdmin(role: Role): boolean {
+  return role === "Admin";
 }
 
 export interface RoleDefMeta {
@@ -171,8 +164,7 @@ export interface RoleDefMeta {
 }
 
 export const ROLE_DEFS: RoleDefMeta[] = [
-  { role: "Controller", descriptionKey: "role_controller_desc", permissionKeys: ["role_perm_all_modules", "role_perm_edit_delete", "role_perm_approve"] },
-  { role: "Geschäftsführer", descriptionKey: "role_gf_desc", permissionKeys: ["role_perm_view_all", "role_perm_approve"] },
-  { role: "Finanzbuchhalter", descriptionKey: "role_fibu_desc", permissionKeys: ["role_perm_purchase_requests", "role_perm_bank_statements", "role_perm_inventory"] },
-  { role: "Mitarbeiter", descriptionKey: "role_ma_desc", permissionKeys: ["role_perm_purchase_requests"] },
+  { role: "Admin", descriptionKey: "role_admin_desc", permissionKeys: ["role_perm_all_modules", "role_perm_edit_delete", "role_perm_approve", "role_perm_system_settings"] },
+  { role: "Mitarbeiter", descriptionKey: "role_mitarbeiter_desc", permissionKeys: ["role_perm_create_edit", "role_perm_no_delete"] },
+  { role: "Betrachter", descriptionKey: "role_betrachter_desc", permissionKeys: ["role_perm_read_only"] },
 ];

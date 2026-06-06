@@ -51,11 +51,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
 // ---- Identity / org membership -------------------------------------------
 
-export type MembershipRole =
-  | "Controller"
-  | "Geschäftsführer"
-  | "Finanzbuchhalter"
-  | "Mitarbeiter";
+export type MembershipRole = "Admin" | "Mitarbeiter" | "Betrachter";
 
 export interface MeUser {
   clerkUserId: string;
@@ -70,7 +66,8 @@ export interface Membership {
   email: string;
   name: string;
   role: MembershipRole;
-  managedEntities: string[];
+  jobTitle: string;
+  avatar: string;
   status: string;
 }
 
@@ -100,10 +97,21 @@ export interface ActiveResponse {
 }
 
 export const getMe = () => http<MeResponse>("/me");
-export const createOrg = (name: string) =>
-  http<ActiveResponse>("/org", { method: "POST", body: JSON.stringify({ name }) });
+export const createOrg = (name: string, ownerName?: string) =>
+  http<ActiveResponse>("/org", {
+    method: "POST",
+    body: JSON.stringify({ name, ownerName }),
+  });
 export const acceptInvite = (token: string) =>
   http<ActiveResponse>("/invitations/accept", { method: "POST", body: JSON.stringify({ token }) });
+
+// Update the signed-in user's own profile (name, job title, avatar data URL).
+export const updateProfile = (input: {
+  name?: string;
+  jobTitle?: string;
+  avatar?: string;
+}) =>
+  http<Membership>("/me/profile", { method: "PATCH", body: JSON.stringify(input) });
 
 // ---- Team management ------------------------------------------------------
 
@@ -112,7 +120,6 @@ export interface Invitation {
   organizationId: string;
   email: string;
   role: MembershipRole;
-  managedEntities: string[];
   token: string;
   status: string;
   invitedByName: string | null;
@@ -124,10 +131,14 @@ export const listInvitations = () => http<Invitation[]>("/invitations");
 export const createInvitation = (input: {
   email: string;
   role: MembershipRole;
-  managedEntities?: string[];
 }) => http<Invitation>("/invitations", { method: "POST", body: JSON.stringify(input) });
 export const revokeInvitation = (id: string) =>
   http<void>(`/invitations/${id}`, { method: "DELETE" });
+export const updateMemberRole = (id: string, role: MembershipRole) =>
+  http<Membership>(`/members/${id}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
 
 // ---- Org-scoped domain CRUD ----------------------------------------------
 

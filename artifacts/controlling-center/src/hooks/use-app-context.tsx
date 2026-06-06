@@ -58,13 +58,13 @@ export type Period = (typeof PERIODS)[number];
 const EMPTY_USER: AppUser = {
   id: "",
   name: "",
-  role: "Mitarbeiter",
+  role: "Betrachter",
+  jobTitle: "",
   organisation: "",
   email: "",
   language: "de",
   avatar: "",
   entityAccess: [],
-  managedEntities: [],
   lastActivity: "",
   tasks: [],
 };
@@ -95,7 +95,6 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   currentUser: AppUser;
   setCurrentUser: (user: AppUser) => void;
-  addManagedEntity: (code: EntityCode) => void;
 
   isAuthenticated: boolean;
   dataReady: boolean;
@@ -116,6 +115,7 @@ interface AppState {
   groups: CompanyGroup[];
   addGroup: (name: string) => string;
   renameGroup: (id: string, name: string) => void;
+  setGroupLogo: (id: string, logo: string | null) => void;
   archiveGroup: (id: string) => void;
   restoreGroup: (id: string) => void;
 
@@ -223,12 +223,6 @@ export const useAppStore = create<AppState>()(
   },
   currentUser: EMPTY_USER,
   setCurrentUser: (user) => set({ currentUser: user }),
-  addManagedEntity: (code) =>
-    set((s) => {
-      const current = s.currentUser.managedEntities ?? [];
-      if (current.includes(code)) return {};
-      return { currentUser: { ...s.currentUser, managedEntities: [...current, code] } };
-    }),
 
   isAuthenticated: false,
   dataReady: false,
@@ -315,6 +309,8 @@ export const useAppStore = create<AppState>()(
   },
   renameGroup: (id, name) =>
     set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, name } : g)) })),
+  setGroupLogo: (id, logo) =>
+    set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, logo: logo ?? undefined } : g)) })),
   // Archiving a group cascades to all its firms (soft); selection falls back to
   // the first remaining active view so the app never shows an archived view.
   archiveGroup: (id) =>
@@ -343,7 +339,7 @@ export const useAppStore = create<AppState>()(
   askCopilot: (question) => set({ copilotOpen: true, copilotSeed: question }),
   clearCopilotSeed: () => set({ copilotSeed: null }),
 
-  allowedNav: () => ROLE_PERMISSIONS[get().currentUser.role],
+  allowedNav: () => ROLE_PERMISSIONS[get().currentUser.role] ?? [],
 
   uploads: [],
   addUpload: (u) => set((s) => ({ uploads: [u, ...s.uploads] })),

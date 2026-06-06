@@ -4,18 +4,14 @@ import { eq } from "drizzle-orm";
 import { db, memberships, type Membership } from "@workspace/db";
 import type { DomainKind } from "@workspace/db";
 
-export type Role =
-  | "Controller"
-  | "Geschäftsführer"
-  | "Finanzbuchhalter"
-  | "Mitarbeiter";
+// Permission levels (see src/data/governance.ts on the client):
+//   Admin       — full rights, incl. structural & system settings.
+//   Mitarbeiter — operational create/edit on domain data (no delete, no
+//                 structural groups/entities, no system settings).
+//   Betrachter  — read-only.
+export type Role = "Admin" | "Mitarbeiter" | "Betrachter";
 
-export const VALID_ROLES: Role[] = [
-  "Controller",
-  "Geschäftsführer",
-  "Finanzbuchhalter",
-  "Mitarbeiter",
-];
+export const VALID_ROLES: Role[] = ["Admin", "Mitarbeiter", "Betrachter"];
 
 export interface ReqUser {
   clerkUserId: string;
@@ -101,63 +97,38 @@ export function requireMembership(
   next();
 }
 
-// Team management lives in Einstellungen, which is Controller-only on the client
-// (SETTINGS_ADMIN_ROLES in src/data/governance.ts). The org owner is created as a
-// Controller, so restricting invitations to Controller matches the "owner
-// invites" model and prevents in-tenant privilege escalation (a Geschäftsführer
-// inviting users as Controller).
+// Team management (invites, role changes) and system settings are Admin-only on
+// the client (SETTINGS_ADMIN_ROLES in src/data/governance.ts). The org owner is
+// created as Admin, so restricting these actions to Admin matches the "owner
+// invites" model and prevents in-tenant privilege escalation.
 export function isOrgAdmin(role: string): boolean {
-  return role === "Controller";
+  return role === "Admin";
 }
 
 type WriteAction = "create" | "update" | "delete";
 
+// Structural domains define the org's shape (company groups & companies). They
+// are managed in system settings and are therefore Admin-only.
+const STRUCTURAL_DOMAINS: DomainKind[] = ["groups", "entities"];
+
 // Server-side authorization backstop mirroring src/data/governance.ts. Tenant
 // isolation (org scoping) is enforced separately on every query; this is the
-// role gate. The frontend enforces the fine-grained, entity-scoped rules — here
-// we enforce the coarse per-domain role policy so direct API calls can't bypass
-// it. Each entry lists the roles permitted to write (create/update/delete) the
-// domain; entity edit/delete is narrowed further below.
-const DOMAIN_WRITE_ROLES: Record<DomainKind, Role[]> = {
-  // Org structure & financial structure → Controller only.
-  groups: ["Controller"],
-  suppliers: ["Controller"],
-  balanceItems: ["Controller"],
-  // Companies: Controller (global) or Geschäftsführer (within their group).
-  entities: ["Controller", "Geschäftsführer"],
-  // Employees: Controller, or Geschäftsführer within their group.
-  employees: ["Controller", "Geschäftsführer"],
-  // Purchase requests are the broadly-writable operational domain.
-  purchaseRequests: [
-    "Controller",
-    "Geschäftsführer",
-    "Finanzbuchhalter",
-    "Mitarbeiter",
-  ],
-  // Bank statements & inventory: Controller and Finanzbuchhalter.
-  bankTransactions: ["Controller", "Finanzbuchhalter"],
-  inventory: ["Controller", "Finanzbuchhalter"],
-  // Risk register & strategy decisions → Controller only (risiko:* / strategie:*).
-  risks: ["Controller"],
-  strategyDecisions: ["Controller"],
-  // Approvals are managed by the approver roles (APPROVER_ROLES).
-  approvals: ["Controller", "Geschäftsführer"],
-  // Document uploads: Controller and Finanzbuchhalter (UPLOAD_ROLES).
-  uploads: ["Controller", "Finanzbuchhalter"],
-  // Audit-log entries are appended for actions by any signed-in member.
-  auditLog: ["Controller", "Geschäftsführer", "Finanzbuchhalter", "Mitarbeiter"],
-};
-
+// role gate so direct API calls can't bypass the client policy.
+//   Admin       → write everything.
+//   Betrachter  → write nothing.
+//   Mitarbeiter → create/update operational (non-structural) domains; never
+//                 delete, never touch structural domains.
 export function canWriteDomain(opts: {
   role: string;
   kind: DomainKind;
   action: WriteAction;
 }): boolean {
   const { role, kind, action } = opts;
-  // Existing companies may only be edited/removed by the Controller; a
-  // Geschäftsführer may only create one (scoped to their group on the client).
-  if (kind === "entities" && (action === "update" || action === "delete")) {
-    return role === "Controller";
+  if (role === "Admin") return true;
+  if (role === "Betrachter") return false;
+  if (role === "Mitarbeiter") {
+    if (STRUCTURAL_DOMAINS.includes(kind)) return false;
+    return action === "create" || action === "update";
   }
-  return (DOMAIN_WRITE_ROLES[kind] ?? ["Controller"]).includes(role as Role);
+  return false;
 }

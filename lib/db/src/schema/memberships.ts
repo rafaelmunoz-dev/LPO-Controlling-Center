@@ -19,8 +19,13 @@ export const memberships = pgTable(
     clerkUserId: text("clerk_user_id").notNull(),
     email: text("email").notNull(),
     name: text("name").notNull().default(""),
-    // Controller | Geschäftsführer | Finanzbuchhalter | Mitarbeiter
+    // Admin | Mitarbeiter | Betrachter (permission level)
     role: text("role").notNull(),
+    // Free-text job title (e.g. "Geschäftsführer", "Buchhaltung"). Cosmetic.
+    jobTitle: text("job_title").notNull().default(""),
+    // Profile picture as a data URL (or empty).
+    avatar: text("avatar").notNull().default(""),
+    // Legacy entity-scoping columns; retained for back-compat, no longer used.
     managedEntities: jsonb("managed_entities")
       .$type<string[]>()
       .notNull()

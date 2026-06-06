@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/hooks/use-app-context";
 import { getEntityComparison, DEFAULT_GROUP_ID } from "@/data";
-import { ENTITY_EDIT_ROLES, ENTITY_CREATE_ROLES, userManagesEntity, userGroupEntities } from "@/data/governance";
+import { ENTITY_EDIT_ROLES, ENTITY_CREATE_ROLES } from "@/data/governance";
 import type { CompanyGroup, EntityMeta } from "@/data/types";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
+import { ImageUpload } from "@/components/shared/ImageUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +22,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Building2, MapPin, Users, Pencil, Plus, UploadCloud, ImageOff, Archive, ArchiveRestore, FolderPlus } from "lucide-react";
+import { Building2, MapPin, Users, Pencil, Plus, ImageOff, Archive, ArchiveRestore, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
-
-const MAX_LOGO_BYTES = 1_500_000;
 
 interface EntityForm {
   code: string;
@@ -40,89 +39,26 @@ function metaToForm(e: EntityMeta): EntityForm {
   return { code: e.code, name: e.name, description: e.description, location: e.location, employees: String(e.employees), color: e.color, groupId: e.groupId };
 }
 
-function readImageFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) return reject(new Error("not-image"));
-    if (file.size > MAX_LOGO_BYTES) return reject(new Error("too-large"));
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("read-error"));
-    reader.readAsDataURL(file);
-  });
-}
-
-function LogoDropzone({ code, onUploaded }: { code: string; onUploaded: (dataUrl: string) => void }) {
-  const { t } = useTranslation();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-
-  const handleFile = async (file?: File | null) => {
-    if (!file) return;
-    try {
-      const dataUrl = await readImageFile(file);
-      onUploaded(dataUrl);
-      toast.success(t("ent_logo_uploaded"));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "read-error";
-      if (msg === "not-image") toast.error(t("ent_logo_not_image"));
-      else if (msg === "too-large") toast.error(t("ent_logo_too_large"));
-      else toast.error(t("ent_logo_read_error"));
-    }
-  };
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => inputRef.current?.click()}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click(); } }}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
-      className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors ${dragging ? "border-primary bg-primary/5 text-primary" : "border-slate-300 text-muted-foreground hover:border-primary/50 hover:bg-muted"}`}
-      data-testid={`dropzone-logo-${code}`}
-    >
-      <UploadCloud className="h-4 w-4 shrink-0" />
-      <span>{t("ent_logo_drop_hint")}</span>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
-        data-testid={`input-logo-${code}`}
-      />
-    </div>
-  );
-}
-
 const EMPTY_FORM: EntityForm = { code: "", name: "", description: "", location: "", employees: "0", color: "#0ea5e9", groupId: DEFAULT_GROUP_ID };
 
 export function EntitySettings() {
   const { t } = useTranslation();
   const {
     entities, groups, currentUser, addEntity, updateEntity, archiveEntity, restoreEntity, setEntityLogo,
-    selectedEntity, setEntity, addManagedEntity, addGroup, renameGroup, archiveGroup, restoreGroup,
+    selectedEntity, setEntity, addGroup, renameGroup, setGroupLogo, archiveGroup, restoreGroup,
   } = useAppStore();
   const comparison = getEntityComparison(entities);
 
+  // Company groups and companies are structural — Admin-only across the board.
   const canEdit = ENTITY_EDIT_ROLES.includes(currentUser.role);
   const canCreate = ENTITY_CREATE_ROLES.includes(currentUser.role);
-  // Group lifecycle (create/rename/archive/restore) is Controller-only.
   const canManageGroups = canEdit;
-  const canArchiveEntity = (e: EntityMeta) => userManagesEntity(currentUser, e.code);
+  const canArchiveEntity = (_e: EntityMeta) => canEdit;
 
   const activeGroups = groups.filter((g) => !g.archived);
   const archivedGroups = groups.filter((g) => g.archived);
   // Firms archived individually (their group is still active) — restorable here.
   const archivedFirms = entities.filter((e) => e.archived && activeGroups.some((g) => g.id === e.groupId));
-
-  // The group a Geschäftsführer belongs to (derived from their managed companies).
-  const ownGroupId = (() => {
-    const managed = userGroupEntities(currentUser);
-    const firm = entities.find((e) => managed.includes(e.code));
-    return firm?.groupId ?? activeGroups[0]?.id ?? DEFAULT_GROUP_ID;
-  })();
 
   const [editForm, setEditForm] = useState<EntityForm | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -137,7 +73,7 @@ export function EntitySettings() {
   const openEdit = (e: EntityMeta) => { setEditForm(metaToForm(e)); setEditOpen(true); };
 
   const openCreate = () => {
-    const defGroup = currentUser.role === "Geschäftsführer" ? ownGroupId : (activeGroups[0]?.id ?? DEFAULT_GROUP_ID);
+    const defGroup = activeGroups[0]?.id ?? DEFAULT_GROUP_ID;
     setCreateForm({ ...EMPTY_FORM, groupId: defGroup });
     setCreateOpen(true);
   };
@@ -166,8 +102,6 @@ export function EntitySettings() {
       toast.error(t("ent_code_exists"));
       return;
     }
-    // A Geschäftsführer can only create inside their own group; Controller picks.
-    const groupId = currentUser.role === "Geschäftsführer" ? ownGroupId : createForm.groupId;
     addEntity({
       code,
       name: createForm.name.trim(),
@@ -175,9 +109,8 @@ export function EntitySettings() {
       location: createForm.location.trim(),
       employees: Math.max(0, parseInt(createForm.employees, 10) || 0),
       color: createForm.color,
-      groupId,
+      groupId: createForm.groupId,
     });
-    if (currentUser.role === "Geschäftsführer") addManagedEntity(code);
     setCreateOpen(false);
     setCreateForm(EMPTY_FORM);
     toast.success(t("ent_created"));
@@ -247,7 +180,7 @@ export function EntitySettings() {
 
         {(canEdit || canArchiveEntity(e)) && (
           <div className="mt-3 space-y-2 border-t border-slate-200/70 pt-3">
-            {canEdit && <LogoDropzone code={e.code} onUploaded={(dataUrl) => setEntityLogo(e.code, dataUrl)} />}
+            {canEdit && <ImageUpload testId={`dropzone-logo-${e.code}`} onUploaded={(dataUrl) => setEntityLogo(e.code, dataUrl)} />}
             <div className="flex flex-wrap items-center gap-2">
               {canEdit && (
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openEdit(e)} data-testid={`button-edit-entity-${e.code}`}>
@@ -317,7 +250,7 @@ export function EntitySettings() {
             <div key={g.id} className="space-y-3" data-testid={`group-section-${g.id}`}>
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 pb-2">
                 <div className="flex items-center gap-2">
-                  <EntityAvatar isGroup size={28} />
+                  <EntityAvatar isGroup logo={g.logo} size={28} />
                   <span className="font-semibold">{g.name}</span>
                   <Badge variant="outline" className="font-normal">{firms.length} {t("set_group_entities")}</Badge>
                 </div>
@@ -346,6 +279,16 @@ export function EntitySettings() {
                   </div>
                 )}
               </div>
+              {canManageGroups && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <ImageUpload testId={`dropzone-group-logo-${g.id}`} hint={t("grp_logo_drop_hint")} onUploaded={(dataUrl) => setGroupLogo(g.id, dataUrl)} className="flex-1" />
+                  {g.logo && (
+                    <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground" onClick={() => { setGroupLogo(g.id, null); toast.success(t("ent_logo_removed")); }} data-testid={`button-remove-group-logo-${g.id}`}>
+                      <ImageOff className="h-3.5 w-3.5" /> {t("ent_logo_remove")}
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="grid gap-3 md:grid-cols-2">
                 {firms.length === 0
                   ? <p className="text-sm text-muted-foreground">{t("grp_no_firms")}</p>
@@ -364,7 +307,7 @@ export function EntitySettings() {
             {archivedGroups.map((g) => (
               <div key={g.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/70 bg-muted/50 px-3 py-2" data-testid={`archived-group-${g.id}`}>
                 <div className="flex items-center gap-2">
-                  <EntityAvatar isGroup size={24} />
+                  <EntityAvatar isGroup logo={g.logo} size={24} />
                   <span className="font-medium">{g.name}</span>
                   <Badge variant="outline" className="font-normal">{t("grp_label")}</Badge>
                 </div>
@@ -413,16 +356,12 @@ export function EntitySettings() {
             </div>
             <div className="space-y-1.5">
               <Label>{t("grp_assign")}</Label>
-              {currentUser.role === "Geschäftsführer" ? (
-                <Input value={groups.find((g) => g.id === ownGroupId)?.name ?? ""} disabled data-testid="input-create-group-fixed" />
-              ) : (
-                <Select value={createForm.groupId} onValueChange={(v) => setCreateForm((f) => ({ ...f, groupId: v }))}>
-                  <SelectTrigger data-testid="select-create-group"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {activeGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select value={createForm.groupId} onValueChange={(v) => setCreateForm((f) => ({ ...f, groupId: v }))}>
+                <SelectTrigger data-testid="select-create-group"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {activeGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="create-name">{t("name")}</Label>

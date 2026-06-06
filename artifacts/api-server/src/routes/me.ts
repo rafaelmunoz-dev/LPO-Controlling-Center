@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
 import { and, eq } from "drizzle-orm";
 import { db, organizations, memberships, invitations } from "@workspace/db";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireMembership } from "../lib/auth";
+
+const MAX_AVATAR_LEN = 2_000_000;
 
 const router: IRouter = Router();
 
@@ -57,8 +59,8 @@ router.get("/me", requireAuth, async (req, res) => {
   res.json({ status: "no_org", user });
 });
 
-// Create a brand-new (empty) organization. The creator becomes the owner /
-// Controller. Only allowed when the user has no membership yet.
+// Create a brand-new (empty) organization. The creator becomes the owner and
+// the first Admin. Only allowed when the user has no membership yet.
 router.post("/org", requireAuth, async (req, res) => {
   if (req.ctx!.membership) {
     res.status(409).json({ error: "already_in_org" });
@@ -70,6 +72,7 @@ router.post("/org", requireAuth, async (req, res) => {
     res.status(400).json({ error: "name_required" });
     return;
   }
+  const ownerName = String(req.body?.ownerName ?? "").trim() || user.name;
 
   const [org] = await db
     .insert(organizations)
@@ -82,12 +85,52 @@ router.post("/org", requireAuth, async (req, res) => {
       organizationId: org.id,
       clerkUserId: user.clerkUserId,
       email: user.email,
-      name: user.name,
-      role: "Controller",
+      name: ownerName,
+      role: "Admin",
     })
     .returning();
 
   res.json({ status: "active", user, membership: m, organization: org });
+});
+
+// Update the signed-in user's own profile (display name, job title, avatar).
+// Available to every member regardless of role.
+router.patch("/me/profile", requireAuth, requireMembership, async (req, res) => {
+  const m = req.ctx!.membership!;
+  const patch: { name?: string; jobTitle?: string; avatar?: string } = {};
+
+  if (req.body?.name !== undefined) {
+    const name = String(req.body.name).trim();
+    if (!name) {
+      res.status(400).json({ error: "name_required" });
+      return;
+    }
+    patch.name = name;
+  }
+  if (req.body?.jobTitle !== undefined) {
+    patch.jobTitle = String(req.body.jobTitle).trim();
+  }
+  if (req.body?.avatar !== undefined) {
+    const avatar = String(req.body.avatar);
+    if (avatar.length > MAX_AVATAR_LEN) {
+      res.status(400).json({ error: "avatar_too_large" });
+      return;
+    }
+    patch.avatar = avatar;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    res.json(m);
+    return;
+  }
+
+  const [updated] = await db
+    .update(memberships)
+    .set(patch)
+    .where(eq(memberships.id, m.id))
+    .returning();
+
+  res.json(updated);
 });
 
 // Accept an invitation by token (auto-detected on login or via shareable link).

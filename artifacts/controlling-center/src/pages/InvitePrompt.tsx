@@ -57,7 +57,7 @@ export default function InvitePrompt({
                 <div>
                   <div className="font-medium text-slate-900">{inv.organizationName}</div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                    <Badge variant="outline">{t("inv_role")}: {inv.role}</Badge>
+                    <Badge variant="outline">{t("inv_role")}: {t(`role_${inv.role.toLowerCase()}`)}</Badge>
                     {inv.invitedByName && <span>{t("inv_from")} {inv.invitedByName}</span>}
                   </div>
                 </div>

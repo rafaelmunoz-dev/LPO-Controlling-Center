@@ -4,13 +4,11 @@ import { TeamSettings } from "@/components/settings/TeamSettings";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,16 +19,10 @@ import { EntitySettings } from "@/components/settings/EntitySettings";
 import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS, SETTINGS_ADMIN_ROLES } from "@/data/governance";
 import type { ViewKey, MsAdapter } from "@/data/types";
 import {
-  Settings, Globe, Bell, Palette, User, Shield, CheckCircle2, XCircle, UserCheck,
+  Settings, Bell, Palette, CheckCircle2, XCircle, UserCheck,
   Plug, RefreshCw, Building2, AppWindow, UploadCloud, Lock, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-
-const LANGS: { code: "de" | "en" | "es"; label: string }[] = [
-  { code: "de", label: "Deutsch" },
-  { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-];
 
 const NAV_LABELS: Record<string, string> = {
   dashboard: "dashboard", finanzen: "finanzen", entitaeten: "entitaeten", einkauf: "einkauf", inventar: "inventar",
@@ -67,7 +59,7 @@ const EXTERNAL_APPS = [
 ];
 
 export default function Einstellungen() {
-  const { language, setLanguage, currentUser, selectedEntity, setEntity, entities, groups } = useAppStore();
+  const { currentUser, selectedEntity, setEntity, entities, groups } = useAppStore();
   const canAdminSettings = SETTINGS_ADMIN_ROLES.includes(currentUser.role);
   const entityViews: ViewKey[] = groups
     .filter((g) => !g.archived)
@@ -75,7 +67,7 @@ export default function Einstellungen() {
       groupViewKey(g.id) as ViewKey,
       ...entities.filter((e) => e.groupId === g.id && !e.archived).map((e) => e.code as ViewKey),
     ]);
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState({ approvals: true, risks: true, reports: false, sync: true });
   const [adapters, setAdapters] = useState<AdapterState[]>(
     MS_ADAPTERS.map((a) => ({ ...a, connected: a.status !== "Nicht verbunden", lastSyncTime: a.lastSync }))
@@ -83,13 +75,6 @@ export default function Einstellungen() {
   const [apps, setApps] = useState(EXTERNAL_APPS);
   const [security, setSecurity] = useState({ twoFactor: true, sso: false, auditLog: true, sessionTimeout: [30] });
   const [copilot, setCopilot] = useState({ proactive: true, autoSummary: true, suggestActions: true, tone: "factual" });
-
-  const changeLang = (code: "de" | "en" | "es") => {
-    if (!canAdminSettings) { toast.error(t("no_permission")); return; }
-    setLanguage(code);
-    i18n.changeLanguage(code);
-    toast.success(t("toast_language", { lang: LANGS.find((l) => l.code === code)?.label }));
-  };
 
   const toggleAdapter = (service: string) => {
     if (!canAdminSettings) { toast.error(t("no_permission")); return; }
@@ -129,7 +114,6 @@ export default function Einstellungen() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="allgemein" data-testid="tab-allgemein">{t("settings_general")}</TabsTrigger>
           <TabsTrigger value="benutzer" data-testid="tab-benutzer">{t("settings_users")}</TabsTrigger>
-          <TabsTrigger value="sprache" data-testid="tab-sprache">{t("language")}</TabsTrigger>
           <TabsTrigger value="entitaeten" data-testid="tab-entitaeten">{t("entitaeten")}</TabsTrigger>
           <TabsTrigger value="microsoft" data-testid="tab-microsoft">{t("microsoft_integration")}</TabsTrigger>
           <TabsTrigger value="apps" data-testid="tab-apps">{t("settings_apps")}</TabsTrigger>
@@ -143,24 +127,18 @@ export default function Einstellungen() {
         <TabsContent value="allgemein">
           <div className="grid gap-6 lg:grid-cols-2">
             <Card className="glass-card">
-              <CardHeader><CardTitle className="flex items-center gap-2"><User className="h-4 w-4 text-primary" /> {t("set_profile")}</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> {t("default_entity")}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-14 w-14"><AvatarImage src={currentUser.avatar} /><AvatarFallback>{currentUser.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback></Avatar>
-                  <div>
-                    <div className="font-semibold">{currentUser.name}</div>
-                    <div className="text-sm text-muted-foreground">{currentUser.email}</div>
-                    <Badge variant="outline" className="mt-1 bg-primary/10 text-primary border-primary/20">{currentUser.role}</Badge>
-                  </div>
+                <div className="space-y-1.5">
+                  <Label>{t("default_entity")}</Label>
+                  <Select value={selectedEntity} onValueChange={(v) => { setEntity(v as typeof selectedEntity); toast.success(t("toast_default_entity", { entity: labelForView(v as ViewKey) })); }}>
+                    <SelectTrigger data-testid="select-default-entity"><SelectValue /></SelectTrigger>
+                    <SelectContent>{entityViews.map((v) => <SelectItem key={v} value={v}>{labelForView(v)}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
-                <Separator />
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5"><Label>{t("name")}</Label><Input defaultValue={currentUser.name} data-testid="input-profile-name" /></div>
-                  <div className="space-y-1.5"><Label>{t("set_email")}</Label><Input defaultValue={currentUser.email} data-testid="input-profile-email" /></div>
-                  <div className="space-y-1.5"><Label>{t("set_organisation")}</Label><Input defaultValue={currentUser.organisation} disabled /></div>
-                  <div className="space-y-1.5"><Label>{t("set_role")}</Label><Input defaultValue={currentUser.role} disabled /></div>
+                <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                  {t("set_currency_timezone")}
                 </div>
-                <Button disabled={!canAdminSettings} onClick={() => toast.success(t("set_profile_saved"))} data-testid="button-save-profile">{t("save")}</Button>
               </CardContent>
             </Card>
 
@@ -202,7 +180,7 @@ export default function Einstellungen() {
                   <Card key={r.role} className="glass-card" data-testid={`card-role-${r.role}`}>
                     <CardHeader>
                       <CardTitle className="text-base flex items-center justify-between">
-                        {r.role}
+                        {t(`role_${r.role.toLowerCase()}`)}
                         <Badge variant="outline">{ROLE_PERMISSIONS[r.role].length} {t("set_modules")}</Badge>
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">{t(r.descriptionKey)}</p>
@@ -225,7 +203,7 @@ export default function Einstellungen() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="sticky left-0 bg-card">{t("set_module")}</TableHead>
-                        {ROLE_DEFS.map((r) => <TableHead key={r.role} className="text-center whitespace-nowrap text-xs">{r.role}</TableHead>)}
+                        {ROLE_DEFS.map((r) => <TableHead key={r.role} className="text-center whitespace-nowrap text-xs">{t(`role_${r.role.toLowerCase()}`)}</TableHead>)}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -247,35 +225,6 @@ export default function Einstellungen() {
               </Card>
             </TabsContent>
           </Tabs>
-        </TabsContent>
-
-        {/* SPRACHE */}
-        <TabsContent value="sprache">
-          <Card className="glass-card max-w-2xl">
-            <CardHeader><CardTitle className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /> {t("settings_language")}</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t("set_display_language")}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {LANGS.map((l) => (
-                    <Button key={l.code} variant={language === l.code ? "default" : "outline"} disabled={!canAdminSettings} onClick={() => changeLang(l.code)} data-testid={`button-lang-${l.code}`}>{l.label}</Button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">{t("set_language_hint")}</p>
-              </div>
-              <Separator />
-              <div className="space-y-1.5">
-                <Label>{t("default_entity")}</Label>
-                <Select value={selectedEntity} onValueChange={(v) => { setEntity(v as typeof selectedEntity); toast.success(t("toast_default_entity", { entity: labelForView(v as ViewKey) })); }}>
-                  <SelectTrigger data-testid="select-default-entity"><SelectValue /></SelectTrigger>
-                  <SelectContent>{entityViews.map((v) => <SelectItem key={v} value={v}>{labelForView(v)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
-                {t("set_currency_timezone")}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* ENTITÄTEN */}

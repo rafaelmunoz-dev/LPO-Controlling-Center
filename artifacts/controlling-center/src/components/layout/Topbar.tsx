@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from "react";
 import { useAppStore, PERIODS } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
-import { Bell, Search, Download, FilePlus2, Globe, ChevronDown, CalendarDays, X, LogOut } from "lucide-react";
+import { Bell, Search, Download, FilePlus2, Check, ChevronDown, CalendarDays, X, LogOut, UserCog, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,14 +21,21 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
+import { AdminBadge } from "@/components/shared/AdminBadge";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { useClerk } from "@clerk/react";
 import { basePath } from "@/auth/clerk";
 import { toast } from "sonner";
 import { searchAll, groupViewKey, type SearchResult, type ViewKey } from "@/data";
-import { can } from "@/data/governance";
+import { can, isAdmin } from "@/data/governance";
 import lpoLogo from "@assets/image_1780570561463.png";
+
+const LANGS: { code: "de" | "en" | "es"; label: string; flag: string }[] = [
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+];
 
 const PERIOD_KEY: Record<string, string> = {
   "Mai 2026": "per_may26",
@@ -39,7 +46,7 @@ const PERIOD_KEY: Record<string, string> = {
 };
 
 export function Topbar() {
-  const { selectedEntity, setEntity, period, setPeriod, setLanguage, currentUser, tasks, entities, groups, allowedNav } = useAppStore();
+  const { selectedEntity, setEntity, period, setPeriod, language, setLanguage, currentUser, setCurrentUser, tasks, entities, groups, allowedNav } = useAppStore();
   const activeGroups = groups.filter((g) => !g.archived);
   const firmsOfGroup = (groupId: string) => entities.filter((e) => e.groupId === groupId && !e.archived);
   const canReports = allowedNav().includes("reports") && can(currentUser.role, "reports:create");
@@ -63,6 +70,7 @@ export function Topbar() {
   const changeLanguage = (lang: "de" | "en" | "es") => {
     setLanguage(lang);
     i18n.changeLanguage(lang);
+    setCurrentUser({ ...currentUser, language: lang });
   };
 
   const goTo = (r: SearchResult) => {
@@ -97,7 +105,7 @@ export function Topbar() {
                   data-testid={`entity-option-group-${g.id}`}
                 >
                   <div className="flex items-center gap-2 font-semibold">
-                    <EntityAvatar isGroup size={22} />
+                    <EntityAvatar isGroup logo={g.logo} size={22} />
                     <span>{g.name}</span>
                     <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">{t("group_total")}</span>
                   </div>
@@ -188,19 +196,6 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-language">
-              <Globe className="h-5 w-5 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => changeLanguage("de")}>Deutsch</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => changeLanguage("en")}>English</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => changeLanguage("es")}>Español</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         <div className="w-px h-6 bg-border mx-1" />
 
         {canReports && (
@@ -226,16 +221,44 @@ export function Topbar() {
               </Avatar>
               <div className="flex-col items-start hidden sm:flex">
                 <span className="text-sm font-medium leading-none">{currentUser?.name}</span>
-                <span className="text-xs text-muted-foreground leading-none mt-1">{currentUser?.role}</span>
+                <span className="text-xs text-muted-foreground leading-none mt-1">{currentUser?.jobTitle || t(`role_${currentUser.role.toLowerCase()}`)}</span>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
-              <span className="font-medium">{currentUser.name}</span>
-              <span className="text-xs font-normal text-muted-foreground">{currentUser.organisation}</span>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="flex items-center gap-3 py-2">
+              <Avatar className="h-10 w-10 border border-border">
+                <AvatarImage src={currentUser?.avatar || undefined} alt={currentUser?.name} />
+                <AvatarFallback>{currentUser?.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <div className="truncate font-medium">{currentUser.name}</div>
+                <div className="truncate text-xs font-normal text-muted-foreground">{currentUser.email}</div>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="text-xs font-normal text-muted-foreground">{t(`role_${currentUser.role.toLowerCase()}`)}</span>
+                  {isAdmin(currentUser.role) && <AdminBadge />}
+                </div>
+              </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground py-1">{t("menu_language")}</DropdownMenuLabel>
+            {LANGS.map((l) => (
+              <DropdownMenuItem key={l.code} onClick={() => changeLanguage(l.code)} data-testid={`menu-lang-${l.code}`}>
+                <span className="mr-2 text-base leading-none">{l.flag}</span>
+                {l.label}
+                {language === l.code && <Check className="ml-auto h-4 w-4 text-primary" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/profil")} data-testid="button-profile-settings">
+              <UserCog className="h-4 w-4 mr-2" /> {t("menu_profile_settings")}
+            </DropdownMenuItem>
+            {isAdmin(currentUser.role) && (
+              <DropdownMenuItem onClick={() => navigate("/einstellungen")} data-testid="button-system-settings">
+                <Settings className="h-4 w-4 mr-2" /> {t("menu_system_settings")}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ redirectUrl: basePath || "/" })} className="text-destructive focus:text-destructive" data-testid="button-logout">
               <LogOut className="h-4 w-4 mr-2" /> {t("logout")}

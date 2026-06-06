@@ -29,6 +29,7 @@ import GewinnVerlust from "@/pages/GewinnVerlust";
 import AuditLog from "@/pages/AuditLog";
 import Reports from "@/pages/Reports";
 import Einstellungen from "@/pages/Einstellungen";
+import ProfileSettings from "@/pages/ProfileSettings";
 import NotFound from "@/pages/not-found";
 
 export type OnActivated = (resp: api.ActiveResponse) => Promise<void>;
@@ -38,12 +39,12 @@ function membershipToUser(m: api.Membership, orgName: string): AppUser {
     id: m.clerkUserId,
     name: m.name || m.email,
     role: m.role,
+    jobTitle: m.jobTitle ?? "",
     organisation: orgName,
     email: m.email,
     language: useAppStore.getState().language,
-    avatar: "",
+    avatar: m.avatar ?? "",
     entityAccess: [],
-    managedEntities: (m.managedEntities ?? []) as AppUser["managedEntities"],
     lastActivity: new Date().toISOString().slice(0, 16).replace("T", " "),
     tasks: [],
   };
@@ -94,6 +95,7 @@ function AppShell() {
         <Route path="/audit">{() => <Guarded navKey="audit" component={AuditLog} />}</Route>
         <Route path="/reports">{() => <Guarded navKey="reports" component={Reports} />}</Route>
         <Route path="/einstellungen">{() => <Guarded navKey="einstellungen" component={Einstellungen} />}</Route>
+        <Route path="/profil">{() => <ProfileSettings />}</Route>
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
@@ -147,7 +149,7 @@ export function AuthedApp() {
     }
   }, []);
 
-  // New organizations start completely empty — the owner (Controller) creates
+  // New organizations start completely empty — the owner (Admin) creates
   // their first group/company from Einstellungen → Entitäten. No data is seeded.
   const handleActivated = useCallback<OnActivated>(async (resp) => {
     await activate(resp);

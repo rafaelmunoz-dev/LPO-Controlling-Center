@@ -12,9 +12,15 @@ import {
 
 const router: IRouter = Router();
 
-// List all members of the caller's organization.
+// List all members of the caller's organization (admins only). Team management
+// is an admin-scoped surface, so non-admins must not be able to enumerate the
+// org's membership roster even via a direct API call.
 router.get("/members", requireAuth, requireMembership, async (req, res) => {
   const m = req.ctx!.membership!;
+  if (!isOrgAdmin(m.role)) {
+    res.status(403).json({ error: "forbidden" });
+    return;
+  }
   const rows = await db
     .select()
     .from(memberships)
@@ -110,6 +116,73 @@ router.post("/invitations", requireAuth, requireMembership, async (req, res) => 
 
   res.json(inv);
 });
+
+// Change a member's role (admins only). Protects against removing the last
+// Admin in the org: an Admin can only be demoted while another Admin remains.
+router.patch(
+  "/members/:id/role",
+  requireAuth,
+  requireMembership,
+  async (req, res) => {
+    const m = req.ctx!.membership!;
+    if (!isOrgAdmin(m.role)) {
+      res.status(403).json({ error: "forbidden" });
+      return;
+    }
+
+    const role = String(req.body?.role ?? "") as Role;
+    if (!VALID_ROLES.includes(role)) {
+      res.status(400).json({ error: "invalid_role" });
+      return;
+    }
+
+    const [target] = await db
+      .select()
+      .from(memberships)
+      .where(
+        and(
+          eq(memberships.id, String(req.params.id)),
+          eq(memberships.organizationId, m.organizationId),
+        ),
+      )
+      .limit(1);
+
+    if (!target) {
+      res.status(404).json({ error: "member_not_found" });
+      return;
+    }
+
+    // Last-admin protection: block demoting the only remaining Admin.
+    if (target.role === "Admin" && role !== "Admin") {
+      const admins = await db
+        .select()
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.organizationId, m.organizationId),
+            eq(memberships.role, "Admin"),
+          ),
+        );
+      if (admins.length <= 1) {
+        res.status(409).json({ error: "last_admin" });
+        return;
+      }
+    }
+
+    const patch: { role: Role; jobTitle?: string } = { role };
+    if (req.body?.jobTitle !== undefined) {
+      patch.jobTitle = String(req.body.jobTitle).trim();
+    }
+
+    const [updated] = await db
+      .update(memberships)
+      .set(patch)
+      .where(eq(memberships.id, target.id))
+      .returning();
+
+    res.json(updated);
+  },
+);
 
 // Revoke a pending invitation (admins only).
 router.delete(

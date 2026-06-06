@@ -13,6 +13,8 @@ export type Trend = "up" | "down" | "flat";
 export interface CompanyGroup {
   id: string;
   name: string;
+  // Optional group logo as a data URL (uploaded via file picker / drag-drop).
+  logo?: string;
   archived?: boolean;
 }
 
@@ -146,24 +148,21 @@ export interface ForecastSeries {
   points: { period: string; best: number; realistic: number; worst: number }[];
 }
 
-export type Role =
-  | "Controller"
-  | "Geschäftsführer"
-  | "Finanzbuchhalter"
-  | "Mitarbeiter";
+// Permission level. Admin = full rights; Mitarbeiter = operational create/edit
+// (no delete, no structural, no system settings); Betrachter = read-only.
+export type Role = "Admin" | "Mitarbeiter" | "Betrachter";
 
 export interface AppUser {
   id: string;
   name: string;
   role: Role;
+  // Free-text job title (cosmetic, e.g. "Geschäftsführer", "Buchhaltung").
+  jobTitle: string;
   organisation: string;
   email: string;
   language: "de" | "en" | "es";
   avatar: string;
   entityAccess: ViewKey[];
-  // Companies (group) a Geschäftsführer may manage (add/delete employees & companies).
-  // Undefined/empty for non-scoped roles; Controller is global regardless of this list.
-  managedEntities?: EntityCode[];
   lastActivity: string;
   tasks: string[];
 }

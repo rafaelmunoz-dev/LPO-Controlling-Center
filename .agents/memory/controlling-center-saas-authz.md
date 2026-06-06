@@ -17,9 +17,10 @@ Product decision: a freshly created org seeds **no** data (no default group/comp
 **Why:** User explicitly required empty accounts; an earlier auto-seeded "default group" (named after the org) violated this.
 **How to apply:** Don't reintroduce onboarding seed data. The empty state is safe — `firstActiveView` returns a sentinel when groups/entities are empty.
 
-## Invitations are Controller-only ("owner invites")
-`isOrgAdmin` = `Controller` only (not Geschäftsführer). The org owner is created as a `Controller` on org creation, so this matches the "owner invites by email+role" model and prevents in-tenant privilege escalation (a Geschäftsführer inviting someone as Controller). Frontend `TeamSettings` `ADMIN_ROLES` mirrors this.
-**Why:** Code review flagged Geschäftsführer being able to invite + assign Controller as an escalation path. Team management lives in Einstellungen, which is `SETTINGS_ADMIN_ROLES` = Controller-only.
+## Invitations are Admin-only ("owner invites")
+`isOrgAdmin` = `Admin` only. The org owner (first user) is created as an `Admin` on org creation, so this matches the "owner invites by email+role" model and prevents in-tenant privilege escalation. Frontend `TeamSettings`/`SETTINGS_ADMIN_ROLES` mirror this. Team management lives in Einstellungen, which is Admin-only (non-admins get AccessDenied via `allowedNav`).
+
+NOTE: the role model is now 3-tier org-wide (Admin/Mitarbeiter/Betrachter) — see controlling-center-scoped-permissions.md. Older notes here mentioning Controller/Geschäftsführer predate that overhaul; "Admin" is the current owner/admin level.
 
 ## Invite acceptance flows
 Two paths, both redeemed in `AuthedApp` bootstrap: (1) auto-detect — `/api/me` returns `status:"invited"` when a pending invitation matches the signed-in email → InvitePrompt; (2) shareable link `?invite=<token>` captured to sessionStorage (`INVITE_TOKEN_KEY`) before Clerk navigation, redeemed even on email mismatch. No invite emails are sent yet (Phase 4).
