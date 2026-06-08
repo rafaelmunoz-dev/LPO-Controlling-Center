@@ -242,7 +242,7 @@
 
   /* Vertical sidebar navigation item */
   .app-nav-item {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+    @apply flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium
            transition-colors text-muted-foreground hover:bg-muted hover:text-foreground;
   }
   .app-nav-item[data-active="true"] {
