@@ -73,8 +73,8 @@ export function EntitySettings() {
   const openEdit = (e: EntityMeta) => { setEditForm(metaToForm(e)); setEditOpen(true); };
 
   const openCreate = () => {
-    const defGroup = activeGroups[0]?.id ?? DEFAULT_GROUP_ID;
-    setCreateForm({ ...EMPTY_FORM, groupId: defGroup });
+    if (activeGroups.length === 0) { toast.error(t("ent_need_group")); return; }
+    setCreateForm({ ...EMPTY_FORM, groupId: activeGroups[0].id });
     setCreateOpen(true);
   };
 
@@ -100,6 +100,10 @@ export function EntitySettings() {
     if (!createForm.name.trim()) { toast.error(t("ent_name_required")); return; }
     if (entities.some((e) => e.code.toUpperCase() === code) || code === "MIGU GROUP GESAMT") {
       toast.error(t("ent_code_exists"));
+      return;
+    }
+    if (!activeGroups.some((g) => g.id === createForm.groupId)) {
+      toast.error(t("ent_need_group"));
       return;
     }
     addEntity({

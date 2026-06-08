@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, eq } from "drizzle-orm";
 import { db, organizations, memberships, invitations } from "@workspace/db";
-import { requireAuth, requireMembership } from "../lib/auth";
+import { requireAuth, requireMembership, normalizeRole } from "../lib/auth";
 
 const MAX_AVATAR_LEN = 2_000_000;
 
@@ -165,7 +165,7 @@ router.post("/invitations/accept", requireAuth, async (req, res) => {
       clerkUserId: user.clerkUserId,
       email: user.email,
       name: user.name,
-      role: inv.role,
+      role: normalizeRole(inv.role),
       managedEntities: inv.managedEntities,
     })
     .returning();

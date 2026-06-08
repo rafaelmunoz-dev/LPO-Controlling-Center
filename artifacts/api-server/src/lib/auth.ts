@@ -13,6 +13,16 @@ export type Role = "Admin" | "Mitarbeiter" | "Betrachter";
 
 export const VALID_ROLES: Role[] = ["Admin", "Mitarbeiter", "Betrachter"];
 
+// Backward-compat: memberships/invitations created before the role overhaul
+// carry the legacy "Controller" role (the original full-rights owner role).
+// Neither the server authz matrix nor the client governance recognize it, so it
+// must be mapped to "Admin" wherever a stored role is consumed. This keeps
+// pre-migration environments (e.g. production) working without a manual SQL fix.
+export function normalizeRole(role: string): Role {
+  if (role === "Controller") return "Admin";
+  return (VALID_ROLES as string[]).includes(role) ? (role as Role) : "Betrachter";
+}
+
 export interface ReqUser {
   clerkUserId: string;
   email: string;
@@ -54,6 +64,8 @@ export async function requireAuth(
       .from(memberships)
       .where(eq(memberships.clerkUserId, userId))
       .limit(1);
+
+    if (m) m.role = normalizeRole(m.role);
 
     let email = m?.email ?? "";
     let name = m?.name ?? "";
