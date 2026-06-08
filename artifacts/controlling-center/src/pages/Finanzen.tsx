@@ -53,11 +53,13 @@ import { UmsatzView } from "./Umsatz";
 import { GuVView } from "./GewinnVerlust";
 import { PrognosenView } from "./Prognosen";
 import { BerichteView } from "./Reports";
+import { BelegeView } from "./Belege";
 
 const TAB_DEFS = [
   { value: "overview", navKey: "finanzen", labelKey: "tab_overview", testid: "tab-overview" },
   { value: "gv", navKey: "gewinnverlust", labelKey: "gewinnverlust", testid: "tab-gv" },
   { value: "umsatz", navKey: "umsatz", labelKey: "umsatz", testid: "tab-umsatz" },
+  { value: "belege", navKey: "belege", labelKey: "belege", testid: "tab-belege" },
   { value: "bs", navKey: "finanzen", labelKey: "tab_balance", testid: "tab-balance" },
   { value: "konsol", navKey: "finanzen", labelKey: "tab_consolidation", testid: "tab-consolidation" },
   { value: "prognosen", navKey: "prognosen", labelKey: "prognosen", testid: "tab-prognosen" },
@@ -410,6 +412,10 @@ export default function Finanzen() {
 
         <TabsContent value="umsatz">
           <UmsatzView />
+        </TabsContent>
+
+        <TabsContent value="belege">
+          <BelegeView />
         </TabsContent>
 
         <TabsContent value="bs">

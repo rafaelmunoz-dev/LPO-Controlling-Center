@@ -15,7 +15,6 @@ import Onboarding from "@/pages/Onboarding";
 import InvitePrompt from "@/pages/InvitePrompt";
 import Dashboard from "@/pages/Dashboard";
 import Finanzen from "@/pages/Finanzen";
-import Belege from "@/pages/Belege";
 import Einkauf from "@/pages/Einkauf";
 import Inventar from "@/pages/Inventar";
 import Mitarbeiter from "@/pages/Mitarbeiter";
@@ -76,7 +75,6 @@ function AppShell() {
       <Switch>
         <Route path="/">{() => <Guarded navKey="dashboard" component={Dashboard} />}</Route>
         <Route path="/finanzen">{() => <Guarded navKey="finanzen" component={Finanzen} />}</Route>
-        <Route path="/belege">{() => <Guarded navKey="belege" component={Belege} />}</Route>
         <Route path="/einkauf">{() => <Guarded navKey="einkauf" component={Einkauf} />}</Route>
         <Route path="/inventar">{() => <Guarded navKey="inventar" component={Inventar} />}</Route>
         <Route path="/mitarbeiter">{() => <Guarded navKey="mitarbeiter" component={Mitarbeiter} />}</Route>

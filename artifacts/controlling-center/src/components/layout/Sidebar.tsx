@@ -13,7 +13,6 @@ import {
   Target,
   Settings,
   Sparkles,
-  ReceiptText,
   ScrollText,
 } from "lucide-react";
 import lpoLogo from "@assets/image_1780570561463.png";
@@ -44,7 +43,6 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "nav_sec_operations",
     items: [
-      { href: "/belege", key: "belege", label: "belege", icon: ReceiptText },
       { href: "/einkauf", key: "einkauf", label: "einkauf", icon: ShoppingCart },
       { href: "/inventar", key: "inventar", label: "inventar", icon: Package },
       { href: "/mitarbeiter", key: "mitarbeiter", label: "mitarbeiter_geraete", icon: Users },

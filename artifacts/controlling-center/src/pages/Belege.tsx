@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PageHeader } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { UPLOAD_ROLES, UPLOAD_PROCESS_ROLES } from "@/data/governance";
 import {
@@ -25,7 +24,7 @@ import {
 } from "@/data";
 import { aiSuggestExpense } from "@/lib/ai";
 import type { BankTransaction, EntityCode, SuggestionSource } from "@/data/types";
-import { ReceiptText, UploadCloud, Sparkles, CheckCircle2, Trash2, Loader2 } from "lucide-react";
+import { UploadCloud, Sparkles, CheckCircle2, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 function SourceBadge({ source }: { source?: SuggestionSource | null }) {
@@ -46,7 +45,7 @@ function SourceBadge({ source }: { source?: SuggestionSource | null }) {
   return <Badge variant="outline" className={`text-xs ${style[source]}`}>{label[source]}</Badge>;
 }
 
-export default function Belege() {
+export function BelegeView() {
   const { t } = useTranslation();
   const { currency, date } = useFormat();
   const {
@@ -174,9 +173,7 @@ export default function Belege() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={t("belege")} subtitle={t("beleg_subtitle")} icon={<ReceiptText className="h-5 w-5" />} />
-
+    <div className="space-y-4">
       <Card className="glass-card">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2">
