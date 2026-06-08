@@ -240,6 +240,20 @@
     @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground;
   }
 
+  /* Vertical sidebar navigation item */
+  .app-nav-item {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+           transition-colors text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+  .app-nav-item[data-active="true"] {
+    @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground;
+  }
+
+  /* Left sidebar surface */
+  .app-sidebar {
+    @apply bg-sidebar border-r border-sidebar-border z-40;
+  }
+
   /* UPPERCASE label */
   .app-label {
     @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
