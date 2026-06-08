@@ -14,7 +14,7 @@ const TONE: Record<InsightTone, { icon: typeof Info; cls: string }> = {
 export function AiInsight({ context }: { context: CopilotContext }) {
   const { t } = useTranslation();
   const { selectedEntity, setCopilotContext, setCopilotOpen } = useAppStore();
-  const insights = getInsights(context, selectedEntity);
+  const insights = getInsights(context, selectedEntity, t);
 
   // keep the copilot context in sync with the page that mounted this insight
   useEffect(() => {

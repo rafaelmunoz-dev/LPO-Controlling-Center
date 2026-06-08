@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { getBudget, getFinance, getProfitLoss } from "./finance";
 import { PURCHASE_REQUESTS, UPLOADS, INVENTORY } from "./operations";
 import { RISKS, STRATEGY_DECISIONS } from "./governance";
@@ -54,8 +55,9 @@ export function getCopilotSuggestions(context: CopilotContext = "global"): strin
   return contextSuggestions[context] ?? baseSuggestions;
 }
 
-export function getInsights(context: CopilotContext, view: ViewKey): Insight[] {
+export function getInsights(context: CopilotContext, view: ViewKey, t: TFunction): Insight[] {
   const f = getFinance(view);
+  const signed = (n: number, suffix = "") => `${n >= 0 ? "+" : ""}${n.toFixed(1)}${suffix}`;
   switch (context) {
     case "finanzen": {
       const pl = getProfitLoss(view);
@@ -63,16 +65,16 @@ export function getInsights(context: CopilotContext, view: ViewKey): Insight[] {
       const budget = getBudget(view);
       const over = budget.filter((b) => b.actual > b.budget);
       return [
-        { title: "Ergebnislage", text: `Operative Marge (EBITDA) bei ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp). Nettoergebnis ${fmt(net)}.`, tone: f.marginChange >= 0 ? "positive" : "warning" },
-        { title: "Budgetabweichung", text: over.length ? `${over.length} Kategorie(n) über Plan, v. a. ${over[0].category} (+${fmt(over[0].actual - over[0].budget)}).` : "Alle Kostenarten liegen im Budgetrahmen.", tone: over.length ? "warning" : "positive" },
+        { title: t("insight_finance_result_title"), text: t("insight_finance_result_text", { margin: f.ebitdaMargin.toFixed(1), marginChange: signed(f.marginChange), net: fmt(net) }), tone: f.marginChange >= 0 ? "positive" : "warning" },
+        { title: t("insight_budget_title"), text: over.length ? t("insight_budget_over", { n: over.length, category: over[0].category, amount: fmt(over[0].actual - over[0].budget) }) : t("insight_budget_ok"), tone: over.length ? "warning" : "positive" },
       ];
     }
     case "einkauf": {
       const open = PURCHASE_REQUESTS.filter((p) => ["Entwurf", "Eingereicht", "In Prüfung"].includes(p.status));
       const volume = PURCHASE_REQUESTS.reduce((a, p) => a + p.amount, 0);
       return [
-        { title: "Offene Anfragen", text: `${open.length} Kaufanfragen warten auf Bearbeitung (${fmt(open.reduce((a, p) => a + p.amount, 0))}).`, tone: open.length > 2 ? "warning" : "neutral" },
-        { title: "Beschaffungsvolumen", text: `Gesamtvolumen aller Anfragen: ${fmt(volume)}.`, tone: "neutral" },
+        { title: t("insight_open_requests_title"), text: t("insight_open_requests_text", { n: open.length, amount: fmt(open.reduce((a, p) => a + p.amount, 0)) }), tone: open.length > 2 ? "warning" : "neutral" },
+        { title: t("insight_procurement_volume_title"), text: t("insight_procurement_volume_text", { amount: fmt(volume) }), tone: "neutral" },
       ];
     }
     case "inventar": {
@@ -80,40 +82,40 @@ export function getInsights(context: CopilotContext, view: ViewKey): Insight[] {
       const repair = INVENTORY.filter((i) => i.status === "in Reparatur" || i.status === "verloren");
       const free = INVENTORY.filter((i) => i.status === "verfügbar");
       return [
-        { title: "Inventarwert", text: `Aktueller Buchwert aller Geräte: ${fmt(value)}.`, tone: "neutral" },
-        { title: "Handlungsbedarf", text: `${repair.length} Gerät(e) in Reparatur/verloren, ${free.length} verfügbar zur Zuweisung.`, tone: repair.length ? "warning" : "positive" },
+        { title: t("insight_inventory_value_title"), text: t("insight_inventory_value_text", { amount: fmt(value) }), tone: "neutral" },
+        { title: t("insight_inventory_action_title"), text: t("insight_inventory_action_text", { repair: repair.length, free: free.length }), tone: repair.length ? "warning" : "positive" },
       ];
     }
     case "risiko": {
       const high = RISKS.filter((r) => r.impact === "Hoch" && r.status !== "Geschlossen");
       const rising = RISKS.filter((r) => r.trend === "up");
       return [
-        { title: "Hochrisiken", text: high.length ? `${high.length} offene Hochrisiken, u. a. „${high[0].title}" (${high[0].entity}).` : "Aktuell keine offenen Hochrisiken.", tone: high.length ? "warning" : "positive" },
-        { title: "Trend", text: `${rising.length} Risiken mit steigender Tendenz im Blick behalten.`, tone: rising.length ? "warning" : "neutral" },
+        { title: t("insight_high_risk_title"), text: high.length ? t("insight_high_risk_some", { n: high.length, title: high[0].title, entity: high[0].entity }) : t("insight_high_risk_none"), tone: high.length ? "warning" : "positive" },
+        { title: t("insight_trend_title"), text: t("insight_trend_text", { n: rising.length }), tone: rising.length ? "warning" : "neutral" },
       ];
     }
     case "strategie": {
       const due = STRATEGY_DECISIONS.filter((s) => s.evaluation === "Offen" || s.evaluation === "Verfehlt");
       const top = STRATEGY_DECISIONS.find((s) => s.evaluation === "Übertroffen");
       return [
-        { title: "Überprüfung fällig", text: due.length ? `${due.length} Entscheidung(en) brauchen ein Review, z. B. „${due[0].title}".` : "Alle Strategieentscheidungen sind aktuell bewertet.", tone: due.length ? "warning" : "positive" },
-        { title: "Erfolg", text: top ? `„${top.title}" übertrifft den Plan (${top.actualKpi}).` : "Noch keine übertroffenen Ziele.", tone: "positive" },
+        { title: t("insight_review_title"), text: due.length ? t("insight_review_some", { n: due.length, title: due[0].title }) : t("insight_review_none"), tone: due.length ? "warning" : "positive" },
+        { title: t("insight_success_title"), text: top ? t("insight_success_some", { title: top.title, kpi: top.actualKpi }) : t("insight_success_none"), tone: "positive" },
       ];
     }
     case "prognosen":
       return [
-        { title: "Wachstumspfad", text: `Realistisches Szenario unterstellt moderates Wachstum auf Basis von ${fmt(f.revenue)} Jahresumsatz.`, tone: "neutral" },
-        { title: "Risikospanne", text: "Best- und Worst-Case zeigen die Bandbreite — Liquiditätsplanung am Worst-Case ausrichten.", tone: "warning" },
+        { title: t("insight_growth_title"), text: t("insight_growth_text", { amount: fmt(f.revenue) }), tone: "neutral" },
+        { title: t("insight_risk_range_title"), text: t("insight_risk_range_text"), tone: "warning" },
       ];
     case "freigaben":
       return [
-        { title: "Engpass", text: "Freigaben über 50.000 € erfordern eine zweite Prüfinstanz — auf offene Posten achten.", tone: "warning" },
+        { title: t("insight_bottleneck_title"), text: t("insight_bottleneck_text"), tone: "warning" },
       ];
     case "dashboard":
     default:
       return [
-        { title: "Gesamtbild", text: `Umsatz ${fmt(f.revenue)} (${f.revenueChange >= 0 ? "+" : ""}${f.revenueChange.toFixed(1)}%), Operative Marge (EBITDA) ${f.ebitdaMargin.toFixed(1)}%, Liquidität ${fmt(f.cash)}.`, tone: f.revenueChange >= 0 ? "positive" : "warning" },
-        { title: "Aufmerksamkeit", text: `Cash Runway ${f.cashRunway.toFixed(1)} Monate. Offene Rechnungen ${fmt(f.openInvoices)} (${f.openInvoicesCount} Stück).`, tone: f.cashRunway < 10 ? "warning" : "neutral" },
+        { title: t("insight_overview_title"), text: t("insight_overview_text", { revenue: fmt(f.revenue), revenueChange: signed(f.revenueChange, "%"), margin: f.ebitdaMargin.toFixed(1), cash: fmt(f.cash) }), tone: f.revenueChange >= 0 ? "positive" : "warning" },
+        { title: t("insight_attention_title"), text: t("insight_attention_text", { runway: f.cashRunway.toFixed(1), invoices: fmt(f.openInvoices), n: f.openInvoicesCount }), tone: f.cashRunway < 10 ? "warning" : "neutral" },
       ];
   }
 }
