@@ -1,6 +1,6 @@
 export type EntityCode = "IMP" | "C&A" | "MKT" | "CPE" | "COSM" | (string & {});
 // A group-total view is encoded as `group:<groupId>`. Firm views are the raw
-// entity code. Legacy stores used the literal "MiGu Group Gesamt" which is
+// entity code. Legacy stores used a literal total label which is
 // migrated to `group:migu`.
 export type GroupViewKey = `group:${string}`;
 export type ViewKey = GroupViewKey | EntityCode;

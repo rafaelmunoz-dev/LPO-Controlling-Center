@@ -26,11 +26,11 @@ import {
 export const ENTITY_CODES: EntityCode[] = ["IMP", "C&A", "MKT", "CPE", "COSM"];
 
 export const ENTITIES: EntityMeta[] = [
-  { code: "IMP", name: "MiGu Import GmbH", description: "Import & Handel von Industriegütern", location: "Hamburg", employees: 84, color: "#3b82f6", groupId: DEFAULT_GROUP_ID },
-  { code: "C&A", name: "MiGu Construction & Assembly", description: "Bau, Montage & technische Dienstleistungen", location: "Dortmund", employees: 142, color: "#f59e0b", groupId: DEFAULT_GROUP_ID },
-  { code: "MKT", name: "MiGu Marketing AG", description: "Marketing, Werbung & Kreativdienste", location: "Berlin", employees: 46, color: "#8b5cf6", groupId: DEFAULT_GROUP_ID },
-  { code: "CPE", name: "MiGu Capital Equipment", description: "Maschinen, Anlagen & Vermietung", location: "München", employees: 67, color: "#10b981", groupId: DEFAULT_GROUP_ID },
-  { code: "COSM", name: "MiGu Cosmetics GmbH", description: "Kosmetik & Konsumgüter", location: "Düsseldorf", employees: 53, color: "#f43f5e", groupId: DEFAULT_GROUP_ID },
+  { code: "IMP", name: "Import & Handel GmbH", description: "Import & Handel von Industriegütern", location: "Hamburg", employees: 84, color: "#3b82f6", groupId: DEFAULT_GROUP_ID },
+  { code: "C&A", name: "Construction & Assembly", description: "Bau, Montage & technische Dienstleistungen", location: "Dortmund", employees: 142, color: "#f59e0b", groupId: DEFAULT_GROUP_ID },
+  { code: "MKT", name: "Marketing AG", description: "Marketing, Werbung & Kreativdienste", location: "Berlin", employees: 46, color: "#8b5cf6", groupId: DEFAULT_GROUP_ID },
+  { code: "CPE", name: "Capital Equipment", description: "Maschinen, Anlagen & Vermietung", location: "München", employees: 67, color: "#10b981", groupId: DEFAULT_GROUP_ID },
+  { code: "COSM", name: "Cosmetics GmbH", description: "Kosmetik & Konsumgüter", location: "Düsseldorf", employees: 53, color: "#f43f5e", groupId: DEFAULT_GROUP_ID },
 ];
 
 // NOTE: the live registry is owned by the store (see use-app-context). It is

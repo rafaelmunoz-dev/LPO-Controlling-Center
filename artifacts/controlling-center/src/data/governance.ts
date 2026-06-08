@@ -61,7 +61,7 @@ export const REPORTS: ReportDef[] = [
   { id: "RP-1", title: "Monatsbericht", description: "Vollständige Finanzübersicht des Monats inkl. GuV und Cashflow.", period: "Monatlich", type: "Finanzen" },
   { id: "RP-2", title: "Quartalsbericht", description: "Quartalsentwicklung mit Budgetabgleich und Forecast.", period: "Quartalsweise", type: "Finanzen" },
   { id: "RP-3", title: "Jahresbericht", description: "Geschäftsjahr im Überblick mit Konsolidierung.", period: "Jährlich", type: "Finanzen" },
-  { id: "RP-4", title: "Entitätsbericht", description: "Detailauswertung je MiGu-Entität.", period: "Auf Abruf", type: "Entitäten" },
+  { id: "RP-4", title: "Entitätsbericht", description: "Detailauswertung je Entität.", period: "Auf Abruf", type: "Entitäten" },
   { id: "RP-5", title: "Einkaufsbericht", description: "Beschaffungsvolumen, Lieferanten und offene Anträge.", period: "Monatlich", type: "Einkauf" },
   { id: "RP-6", title: "Inventarbericht", description: "Bestand, Wertentwicklung und Zuweisungen.", period: "Quartalsweise", type: "Inventar" },
   { id: "RP-7", title: "Risikobericht", description: "Risikoregister, Bewertung und Maßnahmen.", period: "Monatlich", type: "Risiko" },

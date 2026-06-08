@@ -184,7 +184,7 @@ export function BerichteView() {
     }
 
     doc.setFontSize(8); doc.setTextColor(150);
-    doc.text("Demo-Bericht - LPO Group im Auftrag der MiGu Group - Vertraulich", 14, 285);
+    doc.text("Demo-Bericht - LPO Group - Vertraulich", 14, 285);
     doc.save(`${docTitle.replace(/\s+/g, "_")}_${view}.pdf`);
     toast.success(t("rep_pdf_created"));
     setGenerating(false);

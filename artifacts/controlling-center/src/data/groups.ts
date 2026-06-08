@@ -1,9 +1,9 @@
 import type { CompanyGroup, EntityCode, EntityMeta, GroupViewKey, ViewKey } from "./types";
 
-// Default (seed) group. Legacy "MiGu Group Gesamt" maps to this group's total.
+// Default (seed) group. Legacy total view maps to this group's total.
 export const DEFAULT_GROUP_ID = "migu";
 
-export const GROUPS: CompanyGroup[] = [{ id: DEFAULT_GROUP_ID, name: "MiGu Group" }];
+export const GROUPS: CompanyGroup[] = [{ id: DEFAULT_GROUP_ID, name: "Unternehmensgruppe" }];
 
 const GROUP_PREFIX = "group:";
 

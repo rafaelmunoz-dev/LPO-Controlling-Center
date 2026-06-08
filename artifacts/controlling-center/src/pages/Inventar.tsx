@@ -126,7 +126,7 @@ export default function Inventar() {
     let x = marginX, y = marginY, col = 0;
 
     for (const item of items) {
-      const qrData = await QRCode.toDataURL(`MIGU|${item.inventoryNumber}|${item.name}|${item.entity}`, { margin: 0, width: 120 });
+      const qrData = await QRCode.toDataURL(`INV|${item.inventoryNumber}|${item.name}|${item.entity}`, { margin: 0, width: 120 });
       const canvas = document.createElement("canvas");
       JsBarcode(canvas, item.inventoryNumber, { format: "CODE128", displayValue: false, height: 40, margin: 0 });
       const barcode = canvas.toDataURL("image/png");
@@ -134,7 +134,7 @@ export default function Inventar() {
       doc.setDrawColor(214, 220, 230);
       doc.roundedRect(x, y, labelW, labelH, 2, 2);
       doc.setFontSize(8); doc.setTextColor(120);
-      doc.text("MiGu Group · Inventar", x + 5, y + 6);
+      doc.text("Inventar", x + 5, y + 6);
       doc.setFontSize(11); doc.setTextColor(20, 30, 60);
       doc.text(item.name.slice(0, 26), x + 5, y + 13);
       doc.setFontSize(9); doc.setTextColor(90);

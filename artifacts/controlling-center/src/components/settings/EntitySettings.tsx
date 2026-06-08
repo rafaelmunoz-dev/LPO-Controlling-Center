@@ -98,7 +98,7 @@ export function EntitySettings() {
     const code = createForm.code.trim().toUpperCase();
     if (!code) { toast.error(t("ent_code_required")); return; }
     if (!createForm.name.trim()) { toast.error(t("ent_name_required")); return; }
-    if (entities.some((e) => e.code.toUpperCase() === code) || code === "MIGU GROUP GESAMT") {
+    if (entities.some((e) => e.code.toUpperCase() === code)) {
       toast.error(t("ent_code_exists"));
       return;
     }

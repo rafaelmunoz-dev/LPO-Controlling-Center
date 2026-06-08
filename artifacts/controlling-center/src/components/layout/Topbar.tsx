@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from "react";
 import { useAppStore, PERIODS } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
-import { Bell, Search, Download, FilePlus2, Check, ChevronDown, CalendarDays, X, LogOut, UserCog, Settings } from "lucide-react";
+import { Bell, Search, Download, FilePlus2, Check, ChevronDown, CalendarDays, X, LogOut, UserCog, Settings, Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
+import { StructureCreateDialogs } from "@/components/shared/StructureCreateDialogs";
 import { AdminBadge } from "@/components/shared/AdminBadge";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
@@ -55,6 +56,10 @@ export function Topbar() {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const [entitySelectOpen, setEntitySelectOpen] = useState(false);
+  const [groupCreateOpen, setGroupCreateOpen] = useState(false);
+  const [entityCreateOpen, setEntityCreateOpen] = useState(false);
+  const canManageStructure = isAdmin(currentUser.role);
 
   const results: SearchResult[] = query.trim() ? searchAll(query, (k) => t(k), entities) : [];
 
@@ -84,7 +89,7 @@ export function Topbar() {
     <header className="app-header">
       <div className="h-16 flex items-center justify-between px-4 gap-4">
       <div className="flex items-center gap-5">
-        <Select value={selectedEntity} onValueChange={(val) => setEntity(val as ViewKey)}>
+        <Select value={selectedEntity} onValueChange={(val) => setEntity(val as ViewKey)} open={entitySelectOpen} onOpenChange={setEntitySelectOpen}>
           <SelectTrigger className="w-[210px] bg-muted/50 border-slate-200/80 text-primary font-medium" data-testid="select-entity">
             <SelectValue />
           </SelectTrigger>
@@ -113,8 +118,41 @@ export function Topbar() {
                 ))}
               </Fragment>
             ))}
+            {canManageStructure && (
+              <>
+                {activeGroups.length > 0 && <SelectSeparator />}
+                <div className="px-1 py-1 space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => { setEntitySelectOpen(false); setGroupCreateOpen(true); }}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent hover:text-accent-foreground"
+                    data-testid="button-topbar-create-group"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    {t("grp_create")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEntitySelectOpen(false); setEntityCreateOpen(true); }}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent hover:text-accent-foreground"
+                    data-testid="button-topbar-create-entity"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("ent_create")}
+                  </button>
+                </div>
+              </>
+            )}
           </SelectContent>
         </Select>
+        {canManageStructure && (
+          <StructureCreateDialogs
+            groupOpen={groupCreateOpen}
+            onGroupOpenChange={setGroupCreateOpen}
+            entityOpen={entityCreateOpen}
+            onEntityOpenChange={setEntityCreateOpen}
+          />
+        )}
 
         <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
           <SelectTrigger className="w-[140px] bg-muted/50 border-slate-200/80 text-sm hidden md:flex" data-testid="select-period">
