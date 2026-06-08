@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/hooks/use-app-context";
 import { useFormat } from "@/hooks/use-format";
@@ -32,6 +32,7 @@ import {
   DEFAULT_GROUP_ID,
 } from "@/data";
 import { can } from "@/data/governance";
+import type { NavKey } from "@/data/governance";
 import { CHART, PIE_COLORS } from "@/lib/chart";
 import { Info, PieChart as PieIcon, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -48,6 +49,20 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { UmsatzView } from "./Umsatz";
+import { GuVView } from "./GewinnVerlust";
+import { PrognosenView } from "./Prognosen";
+import { BerichteView } from "./Reports";
+
+const TAB_DEFS = [
+  { value: "overview", navKey: "finanzen", labelKey: "tab_overview", testid: "tab-overview" },
+  { value: "gv", navKey: "gewinnverlust", labelKey: "gewinnverlust", testid: "tab-gv" },
+  { value: "umsatz", navKey: "umsatz", labelKey: "umsatz", testid: "tab-umsatz" },
+  { value: "bs", navKey: "finanzen", labelKey: "tab_balance", testid: "tab-balance" },
+  { value: "konsol", navKey: "finanzen", labelKey: "tab_consolidation", testid: "tab-consolidation" },
+  { value: "prognosen", navKey: "prognosen", labelKey: "prognosen", testid: "tab-prognosen" },
+  { value: "berichte", navKey: "reports", labelKey: "reports", testid: "tab-berichte" },
+] satisfies { value: string; navKey: NavKey; labelKey: string; testid: string }[];
 
 function InfoLabel({ label, explain, bold }: { label: string; explain?: string; bold?: boolean }) {
   return (
@@ -269,7 +284,7 @@ function BilanzTab() {
 }
 
 export default function Finanzen() {
-  const { selectedEntity, entities, bankTransactions } = useAppStore();
+  const { selectedEntity, entities, bankTransactions, allowedNav } = useAppStore();
   const { t } = useTranslation();
   const { currency, compact, number } = useFormat();
   const plo = getPLOverview(selectedEntity);
@@ -289,20 +304,38 @@ export default function Finanzen() {
     : groupViewKey(entities.find((e) => e.code === selectedEntity)?.groupId ?? DEFAULT_GROUP_ID);
   const group = getFinance(groupView);
 
+  const visibleTabs = TAB_DEFS.filter((d) => allowedNav().includes(d.navKey));
+  const [tab, setTab] = useState<string>(() => {
+    const h = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
+    return visibleTabs.some((d) => d.value === h) ? h : "overview";
+  });
+  useEffect(() => {
+    const onHash = () => {
+      const h = window.location.hash.replace("#", "");
+      const ok = TAB_DEFS.some((d) => d.value === h && allowedNav().includes(d.navKey));
+      if (ok) setTab(h);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [allowedNav]);
+  const changeTab = (v: string) => {
+    setTab(v);
+    if (window.location.hash !== `#${v}`) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${v}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("finanzen")} subtitle={t("key_figures")} icon={<PieIcon className="h-5 w-5" />} />
 
       <SampleDataBanner />
 
-      <Tabs defaultValue="overview">
+      <Tabs value={tab} onValueChange={changeTab}>
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="overview" data-testid="tab-overview">{t("tab_overview")}</TabsTrigger>
-          <TabsTrigger value="bs" data-testid="tab-balance">{t("tab_balance")}</TabsTrigger>
-          <TabsTrigger value="cf" data-testid="tab-cashflow">{t("tab_cashflow")}</TabsTrigger>
-          <TabsTrigger value="budget" data-testid="tab-budget">{t("tab_budget")}</TabsTrigger>
-          <TabsTrigger value="konsol" data-testid="tab-consolidation">{t("tab_consolidation")}</TabsTrigger>
-          <TabsTrigger value="uploads" data-testid="tab-uploads">{t("tab_uploads")}</TabsTrigger>
+          {visibleTabs.map((d) => (
+            <TabsTrigger key={d.value} value={d.value} data-testid={d.testid}>{t(d.labelKey)}</TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -350,13 +383,6 @@ export default function Finanzen() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="bs">
-          <BilanzTab />
-        </TabsContent>
-
-        <TabsContent value="cf">
           <Card className="glass-card">
             <CardHeader><CardTitle><Term k="cashflow">{t("cashflow")}</Term></CardTitle></CardHeader>
             <CardContent className="pl-0">
@@ -378,30 +404,19 @@ export default function Finanzen() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="budget">
-          <Card className="glass-card">
-            <CardHeader><CardTitle><Term k="budget_ist">{t("budget_vs_actual")}</Term></CardTitle></CardHeader>
-            <CardContent className="space-y-5">
-              {budget.map((b) => {
-                const pct = Math.min(150, Math.round((b.actual / b.budget) * 100));
-                const over = b.actual > b.budget;
-                return (
-                  <div key={b.category} className="space-y-1.5" data-testid={`budget-${b.category}`}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{b.category}</span>
-                      <span className={over ? "text-destructive" : "text-emerald-600"}>
-                        {currency(b.actual)} / {currency(b.budget)}
-                      </span>
-                    </div>
-                    <Progress value={pct} className={over ? "[&>div]:bg-destructive" : "[&>div]:bg-emerald-500"} />
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+        <TabsContent value="gv">
+          <GuVView />
         </TabsContent>
 
-        <TabsContent value="konsol">
+        <TabsContent value="umsatz">
+          <UmsatzView />
+        </TabsContent>
+
+        <TabsContent value="bs">
+          <BilanzTab />
+        </TabsContent>
+
+        <TabsContent value="konsol" className="space-y-4">
           <Card className="glass-card">
             <CardHeader>
               <CardTitle><Term k="konsolidierung">{t("tab_consolidation")}</Term></CardTitle>
@@ -439,9 +454,35 @@ export default function Finanzen() {
               </Table>
             </CardContent>
           </Card>
+
+          <Card className="glass-card">
+            <CardHeader><CardTitle><Term k="budget_ist">{t("budget_vs_actual")}</Term></CardTitle></CardHeader>
+            <CardContent className="space-y-5">
+              {budget.map((b) => {
+                const pct = Math.min(150, Math.round((b.actual / b.budget) * 100));
+                const over = b.actual > b.budget;
+                return (
+                  <div key={b.category} className="space-y-1.5" data-testid={`budget-${b.category}`}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{b.category}</span>
+                      <span className={over ? "text-destructive" : "text-emerald-600"}>
+                        {currency(b.actual)} / {currency(b.budget)}
+                      </span>
+                    </div>
+                    <Progress value={pct} className={over ? "[&>div]:bg-destructive" : "[&>div]:bg-emerald-500"} />
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="uploads">
+        <TabsContent value="prognosen">
+          <PrognosenView />
+        </TabsContent>
+
+        <TabsContent value="berichte" className="space-y-4">
+          <BerichteView />
           <UploadPanel
             docTypes={["Monatsbericht", "Rechnungsliste", "Bankübersicht", "Budgetdatei"]}
             defaultDocType="Monatsbericht"

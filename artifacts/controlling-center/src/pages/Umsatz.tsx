@@ -1,9 +1,7 @@
 import { useAppStore } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { SampleDataBanner } from "@/components/shared/SimNotice";
 import { getEntityComparison, getFinance, formatCompact, formatCurrency, formatPercent, isGroupView, groupIdFromView } from "@/data";
 import { Coins, TrendingUp, Users, Trophy } from "lucide-react";
 import {
@@ -26,7 +24,7 @@ import { CHART, PIE_COLORS } from "@/lib/chart";
 
 const NAVY = CHART.navy;
 
-export default function Umsatz() {
+export function UmsatzView() {
   const { t } = useTranslation();
   const { selectedEntity, entities } = useAppStore();
   const comparison = getEntityComparison(entities);
@@ -45,10 +43,6 @@ export default function Umsatz() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("rev_title")} subtitle={t("rev_subtitle")} icon={<Coins className="h-5 w-5" />} />
-
-      <SampleDataBanner />
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="glass-card">
           <CardContent className="pt-6">

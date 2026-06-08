@@ -3,12 +3,9 @@ import { useAppStore } from "@/hooks/use-app-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { SampleDataBanner } from "@/components/shared/SimNotice";
 import { getForecasts, formatCurrency, formatNumber } from "@/data";
 import type { ForecastSeries } from "@/data/types";
-import { TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from "recharts";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +15,7 @@ const NAVY = CHART.navy;
 const BRASS = CHART.gold;
 const RED = CHART.red;
 
-export default function Prognosen() {
+export function PrognosenView() {
   const { t } = useTranslation();
   const { selectedEntity } = useAppStore();
   const forecasts = getForecasts(selectedEntity);
@@ -38,10 +35,6 @@ export default function Prognosen() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("prognosen")} subtitle={t("prog_subtitle")} icon={<TrendingUp className="h-5 w-5" />} />
-
-      <SampleDataBanner />
-
       <AiInsight context="prognosen" />
 
       <Card className="glass-card">

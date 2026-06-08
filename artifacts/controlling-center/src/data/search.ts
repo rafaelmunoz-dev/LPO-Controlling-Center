@@ -20,16 +20,15 @@ export interface ModuleEntry {
 
 export const SEARCH_MODULES: ModuleEntry[] = [
   { labelKey: "dashboard", href: "/", keywords: "dashboard übersicht overview start home kpi" },
-  { labelKey: "finanzen", href: "/finanzen", keywords: "finanzen finance gewinn verlust guv bilanz cashflow budget ergebnis konsolidierung intercompany p&l" },
-  { labelKey: "entitaeten", href: "/entitaeten", keywords: "entitäten entities konzern gruppe group struktur" },
+  { labelKey: "finanzen", href: "/finanzen", keywords: "finanzen finance gewinn verlust guv bilanz cashflow budget ergebnis konsolidierung intercompany p&l umsatz revenue" },
   { labelKey: "einkauf", href: "/einkauf", keywords: "einkauf purchasing beschaffung lieferant kaufanfrage compras" },
   { labelKey: "inventar", href: "/inventar", keywords: "inventar inventory bestand geräte inventur stocktaking etiketten" },
   { labelKey: "mitarbeiter_geraete", href: "/mitarbeiter", keywords: "mitarbeiter geräte employees devices zuweisung personal" },
   { labelKey: "freigaben", href: "/freigaben", keywords: "freigaben approvals genehmigung review" },
-  { labelKey: "prognosen", href: "/prognosen", keywords: "prognosen forecast szenario planung" },
+  { labelKey: "prognosen", href: "/finanzen#prognosen", keywords: "prognosen forecast szenario planung" },
   { labelKey: "risiko_premortem", href: "/risiko", keywords: "risiko risk pre-mortem premortem gefahr matrix" },
   { labelKey: "strategie", href: "/strategie", keywords: "strategie strategy entscheidung bewertung" },
-  { labelKey: "reports", href: "/reports", keywords: "reports berichte export pdf excel csv" },
+  { labelKey: "reports", href: "/finanzen#berichte", keywords: "reports berichte export pdf excel csv" },
   { labelKey: "einstellungen", href: "/einstellungen", keywords: "einstellungen settings benutzer rollen microsoft sprache design sicherheit" },
 ];
 
@@ -70,11 +69,11 @@ export function searchAll(query: string, tModule: (k: string) => string, entitie
   }
   for (const e of entities) {
     if (`${e.code} ${e.name} ${e.location}`.toLowerCase().includes(q))
-      out.push({ type: "Entität", label: `${e.code} – ${e.name}`, sub: e.location, href: "/entitaeten" });
+      out.push({ type: "Entität", label: `${e.code} – ${e.name}`, sub: e.location, href: "/finanzen" });
   }
   for (const r of REPORTS) {
     if (`${r.title} ${r.type}`.toLowerCase().includes(q))
-      out.push({ type: "Report", label: r.title, sub: r.type, href: "/reports" });
+      out.push({ type: "Report", label: r.title, sub: r.type, href: "/finanzen#berichte" });
   }
   return out.slice(0, 12);
 }

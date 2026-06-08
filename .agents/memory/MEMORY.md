@@ -14,3 +14,4 @@
 - [Clerk managed production](clerk-managed-production.md) — Replit-managed Clerk: never manually swap to live keys; prod is automatic on publish, dev-key warning is expected.
 - [Copilot AI surfaces](copilot-ai-surfaces.md) — two AI endpoints: classify-expense fails silent (null fallback); /ai/chat Copilot fails loud, never fabricates; context built client-side.
 - [Controlling Center persistence layers](controlling-center-persistence-layers.md) — adding a new org-scoped persisted collection means editing 6 layers in lockstep (schema, records route, auth role gate, api.ts, data-sync, store hydrate); append-by-anyone needs all roles or sync 403-loops.
+- [Controlling Center tab hubs](controlling-center-tab-hubs.md) — merging routed pages into one tabbed hub: re-apply per-tab RBAC via allowedNav(); wouter hash nav fires no hashchange when already on the page, so set window.location.hash directly.

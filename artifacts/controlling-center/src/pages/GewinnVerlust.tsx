@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/hooks/use-app-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import {
@@ -12,7 +11,7 @@ import {
   formatCompact,
   formatCurrency,
 } from "@/data";
-import { Scale, TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import {
   ComposedChart,
   Bar,
@@ -45,7 +44,7 @@ function KpiCard({ label, value, sub, tone }: { label: string; value: string; su
   );
 }
 
-export default function GewinnVerlust() {
+export function GuVView() {
   const { t } = useTranslation();
   const { selectedEntity, entities } = useAppStore();
   const pl = getPLOverview(selectedEntity);
@@ -59,8 +58,6 @@ export default function GewinnVerlust() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("gv_title")} subtitle={t("gv_subtitle")} icon={<Scale className="h-5 w-5" />} />
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label={t("kpi_ebitda")} value={formatCompact(pl.ebitda)} sub={`${t("gv_ebitda_margin")}: ${pl.ebitdaMargin.toFixed(1)}%`} />
         <KpiCard label="EBIT" value={formatCompact(pl.ebit)} />

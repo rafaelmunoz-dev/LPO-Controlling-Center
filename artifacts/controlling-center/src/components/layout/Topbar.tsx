@@ -193,12 +193,12 @@ export function Topbar() {
 
         {canReports && (
           <>
-            <Button variant="outline" size="sm" className="hidden lg:flex gap-2 bg-muted/50" onClick={() => { navigate("/reports"); toast.success(t("export_started")); }} data-testid="button-export">
+            <Button variant="outline" size="sm" className="hidden lg:flex gap-2 bg-muted/50" onClick={() => { navigate("/finanzen"); window.location.hash = "berichte"; toast.success(t("export_started")); }} data-testid="button-export">
               <Download className="h-4 w-4" />
               {t("export")}
             </Button>
 
-            <Button size="sm" className="hidden lg:flex gap-2 shadow-sm" onClick={() => navigate("/reports")} data-testid="button-create-report">
+            <Button size="sm" className="hidden lg:flex gap-2 shadow-sm" onClick={() => { navigate("/finanzen"); window.location.hash = "berichte"; }} data-testid="button-create-report">
               <FilePlus2 className="h-4 w-4" />
               {t("bericht_erstellen")}
             </Button>

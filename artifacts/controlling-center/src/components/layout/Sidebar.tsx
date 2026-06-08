@@ -9,15 +9,10 @@ import {
   Package,
   Users,
   CheckSquare,
-  TrendingUp,
   ShieldAlert,
   Target,
-  Coins,
-  Scale,
-  FileText,
   Settings,
   Sparkles,
-  Building2,
   ReceiptText,
   ScrollText,
 } from "lucide-react";
@@ -41,26 +36,15 @@ interface NavSection {
 const NAV_SECTIONS: NavSection[] = [
   {
     label: "nav_sec_overview",
-    items: [{ href: "/", key: "dashboard", label: "dashboard", icon: LayoutDashboard }],
-  },
-  {
-    label: "nav_sec_finance",
     items: [
+      { href: "/", key: "dashboard", label: "dashboard", icon: LayoutDashboard },
       { href: "/finanzen", key: "finanzen", label: "finanzen", icon: PieChart },
-      { href: "/belege", key: "belege", label: "belege", icon: ReceiptText },
-      { href: "/umsatz", key: "umsatz", label: "umsatz", icon: Coins },
-      { href: "/gewinn-verlust", key: "gewinnverlust", label: "gewinnverlust", icon: Scale },
-      { href: "/prognosen", key: "prognosen", label: "prognosen", icon: TrendingUp },
-      { href: "/reports", key: "reports", label: "reports", icon: FileText },
     ],
-  },
-  {
-    label: "nav_sec_structure",
-    items: [{ href: "/entitaeten", key: "entitaeten", label: "entitaeten", icon: Building2 }],
   },
   {
     label: "nav_sec_operations",
     items: [
+      { href: "/belege", key: "belege", label: "belege", icon: ReceiptText },
       { href: "/einkauf", key: "einkauf", label: "einkauf", icon: ShoppingCart },
       { href: "/inventar", key: "inventar", label: "inventar", icon: Package },
       { href: "/mitarbeiter", key: "mitarbeiter", label: "mitarbeiter_geraete", icon: Users },

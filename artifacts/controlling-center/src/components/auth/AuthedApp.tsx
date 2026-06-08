@@ -16,18 +16,13 @@ import InvitePrompt from "@/pages/InvitePrompt";
 import Dashboard from "@/pages/Dashboard";
 import Finanzen from "@/pages/Finanzen";
 import Belege from "@/pages/Belege";
-import Umsatz from "@/pages/Umsatz";
 import Einkauf from "@/pages/Einkauf";
 import Inventar from "@/pages/Inventar";
 import Mitarbeiter from "@/pages/Mitarbeiter";
 import Freigaben from "@/pages/Freigaben";
-import Prognosen from "@/pages/Prognosen";
 import Risiko from "@/pages/Risiko";
 import Strategie from "@/pages/Strategie";
-import Entitaeten from "@/pages/Entitaeten";
-import GewinnVerlust from "@/pages/GewinnVerlust";
 import AuditLog from "@/pages/AuditLog";
-import Reports from "@/pages/Reports";
 import Einstellungen from "@/pages/Einstellungen";
 import ProfileSettings from "@/pages/ProfileSettings";
 import NotFound from "@/pages/not-found";
@@ -82,18 +77,13 @@ function AppShell() {
         <Route path="/">{() => <Guarded navKey="dashboard" component={Dashboard} />}</Route>
         <Route path="/finanzen">{() => <Guarded navKey="finanzen" component={Finanzen} />}</Route>
         <Route path="/belege">{() => <Guarded navKey="belege" component={Belege} />}</Route>
-        <Route path="/umsatz">{() => <Guarded navKey="umsatz" component={Umsatz} />}</Route>
         <Route path="/einkauf">{() => <Guarded navKey="einkauf" component={Einkauf} />}</Route>
         <Route path="/inventar">{() => <Guarded navKey="inventar" component={Inventar} />}</Route>
         <Route path="/mitarbeiter">{() => <Guarded navKey="mitarbeiter" component={Mitarbeiter} />}</Route>
         <Route path="/freigaben">{() => <Guarded navKey="freigaben" component={Freigaben} />}</Route>
-        <Route path="/prognosen">{() => <Guarded navKey="prognosen" component={Prognosen} />}</Route>
         <Route path="/risiko">{() => <Guarded navKey="risiko" component={Risiko} />}</Route>
         <Route path="/strategie">{() => <Guarded navKey="strategie" component={Strategie} />}</Route>
-        <Route path="/entitaeten">{() => <Guarded navKey="entitaeten" component={Entitaeten} />}</Route>
-        <Route path="/gewinn-verlust">{() => <Guarded navKey="gewinnverlust" component={GewinnVerlust} />}</Route>
         <Route path="/audit">{() => <Guarded navKey="audit" component={AuditLog} />}</Route>
-        <Route path="/reports">{() => <Guarded navKey="reports" component={Reports} />}</Route>
         <Route path="/einstellungen">{() => <Guarded navKey="einstellungen" component={Einstellungen} />}</Route>
         <Route path="/profil">{() => <ProfileSettings />}</Route>
         <Route component={NotFound} />

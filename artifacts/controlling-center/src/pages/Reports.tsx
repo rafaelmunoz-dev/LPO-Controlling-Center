@@ -9,12 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader, riskLabel } from "@/components/shared/page";
+import { riskLabel } from "@/components/shared/page";
 import { can } from "@/data/governance";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { REPORTS, getFinance, getEntityComparison, formatCurrency, groupViewKey, labelForView } from "@/data";
 import type { ViewKey } from "@/data/types";
-import { FileBarChart, Download, FileText, Calendar, Save, Sparkles, FileSpreadsheet, FileType } from "lucide-react";
+import { Download, FileText, Calendar, Save, Sparkles, FileSpreadsheet, FileType } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 
@@ -32,7 +32,7 @@ const SECTIONS: { key: string; labelKey: string }[] = [
   { key: "forecast", labelKey: "rep_sec_forecast" },
 ];
 
-export default function Reports() {
+export function BerichteView() {
   const { t } = useTranslation();
   const { selectedEntity, reportDrafts, addReportDraft, currentUser, groups, entities } = useAppStore();
   const canCreate = can(currentUser.role, "reports:create");
@@ -198,13 +198,6 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t("reports")}
-        subtitle={t("rep_subtitle")}
-        icon={<FileBarChart className="h-5 w-5" />}
-        actions={canCreate ? <Button onClick={() => generatePdf()} disabled={generating} data-testid="button-generate-report"><Download className="h-4 w-4 mr-1.5" /> {t("bericht_erstellen")}</Button> : undefined}
-      />
-
       <AiInsight context="reports" />
 
       <Card className="glass-card">
