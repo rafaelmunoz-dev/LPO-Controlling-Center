@@ -331,9 +331,9 @@ export default function Finanzen() {
       <PageHeader title={t("finanzen")} subtitle={t("key_figures")} icon={<PieIcon className="h-5 w-5" />} />
 
       <Tabs value={tab} onValueChange={changeTab}>
-        <TabsList className="flex-wrap h-auto">
+        <TabsList className="flex-wrap h-auto gap-1 rounded-full">
           {visibleTabs.map((d) => (
-            <TabsTrigger key={d.value} value={d.value} data-testid={d.testid}>{t(d.labelKey)}</TabsTrigger>
+            <TabsTrigger key={d.value} value={d.value} data-testid={d.testid} className="rounded-full px-4">{t(d.labelKey)}</TabsTrigger>
           ))}
         </TabsList>
 
