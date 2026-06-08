@@ -150,21 +150,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-card-border bg-card px-6 py-7 sm:px-8">
-        <div className="pointer-events-none absolute -right-16 -top-24 h-60 w-60 rounded-full bg-brass/15 blur-3xl" />
-        <div className="pointer-events-none absolute -left-12 bottom-[-70px] h-52 w-52 rounded-full bg-primary/5 blur-3xl" />
-        <div className="relative flex items-start gap-3">
-          <div className="rounded-2xl bg-primary/10 text-primary p-2.5 hidden sm:flex">
-            <LayoutDashboard className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary" data-testid="text-page-title">
-              {t(greetingKey)}{firstName ? `, ${firstName}` : ""} <span aria-hidden>👋</span>
-            </h1>
-            <p className="mt-1.5 max-w-2xl text-sm sm:text-base text-muted-foreground">
-              {t("greeting_subtitle")}
-            </p>
-          </div>
+      <div className="flex items-start gap-3">
+        <div className="rounded-2xl bg-primary/10 text-primary p-2.5 hidden sm:flex">
+          <LayoutDashboard className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary" data-testid="text-page-title">
+            {t(greetingKey)}{firstName ? `, ${firstName}` : ""} <span aria-hidden>👋</span>
+          </h1>
+          <p className="mt-1.5 max-w-2xl text-sm sm:text-base text-muted-foreground">
+            {t("greeting_subtitle")}
+          </p>
         </div>
       </div>
 
