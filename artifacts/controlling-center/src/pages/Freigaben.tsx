@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader, StatusBadge, statusLabel } from "@/components/shared/page";
+import { tLabel } from "@/i18n/labels";
+import { tContent } from "@/i18n/content";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { scopeByEntity, formatCurrency } from "@/data";
 import type { Approval, ApprovalStatus, ApprovalType, EntityCode, PurchaseRequest } from "@/data/types";
@@ -123,8 +125,8 @@ export default function Freigaben() {
               {list.map((a) => (
                 <TableRow key={`${a.source}-${a.id}`} data-testid={`row-approval-${a.id}`}>
                   <TableCell className="font-mono text-xs">{a.id}</TableCell>
-                  <TableCell><Badge variant="outline" className="text-xs">{a.type}</Badge></TableCell>
-                  <TableCell className="font-medium">{a.subject}</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">{tLabel(t, a.type)}</Badge></TableCell>
+                  <TableCell className="font-medium">{tContent(a.subject)}</TableCell>
                   <TableCell>{a.entity}</TableCell>
                   <TableCell className="text-right">{a.amount ? formatCurrency(a.amount) : "—"}</TableCell>
                   <TableCell>{a.requestedBy}</TableCell>
@@ -145,11 +147,11 @@ export default function Freigaben() {
           {active && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">{active.subject} <StatusBadge status={active.status} /></DialogTitle>
+                <DialogTitle className="flex items-center gap-2">{tContent(active.subject)} <StatusBadge status={active.status} /></DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-1 text-sm">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><span className="text-muted-foreground">{t("type")}</span><div className="font-medium">{active.type}</div></div>
+                  <div><span className="text-muted-foreground">{t("type")}</span><div className="font-medium">{tLabel(t, active.type)}</div></div>
                   <div><span className="text-muted-foreground">{t("entity")}</span><div className="font-medium">{active.entity}</div></div>
                   <div><span className="text-muted-foreground">{t("amount")}</span><div className="font-medium">{active.amount ? formatCurrency(active.amount) : "—"}</div></div>
                   <div><span className="text-muted-foreground">{t("date")}</span><div className="font-medium">{active.date}</div></div>
@@ -157,9 +159,9 @@ export default function Freigaben() {
                   <div><span className="text-muted-foreground">{t("freig_reviewer")}</span><div className="font-medium">{active.reviewedBy}</div></div>
                 </div>
                 <Separator />
-                <div><span className="text-muted-foreground">{t("common_justification")}</span><p className="mt-0.5">{active.reason}</p></div>
+                <div><span className="text-muted-foreground">{t("common_justification")}</span><p className="mt-0.5">{tContent(active.reason)}</p></div>
                 <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 text-amber-700">
-                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /><div><span className="font-medium">{t("freig_risks")}:</span> {active.risks}</div>
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /><div><span className="font-medium">{t("freig_risks")}:</span> {tContent(active.risks)}</div>
                 </div>
                 {active.documents.length > 0 && (
                   <div>

@@ -173,7 +173,7 @@ export default function Inventar() {
       doc.setDrawColor(214, 220, 230);
       doc.roundedRect(x, y, labelW, labelH, 2, 2);
       doc.setFontSize(8); doc.setTextColor(120);
-      doc.text("Inventar", x + 5, y + 6);
+      doc.text(t("inventar"), x + 5, y + 6);
       doc.setFontSize(11); doc.setTextColor(20, 30, 60);
       doc.text(item.name.slice(0, 26), x + 5, y + 13);
       doc.setFontSize(9); doc.setTextColor(90);

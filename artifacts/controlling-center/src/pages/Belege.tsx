@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Term } from "@/components/shared/Term";
+import { tSuggestionReason } from "@/i18n/labels";
 import { UPLOAD_ROLES, UPLOAD_PROCESS_ROLES } from "@/data/governance";
 import {
   parseBankCsv,
@@ -260,7 +261,7 @@ export function BelegeView() {
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             <SourceBadge source={tx.suggestionSource} />
-                            {tx.suggestionReason && <span className="text-xs text-muted-foreground max-w-[180px] truncate" title={tx.suggestionReason}>{tx.suggestionReason}</span>}
+                            {tx.suggestionReason && <span className="text-xs text-muted-foreground max-w-[180px] truncate" title={tSuggestionReason(t, tx.suggestionReason)}>{tSuggestionReason(t, tx.suggestionReason)}</span>}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

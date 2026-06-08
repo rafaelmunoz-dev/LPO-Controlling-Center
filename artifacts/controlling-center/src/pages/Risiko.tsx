@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, RiskBadge, statusLabel, riskLabel } from "@/components/shared/page";
+import { tLabel } from "@/i18n/labels";
+import { tContent } from "@/i18n/content";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { scopeByEntity, defaultFirmForView } from "@/data";
 import { can } from "@/data/governance";
@@ -172,7 +174,7 @@ export default function Risiko() {
                 <TableBody>
                   {risks.map((r) => (
                     <TableRow key={r.id} data-testid={`row-risk-${r.id}`}>
-                      <TableCell className="font-medium">{r.title}</TableCell>
+                      <TableCell className="font-medium">{tContent(r.title)}</TableCell>
                       <TableCell>{r.entity}</TableCell>
                       <TableCell><RiskBadge level={r.impact} /></TableCell>
                       <TableCell><RiskBadge level={r.probability} /></TableCell>
@@ -210,7 +212,7 @@ export default function Risiko() {
                       const items = cell(impact, prob);
                       return (
                         <div key={prob} className={`min-h-[90px] rounded-xl border p-2 ${heatColor(impact, prob)}`} data-testid={`matrix-${impact}-${prob}`}>
-                          {items.map((r) => <div key={r.id} className="text-xs bg-muted/50 dark:bg-slate-900/70 rounded px-1.5 py-1 mb-1 truncate" title={r.title}>{r.title}</div>)}
+                          {items.map((r) => <div key={r.id} className="text-xs bg-muted/50 dark:bg-slate-900/70 rounded px-1.5 py-1 mb-1 truncate" title={tContent(r.title)}>{tContent(r.title)}</div>)}
                         </div>
                       );
                     })}
@@ -237,14 +239,14 @@ export default function Risiko() {
               <Card key={p.id} className="glass-card cursor-pointer" onClick={() => setActive(p)} data-testid={`card-premortem-${p.id}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base flex items-center gap-2"><FlaskConical className="h-4 w-4 text-primary" /> {p.project}</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2"><FlaskConical className="h-4 w-4 text-primary" /> {tContent(p.project)}</CardTitle>
                     <div className="flex items-center gap-1">
                       <Badge variant="outline">{p.entity}</Badge>
                       {canEdit && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openPmEdit(p); }} data-testid={`button-edit-premortem-${p.id}`}><Pencil className="h-3.5 w-3.5" /></Button>}
                       {canDelete && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); setPmDeleteId(p.id); }} data-testid={`button-delete-premortem-${p.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">{p.goal}</p>
+                  <p className="text-sm text-muted-foreground">{tContent(p.goal)}</p>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <div><span className="text-muted-foreground">{t("risk_most_dangerous")}:</span> <span className="font-medium">{p.mostDangerousRisk}</span></div>
@@ -262,13 +264,13 @@ export default function Risiko() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           {active && (
             <>
-              <DialogHeader><DialogTitle>{active.project} · {active.entity}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{tContent(active.project)} · {active.entity}</DialogTitle></DialogHeader>
               <div className="space-y-3 py-1 text-sm">
                 {[
-                  [t("risk_goal"), active.goal], [t("risk_expected_benefit"), active.expectedBenefit], [t("risk_assumptions"), active.assumptions],
-                  [t("risk_what_wrong"), active.whatCouldGoWrong], [t("risk_most_likely"), active.mostLikelyRisk],
-                  [t("risk_most_dangerous"), active.mostDangerousRisk], [t("risk_early_warnings"), active.earlyWarnings],
-                  [t("risk_countermeasures"), active.countermeasures],
+                  [t("risk_goal"), tContent(active.goal)], [t("risk_expected_benefit"), tContent(active.expectedBenefit)], [t("risk_assumptions"), tContent(active.assumptions)],
+                  [t("risk_what_wrong"), tContent(active.whatCouldGoWrong)], [t("risk_most_likely"), tContent(active.mostLikelyRisk)],
+                  [t("risk_most_dangerous"), tContent(active.mostDangerousRisk)], [t("risk_early_warnings"), tContent(active.earlyWarnings)],
+                  [t("risk_countermeasures"), tContent(active.countermeasures)],
                 ].map(([label, val]) => (
                   <div key={label}><div className="text-muted-foreground text-xs uppercase tracking-wide">{label}</div><p className="mt-0.5">{val}</p></div>
                 ))}
@@ -351,7 +353,7 @@ export default function Risiko() {
               <div className="space-y-1.5"><Label>{t("risk_trend")}</Label>
                 <Select value={form.trend} onValueChange={(v) => setForm({ ...form, trend: v as typeof TRENDS[number] })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TRENDS.map((tr) => <SelectItem key={tr} value={tr}>{tr}</SelectItem>)}</SelectContent>
+                  <SelectContent>{TRENDS.map((tr) => <SelectItem key={tr} value={tr}>{tLabel(t, tr)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>

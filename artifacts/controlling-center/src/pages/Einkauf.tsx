@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, StatusBadge } from "@/components/shared/page";
+import { tLabel } from "@/i18n/labels";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import { PurchaseRequestLifecycle } from "@/components/shared/PurchaseRequestLifecycle";
@@ -217,7 +218,7 @@ export default function Einkauf() {
                           );
                         })()}
                       </TableCell>
-                      <TableCell>{p.source === "Microsoft Forms" ? <Badge variant="outline" className="text-xs">MS Forms</Badge> : <span className="text-muted-foreground text-xs">{p.source}</span>}</TableCell>
+                      <TableCell>{p.source === "Microsoft Forms" ? <Badge variant="outline" className="text-xs">MS Forms</Badge> : <span className="text-muted-foreground text-xs">{tLabel(t, p.source)}</span>}</TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
@@ -254,8 +255,8 @@ export default function Einkauf() {
                   {suppliers.map((s) => (
                     <TableRow key={s.id} data-testid={`row-supplier-${s.id}`}>
                       <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.category}</TableCell>
-                      <TableCell className="text-muted-foreground">{s.country}</TableCell>
+                      <TableCell>{tLabel(t, s.category)}</TableCell>
+                      <TableCell className="text-muted-foreground">{tLabel(t, s.country)}</TableCell>
                       <TableCell><span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {s.rating.toFixed(1)}</span></TableCell>
                       {(canSupEdit || canSupDelete) && (
                         <TableCell className="text-right">

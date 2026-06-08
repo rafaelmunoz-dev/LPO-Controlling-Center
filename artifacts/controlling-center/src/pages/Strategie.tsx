@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/shared/page";
+import { PageHeader, statusLabel, riskLabel } from "@/components/shared/page";
+import { tContent } from "@/i18n/content";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { scopeByEntity, defaultFirmForView, formatCurrency } from "@/data";
 import { can } from "@/data/governance";
@@ -100,7 +101,7 @@ export default function Strategie() {
 
       <div className="grid gap-4 sm:grid-cols-4">
         {(["Übertroffen", "Erfüllt", "Verfehlt", "Offen"] as const).map((k) => (
-          <Card key={k} className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{decisions.filter((d) => d.evaluation === k).length}</div><div className="text-sm text-muted-foreground mt-1">{k}</div></CardContent></Card>
+          <Card key={k} className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{decisions.filter((d) => d.evaluation === k).length}</div><div className="text-sm text-muted-foreground mt-1">{statusLabel(t, k)}</div></CardContent></Card>
         ))}
       </div>
 
@@ -110,11 +111,11 @@ export default function Strategie() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-base">{d.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">{d.goal}</p>
+                  <CardTitle className="text-base">{tContent(d.title)}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-0.5">{tContent(d.goal)}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Badge variant="outline" className={`gap-1 ${EVAL[d.evaluation].tone}`}>{EVAL[d.evaluation].icon} {d.evaluation}</Badge>
+                  <Badge variant="outline" className={`gap-1 ${EVAL[d.evaluation].tone}`}>{EVAL[d.evaluation].icon} {statusLabel(t, d.evaluation)}</Badge>
                   {canEdit && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(d)} data-testid={`button-edit-strategy-${d.id}`}><Pencil className="h-3.5 w-3.5" /></Button>}
                   {canDelete && <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(d.id)} data-testid={`button-delete-strategy-${d.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>}
                 </div>
@@ -124,10 +125,10 @@ export default function Strategie() {
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">{t("entity")}</span><div className="font-medium">{d.entity}</div></div>
                 <div><span className="text-muted-foreground">{t("budget")}</span><div className="font-medium">{formatCurrency(d.budget)}</div></div>
-                <div><span className="text-muted-foreground">{t("strat_expected_kpi")}</span><div className="font-medium">{d.expectedKpi}</div></div>
-                <div><span className="text-muted-foreground">{t("strat_actual_kpi")}</span><div className="font-medium">{d.actualKpi}</div></div>
+                <div><span className="text-muted-foreground">{t("strat_expected_kpi")}</span><div className="font-medium">{tContent(d.expectedKpi)}</div></div>
+                <div><span className="text-muted-foreground">{t("strat_actual_kpi")}</span><div className="font-medium">{tContent(d.actualKpi)}</div></div>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3"><span className="text-muted-foreground text-xs uppercase tracking-wide">{t("strat_learnings")}</span><p className="mt-0.5">{d.learnings}</p></div>
+              <div className="rounded-lg bg-muted/50 p-3"><span className="text-muted-foreground text-xs uppercase tracking-wide">{t("strat_learnings")}</span><p className="mt-0.5">{tContent(d.learnings)}</p></div>
               <div className="flex justify-between text-xs text-muted-foreground"><span>{t("strat_owner_label")}: {d.owner}</span><span>{t("strat_review")}: {d.reviewDate}</span></div>
             </CardContent>
           </Card>
@@ -143,11 +144,11 @@ export default function Strategie() {
             <TableBody>
               {decisions.map((d) => (
                 <TableRow key={d.id}>
-                  <TableCell className="font-medium">{d.title}</TableCell>
+                  <TableCell className="font-medium">{tContent(d.title)}</TableCell>
                   <TableCell>{d.entity}</TableCell>
-                  <TableCell>{d.expectedEffect}</TableCell>
+                  <TableCell>{tContent(d.expectedEffect)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(d.budget)}</TableCell>
-                  <TableCell><Badge variant="outline" className={EVAL[d.evaluation].tone}>{d.evaluation}</Badge></TableCell>
+                  <TableCell><Badge variant="outline" className={EVAL[d.evaluation].tone}>{statusLabel(t, d.evaluation)}</Badge></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -184,7 +185,7 @@ export default function Strategie() {
               <div className="space-y-1.5"><Label>{t("risk_impact")}</Label>
                 <Select value={form.risk} onValueChange={(v) => setForm({ ...form, risk: v as typeof RISK_LEVELS[number] })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{RISK_LEVELS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                  <SelectContent>{RISK_LEVELS.map((r) => <SelectItem key={r} value={r}>{riskLabel(t, r)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -192,7 +193,7 @@ export default function Strategie() {
               <div className="space-y-1.5"><Label>{t("strat_evaluation")}</Label>
                 <Select value={form.evaluation} onValueChange={(v) => setForm({ ...form, evaluation: v as typeof EVALS[number] })}>
                   <SelectTrigger data-testid="select-strategy-eval"><SelectValue /></SelectTrigger>
-                  <SelectContent>{EVALS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                  <SelectContent>{EVALS.map((e) => <SelectItem key={e} value={e}>{statusLabel(t, e)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>

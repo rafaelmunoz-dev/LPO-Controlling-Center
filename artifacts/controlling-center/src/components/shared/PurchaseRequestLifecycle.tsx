@@ -13,6 +13,8 @@ import type { InventoryItem, PurchaseRequest } from "@/data/types";
 import { CheckCircle2, Circle, GitBranch, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { tLabel } from "@/i18n/labels";
+import { tContent } from "@/i18n/content";
 
 const INVENTORY_CATEGORIES: InventoryItem["category"][] = [
   "Laptop", "Monitor", "Handy", "Tablet", "Möbel", "Maschine", "Fahrzeug", "Software-Lizenz", "Sonstiges",
@@ -99,7 +101,7 @@ export function PurchaseRequestLifecycle({ pr }: { pr: PurchaseRequest }) {
           <DialogTitle>{t("einkauf_lifecycle_title")}</DialogTitle>
         </DialogHeader>
         <div className="text-xs text-muted-foreground -mt-1 mb-1">
-          <span className="font-mono">{pr.id}</span> · {pr.title} · {pr.supplier} · {formatCurrency(pr.amount)}
+          <span className="font-mono">{pr.id}</span> · {tContent(pr.title)} · {pr.supplier} · {formatCurrency(pr.amount)}
         </div>
 
         <div className="mt-1">
@@ -127,13 +129,13 @@ export function PurchaseRequestLifecycle({ pr }: { pr: PurchaseRequest }) {
           </Step>
 
           <Step index={4} title={t("lc_step_category")} state={categoryState}>
-            {booked && bankTx && <div>{t("lc_booked_as")}: <Badge variant="outline" className="text-[10px]">{bankTx.category}</Badge></div>}
+            {booked && bankTx && <div>{t("lc_booked_as")}: <Badge variant="outline" className="text-[10px]">{tLabel(t, bankTx.category)}</Badge></div>}
             {categoryState === "current" && canBook && (
               <div className="flex items-center gap-2">
                 <Select value={cat} onValueChange={setCat}>
                   <SelectTrigger className="h-7 w-44" data-testid={`lc-cat-select-${pr.id}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {EXPENSE_BUDGET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {EXPENSE_BUDGET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{tLabel(t, c)}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Button size="sm" className="h-7" onClick={() => { if (categorizePurchaseRequest(pr.id, cat)) toast.success(t("lc_toast_booked")); }} data-testid={`lc-book-${pr.id}`}>
@@ -144,7 +146,7 @@ export function PurchaseRequestLifecycle({ pr }: { pr: PurchaseRequest }) {
           </Step>
 
           <Step index={5} title={t("lc_step_inventory")} state={inventoryState} last>
-            {invItem && <div>{t("lc_inv_number")}: <span className="font-mono">{invItem.inventoryNumber}</span> · {invItem.category}</div>}
+            {invItem && <div>{t("lc_inv_number")}: <span className="font-mono">{invItem.inventoryNumber}</span> · {tLabel(t, invItem.category)}</div>}
             {!invItem && paid && canInv && (
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
@@ -157,7 +159,7 @@ export function PurchaseRequestLifecycle({ pr }: { pr: PurchaseRequest }) {
                     <Select value={invCat} onValueChange={(v) => setInvCat(v as InventoryItem["category"])}>
                       <SelectTrigger className="h-7" data-testid={`lc-inv-cat-${pr.id}`}><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {INVENTORY_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {INVENTORY_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{tLabel(t, c)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

@@ -18,6 +18,7 @@ import { UploadPanel } from "@/components/shared/UploadPanel";
 import { SimulatedNotice, SimulatedBadge } from "@/components/shared/SimNotice";
 import { MS_ADAPTERS, groupViewKey, labelForView } from "@/data";
 import { EntitySettings } from "@/components/settings/EntitySettings";
+import { tContent } from "@/i18n/content";
 import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS, SETTINGS_ADMIN_ROLES } from "@/data/governance";
 import type { ViewKey, MsAdapter } from "@/data/types";
 import {
@@ -305,7 +306,7 @@ export default function Einstellungen() {
                         <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold">{a.service.slice(0, 2)}</div>
                         <div>
                           <CardTitle className="text-base flex items-center gap-2">{a.service}<SimulatedBadge label={t("sim_simulated")} /></CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">{MS_DESC_KEY[a.service] ? t(MS_DESC_KEY[a.service]) : a.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{MS_DESC_KEY[a.service] ? t(MS_DESC_KEY[a.service]) : tContent(a.description)}</p>
                         </div>
                       </div>
                       <Switch checked={a.connected} disabled={!canAdminSettings} onCheckedChange={() => toggleAdapter(a.service)} data-testid={`switch-adapter-${a.service}`} />

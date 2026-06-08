@@ -5,6 +5,7 @@ import { getEntityComparison, DEFAULT_GROUP_ID } from "@/data";
 import { ENTITY_EDIT_ROLES, ENTITY_CREATE_ROLES } from "@/data/governance";
 import type { CompanyGroup, EntityMeta } from "@/data/types";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
+import { tContent } from "@/i18n/content";
 import { ImageUpload } from "@/components/shared/ImageUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -173,7 +174,7 @@ export function EntitySettings() {
               <span className="truncate font-medium">{e.name}</span>
               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-semibold shrink-0">{e.code}</Badge>
             </div>
-            <p className="truncate text-xs text-muted-foreground">{e.description}</p>
+            <p className="truncate text-xs text-muted-foreground">{tContent(e.description)}</p>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {e.location || "—"}</span>
               <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> {e.employees}</span>

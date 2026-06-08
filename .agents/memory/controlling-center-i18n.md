@@ -28,3 +28,13 @@ like "Q2 2026".
 BOTH an on-screen preview and a generated PDF/CSV (e.g. the report AI summary), translate it —
 the visible-UI requirement takes precedence, and the export reflecting the chosen language is
 acceptable. Only force a German source string when content is export-only.
+
+**Two distinct translation layers — use the right one:**
+- Finite enums → `labels.ts` maps (`tLabel`/`tFinanceLabel`/`statusLabel`/`riskLabel`), German value → i18n key.
+- Free-text mock/domain prose (risk/strategy/premortem titles+narrative, PR titles/justifications, approval subjects/reasons/risks, notes, entity descriptions, MS-adapter descriptions, form respondents/values) → `i18n/content.ts` `CONTENT` map (German source string → `{en,es}`) via `tContent(value)`. `tContent` reads the `i18n` singleton language: de=verbatim, en/es=mapped, **fallback=raw** so user-entered content and proper nouns (person/company/product/city names) pass through untranslated and never leak.
+- Form-field values compose both: `tContent(tLabel(t, f.value))` — labels first, then content fallback.
+- Bank suggestionReason is generated at runtime in German (incl. one with an interpolated vendor label); map at render with `tSuggestionReason(t, reason)` via `beleg_reason_heuristic` / `beleg_reason_learned` ({{label}}). Never touch the data layer.
+
+**Verification that actually catches leaks:** statically extract every German string literal from `data/*.ts` and assert each is a key in `content.ts` OR `labels.ts` (or an intentional proper noun). tsc-clean + equal key counts alone will NOT catch a render site that forgot its `tContent`/`tLabel` wrap, or a CONTENT key whose text doesn't byte-match the source string.
+
+**Still German on purpose (≥95% target):** bank CSV parse/validation error messages, upload filenames containing month names. Both edge-case, data-layer-coupled.
