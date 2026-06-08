@@ -57,10 +57,14 @@ export function QuickAccess() {
               className="glass-card card-link group flex items-center gap-3 px-5 py-4 text-left"
             >
               <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-                style={{ color: item.color, backgroundColor: `color-mix(in srgb, ${item.color} 12%, white)` }}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-[1.06]"
+                style={{
+                  color: item.color,
+                  backgroundColor: `color-mix(in srgb, ${item.color} 14%, transparent)`,
+                  boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${item.color} 28%, transparent)`,
+                }}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-[1.4rem] w-[1.4rem]" strokeWidth={2.1} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold text-primary truncate">{t(item.labelKey)}</span>
