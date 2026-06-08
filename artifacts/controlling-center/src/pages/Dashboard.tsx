@@ -8,6 +8,7 @@ import { RiskBadge, statusLabel } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { QuickAccess } from "@/components/shared/QuickAccess";
+import { PanelHeader } from "@/components/shared/PanelHeader";
 import type { GlossaryKey } from "@/data";
 import {
   getFinance,
@@ -27,6 +28,7 @@ import {
   ReceiptText,
   Timer,
   LayoutDashboard,
+  ShieldAlert,
 } from "lucide-react";
 import {
   LineChart,
@@ -102,8 +104,12 @@ function Kpi({
           <Term k={glossary}>{title}</Term>
         </CardTitle>
         <span
-          className="flex h-11 w-11 items-center justify-center rounded-full"
-          style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, white)` }}
+          className="flex h-11 w-11 items-center justify-center rounded-2xl"
+          style={{
+            color,
+            backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
+            boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${color} 28%, transparent)`,
+          }}
         >
           {icon}
         </span>
@@ -183,7 +189,14 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-7">
         <Card className="glass-card lg:col-span-4">
           <CardHeader>
-            <CardTitle>{t("financial_development")}</CardTitle>
+            <PanelHeader
+              icon={TrendingUp}
+              color={BRASS}
+              title={t("financial_development")}
+              subtitle={`${t("kpi_revenue")} · ${t("kpi_ebitda")} · ${t("cogs")}`}
+              statValue={compact(f.revenue)}
+              statLabel={t("kpi_revenue")}
+            />
           </CardHeader>
           <CardContent className="pl-0">
             <div className="h-[300px]">
@@ -191,11 +204,11 @@ export default function Dashboard() {
                 <ComposedChart data={f.series}>
                   <defs>
                     <linearGradient id="grad-revenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={NAVY} stopOpacity={0.28} />
+                      <stop offset="0%" stopColor={NAVY} stopOpacity={0.22} />
                       <stop offset="100%" stopColor={NAVY} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
+                  <CartesianGrid vertical={false} stroke={CHART.grid} strokeOpacity={0.6} />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
                   <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={(v) => compact(v)} width={60} />
                   <RTooltip formatter={(v: number) => currency(v)} contentStyle={TOOLTIP_STYLE} cursor={{ stroke: CHART.grid }} />
@@ -211,7 +224,15 @@ export default function Dashboard() {
 
         <Card className="glass-card lg:col-span-3">
           <CardHeader>
-            <CardTitle><Term k="cashflow">{t("cashflow")}</Term></CardTitle>
+            <PanelHeader
+              icon={Wallet}
+              color={BLUE}
+              title={t("cashflow")}
+              subtitle={`${t("cf_operating")} · ${t("cf_investing")} · ${t("cf_financing")}`}
+              statValue={currency(cashflow.netChange)}
+              statLabel={t("difference")}
+              statClass={cashflow.netChange >= 0 ? "text-emerald-600" : "text-destructive"}
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             {[
@@ -248,7 +269,14 @@ export default function Dashboard() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle><Term k="cash_runway">{t("liquidity_forecast")}</Term></CardTitle>
+          <PanelHeader
+            icon={Timer}
+            color={AMBER}
+            title={t("liquidity_forecast")}
+            subtitle={`${t("best_case")} · ${t("realistic")} · ${t("worst_case")}`}
+            statValue={`${number(Math.round(f.cashRunway * 10) / 10)} ${t("months")}`}
+            statLabel={t("kpi_runway")}
+          />
         </CardHeader>
         <CardContent className="pl-0">
           <div className="h-[280px]">
@@ -268,7 +296,7 @@ export default function Dashboard() {
                     <stop offset="100%" stopColor={RED} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
+                <CartesianGrid vertical={false} stroke={CHART.grid} strokeOpacity={0.6} />
                 <XAxis dataKey="week" axisLine={false} tickLine={false} tick={AXIS_TICK} interval={1} dy={6} />
                 <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={(v) => compact(v)} width={60} />
                 <RTooltip formatter={(v: number) => currency(v)} contentStyle={TOOLTIP_STYLE} cursor={{ stroke: CHART.grid }} />
@@ -284,7 +312,14 @@ export default function Dashboard() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>{t("open_risks")}</CardTitle>
+          <PanelHeader
+            icon={ShieldAlert}
+            color={RED}
+            title={t("open_risks")}
+            subtitle={t("risiko_premortem")}
+            statValue={number(risks.filter((r) => r.status === "Offen").length)}
+            statLabel={t("open")}
+          />
         </CardHeader>
         <CardContent>
           <Table>
