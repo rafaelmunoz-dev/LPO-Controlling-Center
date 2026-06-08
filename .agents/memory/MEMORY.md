@@ -8,6 +8,7 @@
 - [Role overhaul legacy data](role-overhaul-legacy-data.md) — old "Controller" role survives rename and fails closed (silent 403 on writes); fix = DB migrate + normalizeRole() read-time backstop.
 - [SaaS auth & tenancy](controlling-center-saas-authz.md) — server role gate (canWriteDomain) must mirror governance.ts; new orgs start empty; invites Admin-only; org-scoping is a separate always-on check.
 - [Controlling Center i18n](controlling-center-i18n.md) — German enum/domain values render verbatim across the UI; route every select/badge/table/legend/tooltip/placeholder through a t() map, not just nav.
+- [Controlling Center i18n namespaces](controlling-center-i18n-namespaces.md) — translations split into src/i18n/namespaces/*; flat t("key") still works via globally-unique keys + fallbackNS; run i18n:check.
 - [PR lifecycle cross-links](pr-lifecycle-links.md) — PRs link to bank tx + inventory; delete paths must clear back-references or the PR orphans; stage gating reuses governance constants.
 - [Controlling Center CRUD gating](controlling-center-crud-gating.md) — capability can() checks must guard BOTH the rendered buttons AND inside save/delete handlers; UI-only gating is a client-side bypass.
 - [Controlling Center role model](controlling-center-scoped-permissions.md) — 3 org-wide levels Admin/Mitarbeiter/Betrachter + free-text jobTitle; NO per-company scoping; use can(role,cap)/isAdmin only (canScoped/managedEntities removed).
