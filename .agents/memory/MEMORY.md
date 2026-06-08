@@ -3,6 +3,7 @@
 - [Controlling Center entities](controlling-center-entities.md) — entities are mutable store state; every list/compare/search/select consumer must read the store, not static ENTITIES/ENTITY_CODES.
 - [Controlling Center groups](controlling-center-groups.md) — "group" is first-class (ViewKey group:<id>); use data/groups.ts helpers + registry; soft-archive only; exclude archived everywhere.
 - [Radix Select avatar gotcha](radix-select-value-rendering.md) — SelectValue re-renders the selected SelectItem's full children; don't also render an icon in the trigger or it doubles.
+- [CC persistence model](controlling-center-persistence.md) — store mutations are local-only; data-sync.ts diffs snapshots & PUTs to /api/records. Empty domain table usually means "none created", not "save broken".
 - [Role overhaul legacy data](role-overhaul-legacy-data.md) — old "Controller" role survives rename and fails closed (silent 403 on writes); fix = DB migrate + normalizeRole() read-time backstop.
 - [SaaS auth & tenancy](controlling-center-saas-authz.md) — server role gate (canWriteDomain) must mirror governance.ts; new orgs start empty; invites Admin-only; org-scoping is a separate always-on check.
 - [Controlling Center i18n](controlling-center-i18n.md) — German enum/domain values render verbatim across the UI; route every select/badge/table/legend/tooltip/placeholder through a t() map, not just nav.

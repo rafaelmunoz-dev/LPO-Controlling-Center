@@ -2,6 +2,13 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 const de = {
+  // nav sections (rubrics)
+  nav_sec_overview: "Übersicht",
+  nav_sec_finance: "Finanzen",
+  nav_sec_structure: "Struktur",
+  nav_sec_operations: "Betrieb",
+  nav_sec_strategy: "Strategie & Risiko",
+  nav_sec_admin: "Verwaltung",
   // nav
   dashboard: "Dashboard",
   finanzen: "Finanzen",
@@ -882,6 +889,12 @@ const de = {
 };
 
 const en: typeof de = {
+  nav_sec_overview: "Overview",
+  nav_sec_finance: "Finance",
+  nav_sec_structure: "Structure",
+  nav_sec_operations: "Operations",
+  nav_sec_strategy: "Strategy & Risk",
+  nav_sec_admin: "Administration",
   dashboard: "Dashboard",
   finanzen: "Finance",
   belege: "Receipts",
@@ -1749,6 +1762,12 @@ const en: typeof de = {
 };
 
 const es: typeof de = {
+  nav_sec_overview: "Resumen",
+  nav_sec_finance: "Finanzas",
+  nav_sec_structure: "Estructura",
+  nav_sec_operations: "Operaciones",
+  nav_sec_strategy: "Estrategia y riesgo",
+  nav_sec_admin: "Administración",
   dashboard: "Tablero",
   finanzen: "Finanzas",
   belege: "Recibos",
