@@ -108,4 +108,84 @@ router.post("/ai/classify-expense", async (req, res) => {
   }
 });
 
+interface ChatMessage {
+  role?: unknown;
+  content?: unknown;
+}
+
+interface ChatBody {
+  question?: unknown;
+  context?: unknown;
+  language?: unknown;
+  history?: unknown;
+}
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  de: "German (Deutsch)",
+  en: "English",
+  es: "Spanish (Español)",
+};
+
+router.post("/ai/chat", async (req, res) => {
+  const body = (req.body ?? {}) as ChatBody;
+  const question = typeof body.question === "string" ? body.question.trim() : "";
+  const context = typeof body.context === "string" ? body.context.trim() : "";
+  const langCode = typeof body.language === "string" ? body.language.slice(0, 2).toLowerCase() : "de";
+  const language = LANGUAGE_LABELS[langCode] ?? "German (Deutsch)";
+
+  if (!question) {
+    res.status(400).json({ error: "question required" });
+    return;
+  }
+
+  const history: { role: "user" | "assistant"; content: string }[] = Array.isArray(body.history)
+    ? (body.history as ChatMessage[])
+        .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && (m.content as string).trim().length > 0)
+        .slice(-8)
+        .map((m) => ({ role: m.role as "user" | "assistant", content: (m.content as string).trim() }))
+    : [];
+
+  const openai = await getOpenAI();
+  if (!openai) {
+    res.status(503).json({ error: "ai_unavailable" });
+    return;
+  }
+
+  try {
+    const systemPrompt = [
+      "You are the AI Copilot inside the LPO Controlling Center, a corporate financial controlling tool for a group of companies.",
+      "Your role is to help finance and management users understand their numbers: answer free-form questions, explain financial terms in plain language, and surface relevant insights, deviations, and risks.",
+      `Always answer in ${language}, regardless of the language of the question or the context data.`,
+      "Ground every factual statement in the CONTEXT block below, which reflects exactly what the user is currently looking at. Use those figures; do not invent numbers. If the context does not contain the answer, say so honestly and explain what is missing.",
+      "When asked to explain a term, give a concise, accessible definition and then relate it to the user's current figures when relevant.",
+      "You are read-only and advisory: you cannot create tasks, reports, risks, or change any data. If asked to perform such an action, explain that the user can do it via the buttons in the app.",
+      "Keep answers focused and reasonably short; use brief lists when helpful. Format currency clearly.",
+      "",
+      "CONTEXT (current page and data the user sees):",
+      context || "(no context provided)",
+    ].join("\n");
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5-mini",
+      max_completion_tokens: 8192,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...history,
+        { role: "user", content: question },
+      ],
+    });
+
+    const answer = response.choices[0]?.message?.content?.trim() ?? "";
+    if (!answer) {
+      res.status(502).json({ error: "ai_empty" });
+      return;
+    }
+
+    res.json({ answer });
+  } catch (err) {
+    req.log?.error({ err }, "ai chat failed");
+    res.status(503).json({ error: "ai_unavailable" });
+  }
+});
+
 export default router;

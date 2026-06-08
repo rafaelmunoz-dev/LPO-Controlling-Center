@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
-import { X, Send, Sparkles, ListTodo, FileText, ShieldAlert, Maximize2, Minimize2, History, FlaskConical } from "lucide-react";
+import { X, Send, Sparkles, ListTodo, FileText, ShieldAlert, Maximize2, Minimize2, History, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { answerCopilot, getCopilotSuggestions, defaultFirmForView } from "@/data";
+import { buildCopilotContext, getCopilotSuggestions, defaultFirmForView } from "@/data";
+import { chatCopilot, type CopilotChatMessage } from "@/lib/ai";
 import { can } from "@/data/governance";
 import type { EntityCode, Risk } from "@/data/types";
 
@@ -14,6 +15,7 @@ interface Msg {
   role: "user" | "bot";
   text: string;
   question?: string;
+  error?: boolean;
 }
 
 export function CopilotPanel() {
@@ -29,7 +31,7 @@ export function CopilotPanel() {
     addRisk,
     currentUser,
   } = useAppStore();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const canTask = can(currentUser.role, "tasks:create");
   const canReport = can(currentUser.role, "reports:create");
   const canRisk = can(currentUser.role, "risiko:create");
@@ -37,19 +39,42 @@ export function CopilotPanel() {
   const [input, setInput] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<Msg[]>([]);
+  messagesRef.current = messages;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, loading]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     const q = text.trim();
-    if (!q) return;
-    const reply = answerCopilot(q, selectedEntity);
-    setMessages((m) => [...m, { role: "user", text: q }, { role: "bot", text: reply, question: q }]);
+    if (!q || loading) return;
+    const priorMessages = messagesRef.current;
+    setMessages((m) => [...m, { role: "user", text: q }]);
     setHistory((h) => [q, ...h.filter((x) => x !== q)].slice(0, 6));
     setInput("");
+    setLoading(true);
+
+    const chatHistory: CopilotChatMessage[] = priorMessages
+      .filter((m) => !m.error)
+      .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
+
+    const result = await chatCopilot({
+      question: q,
+      context: buildCopilotContext(selectedEntity, copilotContext),
+      history: chatHistory,
+      language: i18n.language,
+    });
+
+    if (result.ok) {
+      setMessages((m) => [...m, { role: "bot", text: result.answer, question: q }]);
+    } else {
+      const text = result.error === "unavailable" ? t("copilot_unavailable") : t("copilot_error");
+      setMessages((m) => [...m, { role: "bot", text, error: true }]);
+    }
+    setLoading(false);
   };
 
   // consume a seeded question coming from anywhere in the app
@@ -114,13 +139,6 @@ export function CopilotPanel() {
         </div>
       </div>
 
-      <div className="px-4 pt-3">
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[0.7rem] leading-snug text-amber-700" data-testid="notice-copilot-simulated">
-          <FlaskConical className="h-3.5 w-3.5 shrink-0" />
-          <span>{t("sim_copilot_note")}</span>
-        </div>
-      </div>
-
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-3">
           {messages.length === 0 && (
@@ -131,16 +149,19 @@ export function CopilotPanel() {
           {messages.map((m, i) => (
             <div key={i} className="space-y-1.5">
               <div
-                className={`text-sm p-3 rounded-2xl max-w-[92%] ${
+                className={`text-sm p-3 rounded-2xl max-w-[92%] whitespace-pre-wrap ${
                   m.role === "user"
                     ? "brass-gradient text-white ml-auto rounded-br-sm"
-                    : "bg-muted/50 border border-slate-200/70 rounded-tl-sm"
+                    : m.error
+                      ? "bg-destructive/10 border border-destructive/30 text-destructive rounded-tl-sm flex items-start gap-2"
+                      : "bg-muted/50 border border-slate-200/70 rounded-tl-sm"
                 }`}
-                data-testid={`msg-${m.role}-${i}`}
+                data-testid={`msg-${m.error ? "error" : m.role}-${i}`}
               >
-                {m.text}
+                {m.error && <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />}
+                <span>{m.text}</span>
               </div>
-              {m.role === "bot" && m.question && (canTask || canReport || canRisk) && (
+              {m.role === "bot" && m.question && !m.error && (canTask || canReport || canRisk) && (
                 <div className="flex flex-wrap gap-1.5">
                   {canTask && (
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs bg-muted/50" onClick={() => saveTask(m)} data-testid={`action-task-${i}`}>
@@ -165,7 +186,14 @@ export function CopilotPanel() {
             </div>
           ))}
 
-          {messages.length === 0 && (
+          {loading && (
+            <div className="flex items-center gap-2 text-sm p-3 rounded-2xl rounded-tl-sm bg-muted/50 border border-slate-200/70 max-w-[92%] text-muted-foreground" data-testid="copilot-loading">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t("copilot_thinking")}
+            </div>
+          )}
+
+          {messages.length === 0 && !loading && (
             <div className="pt-2 space-y-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Sparkles className="h-3 w-3" /> {t("suggested_questions")}
@@ -206,12 +234,13 @@ export function CopilotPanel() {
             placeholder={t("ask_placeholder")}
             className="text-sm h-9 bg-muted/50"
             value={input}
+            disabled={loading}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
             data-testid="input-copilot"
           />
-          <Button size="icon" className="h-9 w-9 shrink-0" onClick={() => send(input)} data-testid="button-send-copilot">
-            <Send className="h-4 w-4" />
+          <Button size="icon" className="h-9 w-9 shrink-0" onClick={() => send(input)} disabled={loading} data-testid="button-send-copilot">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       </div>

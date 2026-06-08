@@ -118,54 +118,106 @@ export function getInsights(context: CopilotContext, view: ViewKey): Insight[] {
   }
 }
 
-export function answerCopilot(question: string, view: ViewKey): string {
-  const q = question.toLowerCase();
+// Build a compact, structured snapshot of the data the user is currently
+// looking at. This is sent to the LLM as grounding context so the assistant
+// reasons over the real figures for the selected view/page instead of guessing.
+export function buildCopilotContext(view: ViewKey, context: CopilotContext): string {
   const f = getFinance(view);
+  const lines: string[] = [];
 
-  if (q.includes("kosten") && (q.includes("steig") || q.includes("warum"))) {
-    return `Für ${view} liegen die Kosten bei ${fmt(f.revenue - f.ebitda)}. Haupttreiber sind Warenkosten (~60% vom Umsatz) und gestiegene Rohstoffpreise. Die Operative Marge (EBITDA) beträgt aktuell ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp ggü. Vormonat).`;
-  }
-  if (q.includes("marge") || q.includes("margin")) {
-    return `Die Operative Marge (EBITDA) für ${view} liegt bei ${f.ebitdaMargin.toFixed(1)}% (${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} Pp ggü. Vormonat). Sie zeigt, wie viel operativer Gewinn aus jedem Euro Umsatz übrig bleibt.`;
-  }
-  if (q.includes("risiko") || q.includes("risk")) {
-    if (q.includes("nächst") || q.includes("monat")) {
-      const rising = RISKS.filter((r) => r.trend === "up");
-      return `Im nächsten Monat steigende Risiken: ${rising.map((r) => `${r.title} (${r.entity})`).join(", ")}. Empfehlung: Lieferketten und Projektpuffer priorisieren.`;
-    }
-    const high = RISKS.filter((r) => r.impact === "Hoch" && r.status === "Offen");
-    return `Höchstes Risiko trägt aktuell C&A (Projektverzug Hafencity, hohe Wahrscheinlichkeit und Wirkung). Offene Hochrisiken insgesamt: ${high.length}.`;
-  }
-  if (q.includes("kaufanfrage") || q.includes("einkauf") || q.includes("purchase") || q.includes("lieferant")) {
-    const open = PURCHASE_REQUESTS.filter((p) => ["Entwurf", "Eingereicht", "In Prüfung"].includes(p.status));
-    return `Offene Kaufanfragen: ${open.length}. Beispiele: ${open.slice(0, 3).map((p) => `${p.id} ${p.title} (${fmt(p.amount)})`).join("; ")}.`;
-  }
-  if (q.includes("budget") || q.includes("abweich")) {
+  lines.push(`Selected view: ${view}`);
+  lines.push(`Active page: ${context}`);
+  lines.push("");
+  lines.push("Financial KPIs (current view):");
+  lines.push(`- Revenue: ${fmt(f.revenue)} (${f.revenueChange >= 0 ? "+" : ""}${f.revenueChange.toFixed(1)}% vs. prior month)`);
+  lines.push(`- EBITDA: ${fmt(f.ebitda)} (margin ${f.ebitdaMargin.toFixed(1)}%, ${f.marginChange >= 0 ? "+" : ""}${f.marginChange.toFixed(1)} pp)`);
+  lines.push(`- Net profit: ${fmt(f.netProfit)} (${f.netChange >= 0 ? "+" : ""}${f.netChange.toFixed(1)}%)`);
+  lines.push(`- Cash: ${fmt(f.cash)} (runway ${f.cashRunway.toFixed(1)} months)`);
+  lines.push(`- Open invoices: ${fmt(f.openInvoices)} across ${f.openInvoicesCount} items`);
+  lines.push(`- Overall risk level: ${f.riskLevel}`);
+
+  const addBudget = () => {
     const b = getBudget(view);
-    const over = b.filter((r) => r.actual > r.budget);
-    return `Budgetabweichungen für ${view}: ${over.map((r) => `${r.category} ${fmt(r.actual - r.budget)} über Plan`).join("; ") || "keine wesentlichen Überschreitungen"}.`;
-  }
-  if (q.includes("upload") || q.includes("datei")) {
-    const issues = UPLOADS.filter((u) => u.status === "Fehler" || u.status === "Neu");
-    return `Zu prüfende Uploads: ${issues.map((u) => `${u.fileName} (${u.status})`).join(", ")}. Fehlerhafte Dateien blockieren die Verarbeitung des Monatsabschlusses.`;
-  }
-  if (q.includes("strategie") || q.includes("strategy")) {
-    const due = STRATEGY_DECISIONS.filter((s) => s.evaluation === "Offen" || s.evaluation === "Verfehlt");
-    return `Überprüfung nötig: ${due.map((s) => `${s.title} (${s.evaluation}, Review ${s.reviewDate})`).join("; ")}.`;
-  }
-  if (q.includes("inventar") || q.includes("gerät") || q.includes("device") || q.includes("zugewiesen")) {
+    const over = b.filter((r) => r.actual > r.budget && r.category !== "Umsatzerlöse");
+    lines.push("");
+    lines.push("Budget vs. actual (over-plan categories):");
+    if (over.length === 0) lines.push("- All cost categories are within budget.");
+    else over.forEach((r) => lines.push(`- ${r.category}: actual ${fmt(r.actual)} vs. budget ${fmt(r.budget)} (+${fmt(r.actual - r.budget)})`));
+  };
+
+  const addPL = () => {
+    const pl = getProfitLoss(view);
+    lines.push("");
+    lines.push("Profit & loss statement:");
+    pl.forEach((r) => lines.push(`- ${r.label}: ${fmt(r.value)}`));
+  };
+
+  const addPurchases = () => {
+    const open = PURCHASE_REQUESTS.filter((p) => ["Entwurf", "Eingereicht", "In Prüfung"].includes(p.status));
+    lines.push("");
+    lines.push(`Purchase requests (${PURCHASE_REQUESTS.length} total, ${open.length} open):`);
+    PURCHASE_REQUESTS.forEach((p) => lines.push(`- ${p.id} ${p.title} · ${p.supplier} · ${fmt(p.amount)} · ${p.entity} · status ${p.status}`));
+  };
+
+  const addInventory = () => {
     const value = INVENTORY.reduce((a, i) => a + i.currentValue, 0);
     const free = INVENTORY.filter((i) => i.status === "verfügbar").length;
-    return `Inventarwert aktuell ${fmt(value)}. Verfügbar zur Zuweisung: ${free} Geräte. Offene Rückgaben: 1 (Sofia Martín – iPad Pro).`;
+    const repair = INVENTORY.filter((i) => i.status === "in Reparatur" || i.status === "verloren").length;
+    lines.push("");
+    lines.push(`Inventory: ${INVENTORY.length} devices, book value ${fmt(value)}, ${free} available, ${repair} in repair/lost.`);
+  };
+
+  const addRisks = () => {
+    lines.push("");
+    lines.push(`Risks (${RISKS.length} total):`);
+    RISKS.forEach((r) => lines.push(`- ${r.title} · ${r.entity} · impact ${r.impact} · probability ${r.probability} · trend ${r.trend} · status ${r.status}`));
+  };
+
+  const addStrategy = () => {
+    lines.push("");
+    lines.push("Strategy decisions:");
+    STRATEGY_DECISIONS.forEach((s) => lines.push(`- ${s.title} · evaluation ${s.evaluation} · review ${s.reviewDate} · KPI ${s.actualKpi}`));
+  };
+
+  const addUploads = () => {
+    const issues = UPLOADS.filter((u) => u.status === "Fehler" || u.status === "Neu" || u.status === "In Prüfung");
+    lines.push("");
+    lines.push(`Uploads needing attention (${issues.length}):`);
+    issues.forEach((u) => lines.push(`- ${u.fileName} · ${u.entity} · ${u.period} · status ${u.status}${u.note ? ` · ${u.note}` : ""}`));
+  };
+
+  switch (context) {
+    case "finanzen":
+      addPL();
+      addBudget();
+      break;
+    case "einkauf":
+    case "freigaben":
+      addPurchases();
+      break;
+    case "inventar":
+      addInventory();
+      break;
+    case "risiko":
+      addRisks();
+      break;
+    case "strategie":
+      addStrategy();
+      break;
+    case "reports":
+      addPL();
+      addBudget();
+      addRisks();
+      break;
+    case "dashboard":
+      addBudget();
+      addRisks();
+      break;
+    default:
+      addBudget();
+      break;
   }
-  if (q.includes("ebitda")) {
-    return `Operativer Gewinn (EBITDA) steht für „Earnings Before Interest, Taxes, Depreciation and Amortization" – also das Ergebnis vor Zinsen, Steuern und Abschreibungen. Es zeigt die operative Ertragskraft. Für ${view}: ${fmt(f.ebitda)} (${f.ebitdaMargin.toFixed(1)}% Marge).`;
-  }
-  if (q.includes("umsatz") || q.includes("revenue")) {
-    return `Umsatz für ${view}: ${fmt(f.revenue)} (${f.revenueChange >= 0 ? "+" : ""}${f.revenueChange.toFixed(1)}% ggü. Vormonat). Nettoergebnis: ${fmt(f.netProfit)}.`;
-  }
-  if (q.includes("liquid") || q.includes("cash")) {
-    return `Liquidität für ${view}: ${fmt(f.cash)}, Cash Runway ${f.cashRunway.toFixed(1)} Monate. 13-Wochen-Forecast verfügbar in den Finanzen.`;
-  }
-  return `Ich habe das auf Basis der aktuellen Daten für ${view} geprüft. Stelle mir gern eine Frage zu Umsatz, Kosten, Marge, Liquidität, Risiken, Einkauf, Budgetabweichungen, Inventar oder Strategie.`;
+  addUploads();
+
+  return lines.join("\n");
 }

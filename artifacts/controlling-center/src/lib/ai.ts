@@ -39,3 +39,43 @@ export async function aiSuggestExpense(input: {
     return null;
   }
 }
+
+export interface CopilotChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export type CopilotChatResult =
+  | { ok: true; answer: string }
+  | { ok: false; error: "unavailable" | "failed" };
+
+/**
+ * Ask the AI Copilot a free-form question. Unlike the expense classifier, this
+ * surfaces failures explicitly (it never fabricates an answer) so the UI can
+ * show a clear error state when the model is unavailable.
+ */
+export async function chatCopilot(input: {
+  question: string;
+  context: string;
+  history: CopilotChatMessage[];
+  language: string;
+}): Promise<CopilotChatResult> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const res = await fetch(`${API_BASE}/ai/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (res.status === 503) return { ok: false, error: "unavailable" };
+    if (!res.ok) return { ok: false, error: "failed" };
+    const data = (await res.json()) as { answer?: string };
+    if (!data.answer || !data.answer.trim()) return { ok: false, error: "failed" };
+    return { ok: true, answer: data.answer.trim() };
+  } catch {
+    return { ok: false, error: "failed" };
+  }
+}

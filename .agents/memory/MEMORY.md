@@ -10,4 +10,5 @@
 - [Controlling Center role model](controlling-center-scoped-permissions.md) — 3 org-wide levels Admin/Mitarbeiter/Betrachter + free-text jobTitle; NO per-company scoping; use can(role,cap)/isAdmin only (canScoped/managedEntities removed).
 - [OpenAI AI server lib build](openai-ai-server-lib-build.md) — referencing lib/integrations-openai-ai-server triggers TS6305 until you tsc -b its declarations; its image/client.ts has pre-existing null errors that block the build.
 - [Clerk managed production](clerk-managed-production.md) — Replit-managed Clerk: never manually swap to live keys; prod is automatic on publish, dev-key warning is expected.
+- [Copilot AI surfaces](copilot-ai-surfaces.md) — two AI endpoints: classify-expense fails silent (null fallback); /ai/chat Copilot fails loud, never fabricates; context built client-side.
 - [Controlling Center persistence layers](controlling-center-persistence-layers.md) — adding a new org-scoped persisted collection means editing 6 layers in lockstep (schema, records route, auth role gate, api.ts, data-sync, store hydrate); append-by-anyone needs all roles or sync 403-loops.
