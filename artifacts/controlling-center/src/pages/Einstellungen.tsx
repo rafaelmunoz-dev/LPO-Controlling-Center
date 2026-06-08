@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
+import { getMicrosoftStatus } from "@/lib/api";
 import { TeamSettings } from "@/components/settings/TeamSettings";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader, statusLabel } from "@/components/shared/page";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { SimulatedNotice } from "@/components/shared/SimNotice";
+import { SimulatedNotice, SimulatedBadge } from "@/components/shared/SimNotice";
 import { MS_ADAPTERS, groupViewKey, labelForView } from "@/data";
 import { EntitySettings } from "@/components/settings/EntitySettings";
 import { ROLE_DEFS, ROLE_PERMISSIONS, NAV_KEYS, SETTINGS_ADMIN_ROLES } from "@/data/governance";
@@ -74,6 +75,24 @@ export default function Einstellungen() {
     MS_ADAPTERS.map((a) => ({ ...a, connected: a.status !== "Nicht verbunden", lastSyncTime: a.lastSync }))
   );
   const [apps, setApps] = useState(EXTERNAL_APPS);
+  const [msConnected, setMsConnected] = useState<boolean | null>(null);
+  const [msChecking, setMsChecking] = useState(false);
+
+  const checkMicrosoft = () => {
+    setMsChecking(true);
+    getMicrosoftStatus()
+      .then((s) => setMsConnected(s.connected))
+      .catch(() => setMsConnected(false))
+      .finally(() => setMsChecking(false));
+  };
+
+  useEffect(() => {
+    let active = true;
+    getMicrosoftStatus()
+      .then((s) => active && setMsConnected(s.connected))
+      .catch(() => active && setMsConnected(false));
+    return () => { active = false; };
+  }, []);
   const [security, setSecurity] = useState({ twoFactor: true, sso: false, auditLog: true, sessionTimeout: [30] });
   const [copilot, setCopilot] = useState({ proactive: true, autoSummary: true, suggestActions: true, tone: "factual" });
 
@@ -105,7 +124,6 @@ export default function Einstellungen() {
     }));
   };
 
-  const connectedAdapters = adapters.filter((a) => a.connected).length;
 
   return (
     <div className="space-y-6">
@@ -236,21 +254,57 @@ export default function Einstellungen() {
         {/* MICROSOFT 365 */}
         <TabsContent value="microsoft">
           <div className="space-y-6">
-            <SimulatedNotice text={t("sim_ms_note")} />
+            <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground" data-testid="notice-ms-integration">
+              {t("ms_integration_note")}
+            </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{adapters.length}</div><div className="text-sm text-muted-foreground mt-1">{t("set_adapters")}</div></CardContent></Card>
-              <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-emerald-600">{connectedAdapters}</div><div className="text-sm text-muted-foreground mt-1">{t("set_connected")}</div></CardContent></Card>
-              <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{adapters.length - connectedAdapters}</div><div className="text-sm text-muted-foreground mt-1">{t("set_disconnected")}</div></CardContent></Card>
+              <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-emerald-600">{msConnected ? 1 : 0}</div><div className="text-sm text-muted-foreground mt-1">{t("set_connected")}</div></CardContent></Card>
+              <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{adapters.length - (msConnected ? 1 : 0)}</div><div className="text-sm text-muted-foreground mt-1">{t("set_disconnected")}</div></CardContent></Card>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {adapters.map((a) => (
+              {adapters.map((a) => {
+                const isForms = a.service === "Microsoft Forms";
+                if (isForms) {
+                  const connected = msConnected === true;
+                  return (
+                    <Card key={a.service} className="glass-card ring-1 ring-primary/20" data-testid={`card-adapter-${a.service}`}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold">{a.service.slice(0, 2)}</div>
+                            <div>
+                              <CardTitle className="text-base flex items-center gap-2">{a.service}<Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]">{t("ms_live")}</Badge></CardTitle>
+                              <p className="text-xs text-muted-foreground mt-0.5">{t(MS_DESC_KEY[a.service])}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">{t("status")}</span>
+                          {msConnected === null
+                            ? <Badge variant="outline" className="gap-1 bg-slate-500/10 text-slate-600 border-slate-500/20"><RefreshCw className="h-3.5 w-3.5 animate-spin" /> {t("ms_checking")}</Badge>
+                            : connected
+                              ? <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><CheckCircle2 className="h-3.5 w-3.5" /> {t("set_connected")}</Badge>
+                              : <Badge variant="outline" className="gap-1 bg-slate-500/10 text-slate-600 border-slate-500/20"><XCircle className="h-3.5 w-3.5" /> {t("set_disconnected")}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{connected ? t("ms_forms_settings_connected_hint") : t("ms_forms_settings_disconnected_hint")}</p>
+                        <Button variant="outline" size="sm" className="w-full" disabled={msChecking} onClick={checkMicrosoft} data-testid={`button-sync-${a.service}`}>
+                          <RefreshCw className={`h-4 w-4 mr-1.5 ${msChecking ? "animate-spin" : ""}`} /> {t("ms_check_connection")}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+                return (
                 <Card key={a.service} className="glass-card" data-testid={`card-adapter-${a.service}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold">{a.service.slice(0, 2)}</div>
                         <div>
-                          <CardTitle className="text-base">{a.service}</CardTitle>
+                          <CardTitle className="text-base flex items-center gap-2">{a.service}<SimulatedBadge label={t("sim_simulated")} /></CardTitle>
                           <p className="text-xs text-muted-foreground mt-0.5">{MS_DESC_KEY[a.service] ? t(MS_DESC_KEY[a.service]) : a.description}</p>
                         </div>
                       </div>
@@ -270,7 +324,8 @@ export default function Einstellungen() {
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
         </TabsContent>

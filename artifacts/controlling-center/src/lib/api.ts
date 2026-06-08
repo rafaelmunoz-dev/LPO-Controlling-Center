@@ -204,3 +204,34 @@ export const putRecord = <K extends DomainKind>(kind: K, id: string, data: Domai
 
 export const deleteRecord = (kind: DomainKind, id: string) =>
   http<void>(`/records/${KIND_PATH[kind]}/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+// ---- Microsoft 365 (OneDrive / Forms) integration ------------------------
+
+export interface MsConnectionStatus {
+  connected: boolean;
+}
+
+export interface MsFormFile {
+  id: string;
+  name: string;
+  lastModified: string;
+}
+
+export interface MsFormResponse {
+  id: string;
+  form: string;
+  respondent: string;
+  submittedAt: string;
+  fields: { label: string; value: string }[];
+}
+
+export const getMicrosoftStatus = () =>
+  http<MsConnectionStatus>("/microsoft/status");
+
+export const listMicrosoftFormFiles = () =>
+  http<{ files: MsFormFile[] }>("/microsoft/forms/files");
+
+export const getMicrosoftFormResponses = (fileId: string, fileName: string) =>
+  http<{ form: string; responses: MsFormResponse[] }>(
+    `/microsoft/forms/responses?fileId=${encodeURIComponent(fileId)}&fileName=${encodeURIComponent(fileName)}`,
+  );

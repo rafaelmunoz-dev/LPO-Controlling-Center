@@ -15,10 +15,11 @@ import { PageHeader, StatusBadge } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import { PurchaseRequestLifecycle } from "@/components/shared/PurchaseRequestLifecycle";
-import { scopeByEntity, FORM_RESPONSES, defaultFirmForView, formatCurrency } from "@/data";
+import { scopeByEntity, defaultFirmForView, formatCurrency } from "@/data";
+import { MsFormsImport } from "@/components/shared/MsFormsImport";
 import { can, CREATE_PR_ROLES, APPROVER_ROLES } from "@/data/governance";
 import type { EntityCode, PurchaseRequest, Supplier } from "@/data/types";
-import { ShoppingCart, Plus, Star, CheckCircle2, XCircle, FileInput, Pencil, Trash2, Paperclip, FileText, X } from "lucide-react";
+import { ShoppingCart, Plus, Star, CheckCircle2, XCircle, Pencil, Trash2, Paperclip, FileText, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -30,14 +31,12 @@ export default function Einkauf() {
   const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser, suppliers, addSupplier, updateSupplier, removeSupplier, logAction, entities } = useAppStore();
   const ownPRsOnly = currentUser.role === "Mitarbeiter";
   const prs = scopeByEntity(purchaseRequests, selectedEntity).filter((p) => !ownPRsOnly || p.requestedBy === currentUser.name);
-  const forms = scopeByEntity(FORM_RESPONSES, selectedEntity);
   const canCreatePR = CREATE_PR_ROLES.includes(currentUser.role);
   const canApprovePR = APPROVER_ROLES.includes(currentUser.role);
   const canSupCreate = can(currentUser.role, "lieferant:create");
   const canSupEdit = can(currentUser.role, "lieferant:edit");
   const canSupDelete = can(currentUser.role, "lieferant:delete");
   const [open, setOpen] = useState(false);
-  const [convertedIds, setConvertedIds] = useState<string[]>([]);
   const [form, setForm] = useState({ title: "", supplier: suppliers[0]?.name ?? "", amount: "", category: "IT-Hardware", justification: "", entity: (defaultFirmForView(selectedEntity) ?? "IMP") as EntityCode });
   const [offers, setOffers] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,29 +105,6 @@ export default function Einkauf() {
     setOpen(false);
     setForm({ ...form, title: "", amount: "", justification: "" });
     setOffers([]);
-  };
-
-  const convertForm = (id: string) => {
-    if (!canCreatePR) { toast.error(t("no_permission")); return; }
-    const fr = FORM_RESPONSES.find((f) => f.id === id);
-    if (!fr) return;
-    if (fr.converted || convertedIds.includes(id)) { toast.error(t("toast_form_converted_already")); return; }
-    const pr: PurchaseRequest = {
-      id: `PR-${Math.floor(Math.random() * 9000 + 1000)}`,
-      title: fr.fields[0]?.value ?? fr.form,
-      supplier: fr.fields.find((f) => /lieferant/i.test(f.label))?.value ?? "Unbekannt",
-      amount: Number((fr.fields.find((f) => /kosten|betrag/i.test(f.label))?.value ?? "0").replace(/[^\d]/g, "")) || 0,
-      entity: fr.entity,
-      category: "Aus Formular",
-      justification: fr.fields.find((f) => /begründung/i.test(f.label))?.value ?? "",
-      status: "Eingereicht",
-      requestedBy: fr.respondent,
-      createdAt: new Date().toISOString().slice(0, 10),
-      source: "Microsoft Forms",
-    };
-    addPurchaseRequest(pr);
-    setConvertedIds((ids) => [...ids, id]);
-    toast.success(t("toast_form_converted", { id: pr.id }));
   };
 
   const volume = prs.reduce((a, p) => a + p.amount, 0);
@@ -301,23 +277,8 @@ export default function Einkauf() {
         <TabsContent value="forms">
           <Card className="glass-card">
             <CardHeader><CardTitle>{t("einkauf_forms_title")}</CardTitle><p className="text-sm text-muted-foreground">{t("einkauf_forms_subtitle")}</p></CardHeader>
-            <CardContent className="space-y-4">
-              {forms.map((fr) => (
-                <div key={fr.id} className="border border-border rounded-xl p-4" data-testid={`form-${fr.id}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-medium flex items-center gap-2"><FileInput className="h-4 w-4 text-primary" /> {fr.form}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{fr.respondent} · {fr.entity} · {fr.submittedAt}</div>
-                    </div>
-                    {(fr.converted || convertedIds.includes(fr.id)) ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{t("einkauf_converted")}</Badge>
-                      : canCreatePR ? <Button size="sm" onClick={() => convertForm(fr.id)} data-testid={`button-convert-${fr.id}`}>{t("einkauf_to_pr")}</Button> : null}
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
-                    {fr.fields.map((f, i) => (<div key={i} className="flex justify-between border-b border-dashed border-border/60 py-1"><span className="text-muted-foreground">{f.label}</span><span className="font-medium">{f.value}</span></div>))}
-                  </div>
-                </div>
-              ))}
-              {forms.length === 0 && <p className="text-center text-muted-foreground py-8">{t("einkauf_empty_forms")}</p>}
+            <CardContent>
+              <MsFormsImport />
             </CardContent>
           </Card>
         </TabsContent>
