@@ -143,7 +143,7 @@ export function Topbar() {
                   <button
                     type="button"
                     onClick={() => { setEntitySelectOpen(false); setGroupCreateOpen(true); }}
-                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent hover:text-accent-foreground"
+                    className="flex w-full items-center gap-2 rounded-full px-3 py-2 text-sm text-primary hover:bg-accent hover:text-accent-foreground"
                     data-testid="button-topbar-create-group"
                   >
                     <Building2 className="h-4 w-4" />
@@ -152,7 +152,7 @@ export function Topbar() {
                   <button
                     type="button"
                     onClick={() => { setEntitySelectOpen(false); setEntityCreateOpen(true); }}
-                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent hover:text-accent-foreground"
+                    className="flex w-full items-center gap-2 rounded-full px-3 py-2 text-sm text-primary hover:bg-accent hover:text-accent-foreground"
                     data-testid="button-topbar-create-entity"
                   >
                     <Plus className="h-4 w-4" />
@@ -202,7 +202,7 @@ export function Topbar() {
             </button>
           )}
           {searchOpen && query.trim() && (
-            <div className="absolute top-11 left-0 right-0 glass-panel rounded-xl border border-slate-200/80 p-1.5 shadow-xl max-h-96 overflow-y-auto thin-scroll z-50">
+            <div className="absolute top-11 left-0 right-0 glass-panel rounded-2xl border border-slate-200/80 p-1.5 shadow-xl max-h-96 overflow-y-auto thin-scroll z-50">
               {results.length === 0 ? (
                 <p className="text-sm text-muted-foreground p-3 text-center">{t("no_results")}</p>
               ) : (
@@ -210,7 +210,7 @@ export function Topbar() {
                   <button
                     key={i}
                     onClick={() => goTo(r)}
-                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted"
+                    className="w-full flex items-center gap-3 rounded-full px-3 py-2 text-left hover:bg-muted"
                     data-testid={`search-result-${i}`}
                   >
                     <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-brass shrink-0 w-16">{r.type}</span>
@@ -237,7 +237,7 @@ export function Topbar() {
             <DropdownMenuSeparator />
             {openTasks.length === 0 && <DropdownMenuItem disabled>{t("no_tasks")}</DropdownMenuItem>}
             {openTasks.map((task) => (
-              <DropdownMenuItem key={task.id} onClick={() => navigate("/freigaben")} className="flex-col items-start gap-0.5 py-2">
+              <DropdownMenuItem key={task.id} onClick={() => navigate("/freigaben")} className="flex-col items-start gap-0.5 py-2 rounded-xl">
                 <span className="text-sm">{task.title}</span>
                 <span className="text-[0.65rem] text-muted-foreground">{task.context}</span>
               </DropdownMenuItem>
