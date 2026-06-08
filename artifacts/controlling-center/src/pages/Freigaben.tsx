@@ -9,22 +9,82 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader, StatusBadge, statusLabel } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { scopeByEntity, formatCurrency } from "@/data";
-import type { Approval } from "@/data/types";
+import type { Approval, ApprovalStatus, ApprovalType, EntityCode, PurchaseRequest } from "@/data/types";
 import { CheckSquare, CheckCircle2, XCircle, FileText, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { APPROVER_ROLES } from "@/data/governance";
 import { useTranslation } from "react-i18next";
 
+// Unified review item: seeded governance approvals plus purchase requests
+// employees submit in Einkauf, so the approver receives both in one place.
+interface ReviewItem {
+  source: "approval" | "pr";
+  id: string;
+  type: ApprovalType;
+  subject: string;
+  entity: EntityCode;
+  amount?: number;
+  requestedBy: string;
+  reviewedBy: string;
+  approvedBy?: string;
+  date: string;
+  reason: string;
+  documents: string[];
+  risks: string;
+  status: ApprovalStatus;
+  linkedPR?: string;
+}
+
+const PR_REF = /PR-\d+/;
+const linkedPRId = (subject: string): string | undefined => subject.match(PR_REF)?.[0];
+
+const approvalToItem = (a: Approval): ReviewItem => ({
+  source: "approval", id: a.id, type: a.type, subject: a.subject, entity: a.entity, amount: a.amount,
+  requestedBy: a.requestedBy, reviewedBy: a.reviewedBy, approvedBy: a.approvedBy, date: a.date,
+  reason: a.reason, documents: a.documents, risks: a.risks, status: a.status, linkedPR: linkedPRId(a.subject),
+});
+
+const prStatusToApproval = (s: PurchaseRequest["status"]): ApprovalStatus => {
+  if (s === "Abgelehnt") return "Abgelehnt";
+  if (s === "In Prüfung" || s === "Entwurf") return "In Prüfung";
+  if (s === "Eingereicht") return "Offen";
+  return "Freigegeben"; // Freigegeben, Bestellt, Erhalten, Bezahlt
+};
+
+const prToItem = (t: (k: string) => string, p: PurchaseRequest): ReviewItem => ({
+  source: "pr", id: p.id, type: "Kaufanfrage", subject: p.title, entity: p.entity, amount: p.amount,
+  requestedBy: p.requestedBy, reviewedBy: "—", date: p.createdAt,
+  reason: p.justification || "—", documents: p.documents ?? [], risks: t("freig_pr_risk_hint"),
+  status: prStatusToApproval(p.status),
+});
+
 export default function Freigaben() {
   const { t } = useTranslation();
-  const { selectedEntity, approvals, updateApprovalStatus, currentUser } = useAppStore();
-  const list = scopeByEntity(approvals, selectedEntity);
-  const canApprove = APPROVER_ROLES.includes(currentUser.role);
-  const [active, setActive] = useState<Approval | null>(null);
+  const { selectedEntity, approvals, purchaseRequests, updateApprovalStatus, updatePRStatus, currentUser } = useAppStore();
 
-  const decide = (a: Approval, status: "Freigegeben" | "Abgelehnt") => {
+  const approvalItems = scopeByEntity(approvals, selectedEntity).map(approvalToItem);
+  // A seeded approval may already represent a purchase request (its subject
+  // references the PR id). Skip those PRs so the same request isn't listed twice.
+  const coveredPRs = new Set(approvalItems.map((a) => a.linkedPR).filter(Boolean) as string[]);
+  // Purchase requests still in draft never reached the approver; everything
+  // submitted (or already decided) and not already covered by an approval surfaces here.
+  const prItems = scopeByEntity(purchaseRequests, selectedEntity)
+    .filter((p) => p.status !== "Entwurf" && !coveredPRs.has(p.id))
+    .map((p) => prToItem(t, p));
+  const list: ReviewItem[] = [...approvalItems, ...prItems];
+
+  const canApprove = APPROVER_ROLES.includes(currentUser.role);
+  const [active, setActive] = useState<ReviewItem | null>(null);
+
+  const decide = (a: ReviewItem, status: "Freigegeben" | "Abgelehnt") => {
     if (!canApprove) { toast.error(t("no_permission")); return; }
-    updateApprovalStatus(a.id, status, currentUser.name);
+    if (a.source === "pr") {
+      updatePRStatus(a.id, status);
+    } else {
+      updateApprovalStatus(a.id, status, currentUser.name);
+      // Keep the underlying purchase request in sync when the approval represents one.
+      if (a.linkedPR) updatePRStatus(a.linkedPR, status);
+    }
     if (status === "Freigegeben") toast.success(t("toast_approved", { id: a.id }));
     else toast.error(t("toast_rejected", { id: a.id }));
     setActive(null);
@@ -61,7 +121,7 @@ export default function Freigaben() {
             </TableHeader>
             <TableBody>
               {list.map((a) => (
-                <TableRow key={a.id} data-testid={`row-approval-${a.id}`}>
+                <TableRow key={`${a.source}-${a.id}`} data-testid={`row-approval-${a.id}`}>
                   <TableCell className="font-mono text-xs">{a.id}</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs">{a.type}</Badge></TableCell>
                   <TableCell className="font-medium">{a.subject}</TableCell>
@@ -101,12 +161,14 @@ export default function Freigaben() {
                 <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 text-amber-700">
                   <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /><div><span className="font-medium">{t("freig_risks")}:</span> {active.risks}</div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">{t("freig_documents")}</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {active.documents.map((d) => <Badge key={d} variant="outline" className="gap-1"><FileText className="h-3 w-3" /> {d}</Badge>)}
+                {active.documents.length > 0 && (
+                  <div>
+                    <span className="text-muted-foreground">{t("freig_documents")}</span>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {active.documents.map((d) => <Badge key={d} variant="outline" className="gap-1"><FileText className="h-3 w-3" /> {d}</Badge>)}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               <DialogFooter>
                 {(active.status === "Offen" || active.status === "In Prüfung") ? (

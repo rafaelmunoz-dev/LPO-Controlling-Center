@@ -11,14 +11,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, statusLabel } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
-import { scopeByEntity, defaultFirmForView, formatCurrency, formatNumber } from "@/data";
-import type { InventoryItem, EntityCode, InventoryCategory, InventoryStatus } from "@/data/types";
-import { Boxes, QrCode, Search, TrendingDown, ClipboardCheck, CheckCircle2, AlertTriangle, HelpCircle, RotateCcw, Plus, Pencil, Trash2 } from "lucide-react";
+import { ImageUpload } from "@/components/shared/ImageUpload";
+import { scopeByEntity, isGroupView, defaultFirmForView, formatCurrency, formatNumber } from "@/data";
+import type { DeviceAssignment, InventoryItem, EntityCode, InventoryCategory, InventoryStatus } from "@/data/types";
+import { Boxes, QrCode, Search, TrendingDown, ClipboardCheck, CheckCircle2, AlertTriangle, HelpCircle, RotateCcw, Plus, Pencil, Trash2, Laptop, FileSignature, Package } from "lucide-react";
 import { toast } from "sonner";
 import { INVENTORY_EDIT_ROLES, can } from "@/data/governance";
 import QRCode from "qrcode";
@@ -59,12 +61,19 @@ const emptyInv = (entity: EntityCode): InvForm => ({
 
 export default function Inventar() {
   const { t } = useTranslation();
-  const { selectedEntity, currentUser, inventory, addInventoryItem, updateInventoryItem, removeInventoryItem, logAction, entities } = useAppStore();
+  const { selectedEntity, currentUser, inventory, employees: allEmployees, deviceAssignments, addDeviceAssignment, addInventoryItem, updateInventoryItem, removeInventoryItem, updateEmployee, logAction, entities } = useAppStore();
   const canEditInv = INVENTORY_EDIT_ROLES.includes(currentUser.role);
   const canCreate = can(currentUser.role, "inventar:create");
   const canEdit = can(currentUser.role, "inventar:edit");
   const canDelete = can(currentUser.role, "inventar:delete");
+  const canAssign = can(currentUser.role, "assignment:create");
   const all = scopeByEntity(inventory, selectedEntity);
+  const employees = scopeByEntity(allEmployees, selectedEntity);
+  const empByName = new Map(allEmployees.map((e) => [e.name, e]));
+  const empNames = employees.map((e) => e.name);
+  const assignments = deviceAssignments.filter((a) => isGroupView(selectedEntity) || empNames.includes(a.employee));
+  const availableDevices = all.filter((i) => i.status === "verfügbar");
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("alle");
   const [selected, setSelected] = useState<string[]>([]);
@@ -74,6 +83,11 @@ export default function Inventar() {
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<InvForm>(emptyInv("IMP"));
+
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignEmp, setAssignEmp] = useState("");
+  const [assignDevice, setAssignDevice] = useState("");
+  const [assignCondition, setAssignCondition] = useState("Neuwertig");
 
   const openCreate = () => { setEditId(null); setForm(emptyInv(defaultFirmForView(selectedEntity) ?? "IMP")); setOpen(true); };
   const openEdit = (i: InventoryItem) => { setEditId(i.id); setForm({ ...i, purchasePrice: String(i.purchasePrice), currentValue: String(i.currentValue) }); setOpen(true); };
@@ -103,6 +117,31 @@ export default function Inventar() {
     logAction(t("common_delete"), i?.name ?? deleteId);
     toast.success(t("common_delete"));
     setDeleteId(null);
+  };
+
+  const openAssign = () => { setAssignEmp(employees[0]?.id ?? ""); setAssignDevice(availableDevices[0]?.inventoryNumber ?? ""); setAssignCondition("Neuwertig"); setAssignOpen(true); };
+  const assign = () => {
+    if (!canAssign) { toast.error(t("no_permission")); return; }
+    // Resolve by stable id, not name — names are not unique across entities.
+    const employee = allEmployees.find((e) => e.id === assignEmp);
+    const dev = inventory.find((i) => i.inventoryNumber === assignDevice);
+    if (!employee || !dev) { toast.error(t("toast_select_emp_device")); return; }
+    if (dev.status !== "verfügbar") { toast.error(t("mit_no_devices")); return; }
+    const da: DeviceAssignment = {
+      id: `DA-${Math.floor(Math.random() * 9000 + 1000)}`,
+      employee: employee.name,
+      device: dev.name,
+      inventoryNumber: dev.inventoryNumber,
+      issueDate: new Date().toISOString().slice(0, 10),
+      conditionIssue: assignCondition,
+      confirmed: false,
+    };
+    addDeviceAssignment(da);
+    updateInventoryItem(dev.id, { assignedTo: employee.name, status: "zugewiesen" });
+    updateEmployee(employee.id, { assignedDevices: Array.from(new Set([...employee.assignedDevices, dev.inventoryNumber])) });
+    logAction(t("mit_assign_device"), `${dev.name} → ${employee.name}`);
+    toast.success(t("toast_device_assigned", { device: dev.name, emp: employee.name }));
+    setAssignOpen(false);
   };
 
   const list = all.filter((i) => {
@@ -171,6 +210,7 @@ export default function Inventar() {
         actions={
           <div className="flex gap-2">
             {canCreate && <Button variant="outline" onClick={openCreate} data-testid="button-add-inventory"><Plus className="h-4 w-4 mr-1.5" /> {t("inv_create")}</Button>}
+            {canAssign && <Button variant="outline" onClick={openAssign} data-testid="button-assign-device"><Laptop className="h-4 w-4 mr-1.5" /> {t("mit_assign_device")}</Button>}
             <Button onClick={generateLabels} disabled={!canEditInv || selected.length === 0} data-testid="button-labels"><QrCode className="h-4 w-4 mr-1.5" /> {t("labels")} ({selected.length})</Button>
           </div>
         }
@@ -188,6 +228,7 @@ export default function Inventar() {
       <Tabs defaultValue="bestand">
         <TabsList>
           <TabsTrigger value="bestand" data-testid="tab-bestand">{t("inv_tab_stock")}</TabsTrigger>
+          <TabsTrigger value="zuweisungen" data-testid="tab-assignments">{t("mit_assignments")}</TabsTrigger>
           <TabsTrigger value="inventur" data-testid="tab-inventur">{t("stocktaking")}</TabsTrigger>
           <TabsTrigger value="belege" data-testid="tab-belege">{t("tab_uploads")}</TabsTrigger>
         </TabsList>
@@ -242,10 +283,24 @@ export default function Inventar() {
                     <TableRow key={i.id} data-testid={`row-inventory-${i.id}`}>
                       <TableCell><Checkbox checked={selected.includes(i.id)} onCheckedChange={() => toggle(i.id)} data-testid={`check-${i.id}`} /></TableCell>
                       <TableCell className="font-mono text-xs">{i.inventoryNumber}</TableCell>
-                      <TableCell className="font-medium">{i.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-9 w-9 shrink-0 rounded-md border border-border bg-muted/40 overflow-hidden flex items-center justify-center">
+                            {i.image ? <img src={i.image} alt={i.name} className="h-full w-full object-cover" /> : <Package className="h-4 w-4 text-muted-foreground" />}
+                          </div>
+                          <span className="font-medium">{i.name}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>{i.category}</TableCell>
                       <TableCell>{i.entity}</TableCell>
-                      <TableCell className="text-muted-foreground">{i.assignedTo}</TableCell>
+                      <TableCell>
+                        {i.assignedTo ? (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6"><AvatarImage src={empByName.get(i.assignedTo)?.avatar} /><AvatarFallback className="text-[0.6rem]">{i.assignedTo.split(" ").map((n) => n[0]).join("")}</AvatarFallback></Avatar>
+                            <span className="text-sm">{i.assignedTo}</span>
+                          </div>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell className="text-right">{formatCurrency(i.currentValue)}</TableCell>
                       <TableCell className="text-muted-foreground">{i.depreciation}%</TableCell>
                       <TableCell><Badge variant="outline" className={STATUS_TONE[i.status] ?? ""}>{statusLabel(t, i.status)}</Badge></TableCell>
@@ -260,6 +315,36 @@ export default function Inventar() {
                     </TableRow>
                   ))}
                   {list.length === 0 && <TableRow><TableCell colSpan={canEdit || canDelete ? 10 : 9} className="text-center text-muted-foreground py-8">{t("inv_empty_devices")}</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="zuweisungen">
+          <Card className="glass-card">
+            <CardHeader><CardTitle>{t("mit_assignment_logs")}</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow><TableHead>{t("mit_employee")}</TableHead><TableHead>{t("common_device")}</TableHead><TableHead>{t("common_inv_no")}</TableHead><TableHead>{t("mit_issue")}</TableHead><TableHead>{t("mit_return")}</TableHead><TableHead>{t("condition")}</TableHead><TableHead>{t("mit_confirmed")}</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {assignments.map((a) => (
+                    <TableRow key={a.id} data-testid={`row-assignment-${a.id}`}>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="h-7 w-7"><AvatarImage src={empByName.get(a.employee)?.avatar} /><AvatarFallback className="text-[0.65rem]">{a.employee.split(" ").map((n) => n[0]).join("")}</AvatarFallback></Avatar>
+                          <span className="font-medium">{a.employee}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{a.device}</TableCell>
+                      <TableCell className="font-mono text-xs">{a.inventoryNumber}</TableCell>
+                      <TableCell className="text-muted-foreground">{a.issueDate}</TableCell>
+                      <TableCell className="text-muted-foreground">{a.returnDate ?? "—"}</TableCell>
+                      <TableCell>{a.conditionReturn ?? a.conditionIssue}</TableCell>
+                      <TableCell>{a.confirmed ? <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><CheckCircle2 className="h-4 w-4" /> {t("common_yes")}</span> : <span className="inline-flex items-center gap-1 text-amber-600 text-sm"><FileSignature className="h-4 w-4" /> {t("open")}</span>}</TableCell>
+                    </TableRow>
+                  ))}
+                  {assignments.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t("mit_empty_assignments")}</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
@@ -328,6 +413,15 @@ export default function Inventar() {
         <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editId ? t("inv_edit") : t("inv_create")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>{t("inv_image")}</Label>
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 shrink-0 rounded-md border border-border bg-muted/40 overflow-hidden flex items-center justify-center">
+                  {form.image ? <img src={form.image} alt="" className="h-full w-full object-cover" /> : <Package className="h-5 w-5 text-muted-foreground" />}
+                </div>
+                <ImageUpload onUploaded={(url) => setForm({ ...form, image: url })} testId="upload-inventory-image" className="flex-1" />
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>{t("common_inv_no")}</Label><Input value={form.inventoryNumber} onChange={(e) => setForm({ ...form, inventoryNumber: e.target.value })} data-testid="input-inventory-number" /></div>
               <div className="space-y-1.5"><Label>{t("common_device")}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-inventory-name" /></div>
@@ -367,6 +461,36 @@ export default function Inventar() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
             <Button onClick={save} data-testid="button-save-inventory">{t("common_save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("mit_assign_device")}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5"><Label>{t("mit_employee")}</Label>
+              <Select value={assignEmp} onValueChange={setAssignEmp}><SelectTrigger data-testid="select-employee"><SelectValue placeholder={t("common_select")} /></SelectTrigger>
+                <SelectContent>{employees.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    <span className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5"><AvatarImage src={e.avatar} /><AvatarFallback className="text-[0.55rem]">{e.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback></Avatar>
+                      {e.name}
+                    </span>
+                  </SelectItem>
+                ))}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5"><Label>{t("mit_available_device")}</Label>
+              <Select value={assignDevice} onValueChange={setAssignDevice}><SelectTrigger data-testid="select-device"><SelectValue placeholder={t("common_select")} /></SelectTrigger>
+                <SelectContent>{availableDevices.length ? availableDevices.map((d) => <SelectItem key={d.id} value={d.inventoryNumber}>{d.name} ({d.inventoryNumber})</SelectItem>) : <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("mit_no_devices")}</div>}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5"><Label>{t("mit_condition_issue")}</Label><Input value={assignCondition} onChange={(e) => setAssignCondition(e.target.value)} data-testid="input-condition" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={assign} data-testid="button-submit-assign">{t("mit_issue_btn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

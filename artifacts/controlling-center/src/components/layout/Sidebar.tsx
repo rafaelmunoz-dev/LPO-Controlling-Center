@@ -45,8 +45,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/einkauf", key: "einkauf", label: "einkauf", icon: ShoppingCart },
       { href: "/inventar", key: "inventar", label: "inventar", icon: Package },
-      { href: "/mitarbeiter", key: "mitarbeiter", label: "mitarbeiter_geraete", icon: Users },
-      { href: "/freigaben", key: "freigaben", label: "freigaben", icon: CheckSquare },
+      { href: "/mitarbeiter", key: "mitarbeiter", label: "mitarbeiter", icon: Users },
     ],
   },
   {
@@ -59,6 +58,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "nav_sec_admin",
     items: [
+      { href: "/freigaben", key: "freigaben", label: "freigaben", icon: CheckSquare },
       { href: "/audit", key: "audit", label: "audit_nav", icon: ScrollText },
       { href: "/einstellungen", key: "einstellungen", label: "einstellungen", icon: Settings },
     ],

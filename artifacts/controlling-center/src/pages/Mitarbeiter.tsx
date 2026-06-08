@@ -14,10 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader, statusLabel } from "@/components/shared/page";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
+import { ImageUpload } from "@/components/shared/ImageUpload";
 import { scopeByEntity, isGroupView } from "@/data";
 import { can } from "@/data/governance";
-import type { DeviceAssignment, Employee, EntityCode, EmployeeStatus } from "@/data/types";
-import { Users, CheckCircle2, Laptop, FileSignature, Plus, Pencil, Trash2 } from "lucide-react";
+import type { Employee, EntityCode, EmployeeStatus } from "@/data/types";
+import { Users, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -33,13 +34,15 @@ const emptyEmp = (entity: EntityCode): EmpForm => ({
   name: "", email: "", entity, department: "", position: "", startDate: new Date().toISOString().slice(0, 10), status: "Aktiv", location: "",
 });
 
+const dicebear = (name: string) => {
+  const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(initials)}`;
+};
+
 export default function Mitarbeiter() {
   const { t } = useTranslation();
-  const { selectedEntity, deviceAssignments, addDeviceAssignment, employees: allEmployees, inventory, currentUser, entities, addEmployee, updateEmployee, removeEmployee, logAction } = useAppStore();
+  const { selectedEntity, employees: allEmployees, currentUser, entities, addEmployee, updateEmployee, removeEmployee, logAction } = useAppStore();
   const employees = scopeByEntity(allEmployees, selectedEntity);
-  const empNames = employees.map((e) => e.name);
-  const assignments = deviceAssignments.filter((a) => isGroupView(selectedEntity) || empNames.includes(a.employee));
-  const devices = scopeByEntity(inventory, selectedEntity).filter((i) => i.status === "verfügbar");
 
   // Permission levels are org-wide (no per-company scoping): any non-archived company is manageable.
   const manageableCodes: EntityCode[] = entities.filter((e) => !e.archived).map((e) => e.code);
@@ -47,24 +50,19 @@ export default function Mitarbeiter() {
   const canEdit = can(currentUser.role, "mitarbeiter:edit");
   const canDeleteAny = can(currentUser.role, "mitarbeiter:delete") && manageableCodes.length > 0;
   const canDeleteRow = (_e: Employee) => can(currentUser.role, "mitarbeiter:delete");
-  const canAssign = can(currentUser.role, "assignment:create");
-
-  const [open, setOpen] = useState(false);
-  const [emp, setEmp] = useState(employees[0]?.name ?? "");
-  const [device, setDevice] = useState(devices[0]?.inventoryNumber ?? "");
-  const [condition, setCondition] = useState("Neuwertig");
 
   const [empOpen, setEmpOpen] = useState(false);
   const [empEditId, setEmpEditId] = useState<string | null>(null);
   const [empDeleteId, setEmpDeleteId] = useState<string | null>(null);
   const [empForm, setEmpForm] = useState<EmpForm>(emptyEmp("IMP"));
+  const [empPhoto, setEmpPhoto] = useState<string | undefined>(undefined);
 
   const defaultCreateEntity = (): EntityCode => {
     if (!isGroupView(selectedEntity) && manageableCodes.includes(selectedEntity as EntityCode)) return selectedEntity as EntityCode;
     return manageableCodes[0] ?? "IMP";
   };
-  const openEmpCreate = () => { setEmpEditId(null); setEmpForm(emptyEmp(defaultCreateEntity())); setEmpOpen(true); };
-  const openEmpEdit = (e: Employee) => { setEmpEditId(e.id); setEmpForm({ name: e.name, email: e.email, entity: e.entity, department: e.department, position: e.position, startDate: e.startDate, status: e.status, location: e.location }); setEmpOpen(true); };
+  const openEmpCreate = () => { setEmpEditId(null); setEmpForm(emptyEmp(defaultCreateEntity())); setEmpPhoto(undefined); setEmpOpen(true); };
+  const openEmpEdit = (e: Employee) => { setEmpEditId(e.id); setEmpForm({ name: e.name, email: e.email, entity: e.entity, department: e.department, position: e.position, startDate: e.startDate, status: e.status, location: e.location }); setEmpPhoto(e.avatar); setEmpOpen(true); };
   const saveEmp = () => {
     if (empEditId) {
       if (!canEdit) { toast.error(t("no_permission")); return; }
@@ -73,12 +71,11 @@ export default function Mitarbeiter() {
     }
     if (!empForm.name.trim()) { toast.error(t("name")); return; }
     if (empEditId) {
-      updateEmployee(empEditId, empForm);
+      updateEmployee(empEditId, { ...empForm, avatar: empPhoto || dicebear(empForm.name) });
       logAction(t("emp_edit"), `${empForm.name} (${empForm.entity})`);
       toast.success(t("emp_edit"));
     } else {
-      const initials = empForm.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
-      addEmployee({ ...empForm, id: `EMP-${Math.floor(Math.random() * 9000 + 1000)}`, avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(initials)}`, assignedDevices: [], openReturns: 0 });
+      addEmployee({ ...empForm, id: `EMP-${Math.floor(Math.random() * 9000 + 1000)}`, avatar: empPhoto || dicebear(empForm.name), assignedDevices: [], openReturns: 0 });
       logAction(t("emp_create"), `${empForm.name} (${empForm.entity})`);
       toast.success(t("emp_create"));
     }
@@ -94,43 +91,22 @@ export default function Mitarbeiter() {
     setEmpDeleteId(null);
   };
 
-  const assign = () => {
-    if (!canAssign) { toast.error(t("no_permission")); return; }
-    const dev = inventory.find((i) => i.inventoryNumber === device);
-    if (!emp || !dev) { toast.error(t("toast_select_emp_device")); return; }
-    const da: DeviceAssignment = {
-      id: `DA-${Math.floor(Math.random() * 9000 + 1000)}`,
-      employee: emp,
-      device: dev.name,
-      inventoryNumber: dev.inventoryNumber,
-      issueDate: new Date().toISOString().slice(0, 10),
-      conditionIssue: condition,
-      confirmed: false,
-    };
-    addDeviceAssignment(da);
-    toast.success(t("toast_device_assigned", { device: dev.name, emp }));
-    setOpen(false);
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("mitarbeiter_geraete")}
+        title={t("mitarbeiter")}
         subtitle={t("mit_subtitle")}
         icon={<Users className="h-5 w-5" />}
         actions={
-          <div className="flex gap-2">
-            {canCreate && <Button variant="outline" onClick={openEmpCreate} data-testid="button-add-employee"><Plus className="h-4 w-4 mr-1.5" /> {t("emp_create")}</Button>}
-            {canAssign && <Button onClick={() => setOpen(true)} data-testid="button-assign-device"><Laptop className="h-4 w-4 mr-1.5" /> {t("mit_assign_device")}</Button>}
-          </div>
+          canCreate ? <Button onClick={openEmpCreate} data-testid="button-add-employee"><Plus className="h-4 w-4 mr-1.5" /> {t("emp_create")}</Button> : undefined
         }
       />
 
       <div className="grid gap-4 sm:grid-cols-4">
         <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{employees.length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_employees")}</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{employees.filter((e) => e.status === "Aktiv").length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_active")}</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{assignments.length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_assignments")}</div></CardContent></Card>
-        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-amber-500">{assignments.filter((a) => !a.confirmed).length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_open_confirmations")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-emerald-600">{employees.filter((e) => e.status === "Aktiv").length}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_active")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-amber-500">{employees.filter((e) => e.status === "Beurlaubt").length}</div><div className="text-sm text-muted-foreground mt-1">{statusLabel(t, "Beurlaubt")}</div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{employees.reduce((a, e) => a + e.assignedDevices.length, 0)}</div><div className="text-sm text-muted-foreground mt-1">{t("mit_devices")}</div></CardContent></Card>
       </div>
 
       <AiInsight context="mitarbeiter" />
@@ -138,7 +114,6 @@ export default function Mitarbeiter() {
       <Tabs defaultValue="employees">
         <TabsList>
           <TabsTrigger value="employees" data-testid="tab-employees">{t("mit_employees")}</TabsTrigger>
-          <TabsTrigger value="assignments" data-testid="tab-assignments">{t("mit_assignments")}</TabsTrigger>
           <TabsTrigger value="belege" data-testid="tab-belege">{t("tab_uploads")}</TabsTrigger>
         </TabsList>
 
@@ -180,63 +155,22 @@ export default function Mitarbeiter() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="assignments">
-          <Card className="glass-card">
-            <CardHeader><CardTitle>{t("mit_assignment_logs")}</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader><TableRow><TableHead>{t("mit_employee")}</TableHead><TableHead>{t("common_device")}</TableHead><TableHead>{t("common_inv_no")}</TableHead><TableHead>{t("mit_issue")}</TableHead><TableHead>{t("mit_return")}</TableHead><TableHead>{t("condition")}</TableHead><TableHead>{t("mit_confirmed")}</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {assignments.map((a) => (
-                    <TableRow key={a.id} data-testid={`row-assignment-${a.id}`}>
-                      <TableCell className="font-medium">{a.employee}</TableCell>
-                      <TableCell>{a.device}</TableCell>
-                      <TableCell className="font-mono text-xs">{a.inventoryNumber}</TableCell>
-                      <TableCell className="text-muted-foreground">{a.issueDate}</TableCell>
-                      <TableCell className="text-muted-foreground">{a.returnDate ?? "—"}</TableCell>
-                      <TableCell>{a.conditionReturn ?? a.conditionIssue}</TableCell>
-                      <TableCell>{a.confirmed ? <span className="inline-flex items-center gap-1 text-emerald-600 text-sm"><CheckCircle2 className="h-4 w-4" /> {t("common_yes")}</span> : <span className="inline-flex items-center gap-1 text-amber-600 text-sm"><FileSignature className="h-4 w-4" /> {t("open")}</span>}</TableCell>
-                    </TableRow>
-                  ))}
-                  {assignments.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t("mit_empty_assignments")}</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="belege">
           <UploadPanel docTypes={["Mitarbeiterliste"]} defaultDocType="Mitarbeiterliste" />
         </TabsContent>
       </Tabs>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t("mit_assign_device")}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5"><Label>{t("mit_employee")}</Label>
-              <Select value={emp} onValueChange={setEmp}><SelectTrigger data-testid="select-employee"><SelectValue placeholder={t("common_select")} /></SelectTrigger>
-                <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5"><Label>{t("mit_available_device")}</Label>
-              <Select value={device} onValueChange={setDevice}><SelectTrigger data-testid="select-device"><SelectValue placeholder={t("common_select")} /></SelectTrigger>
-                <SelectContent>{devices.length ? devices.map((d) => <SelectItem key={d.id} value={d.inventoryNumber}>{d.name} ({d.inventoryNumber})</SelectItem>) : <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("mit_no_devices")}</div>}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5"><Label>{t("mit_condition_issue")}</Label><Input value={condition} onChange={(e) => setCondition(e.target.value)} data-testid="input-condition" /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
-            <Button onClick={assign} data-testid="button-submit-assign">{t("mit_issue_btn")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={empOpen} onOpenChange={setEmpOpen}>
         <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{empEditId ? t("emp_edit") : t("emp_create")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>{t("emp_photo")}</Label>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-14 w-14"><AvatarImage src={empPhoto} /><AvatarFallback>{empForm.name.split(" ").map((n) => n[0]).join("") || "?"}</AvatarFallback></Avatar>
+                <ImageUpload onUploaded={setEmpPhoto} testId="upload-employee-photo" className="flex-1" />
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>{t("name")}</Label><Input value={empForm.name} onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })} data-testid="input-employee-name" /></div>
               <div className="space-y-1.5"><Label>{t("mit_email")}</Label><Input value={empForm.email} onChange={(e) => setEmpForm({ ...empForm, email: e.target.value })} data-testid="input-employee-email" /></div>

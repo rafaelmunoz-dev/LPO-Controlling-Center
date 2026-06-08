@@ -288,6 +288,7 @@ export interface InventoryItem {
   depreciation: number;
   warrantyUntil: string;
   status: InventoryStatus;
+  image?: string;
   note?: string;
 }
 
