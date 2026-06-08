@@ -19,6 +19,7 @@ import {
   Sparkles,
   Building2,
   ReceiptText,
+  ScrollText,
 } from "lucide-react";
 import lpoLogo from "@assets/image_1780570561463.png";
 
@@ -75,7 +76,10 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     label: "nav_sec_admin",
-    items: [{ href: "/einstellungen", key: "einstellungen", label: "einstellungen", icon: Settings }],
+    items: [
+      { href: "/audit", key: "audit", label: "audit_nav", icon: ScrollText },
+      { href: "/einstellungen", key: "einstellungen", label: "einstellungen", icon: Settings },
+    ],
   },
 ];
 
