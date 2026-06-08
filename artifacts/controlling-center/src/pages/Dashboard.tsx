@@ -36,6 +36,9 @@ import {
   AreaChart,
   Area,
   ComposedChart,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -151,6 +154,12 @@ export default function Dashboard() {
   const risks = scopeByEntity(allRisks, selectedEntity).filter((r) => r.status !== "Geschlossen");
   const spark = (key: "revenue" | "ebitda" | "profit") => f.series.map((m) => ({ v: m[key] }));
 
+  const cfBreakdown = [
+    { label: t("cf_operating"), value: cashflow.operating, abs: Math.abs(cashflow.operating), color: NAVY },
+    { label: t("cf_investing"), value: cashflow.investing, abs: Math.abs(cashflow.investing), color: BLUE },
+    { label: t("cf_financing"), value: cashflow.financing, abs: Math.abs(cashflow.financing), color: AMBER },
+  ];
+
   const hour = new Date().getHours();
   const greetingKey = hour < 12 ? "greeting_morning" : hour < 18 ? "greeting_day" : "greeting_evening";
   const firstName = (currentUser.name || "").trim().split(" ")[0];
@@ -234,34 +243,53 @@ export default function Dashboard() {
               statClass={cashflow.netChange >= 0 ? "text-emerald-600" : "text-destructive"}
             />
           </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { label: t("cf_operating"), value: cashflow.operating },
-              { label: t("cf_investing"), value: cashflow.investing },
-              { label: t("cf_financing"), value: cashflow.financing },
-              { label: t("difference"), value: cashflow.netChange, bold: true },
-            ].map((r) => (
-              <div key={r.label} className="flex items-center justify-between">
-                <span className={`text-sm ${r.bold ? "font-semibold" : "text-muted-foreground"}`}>{r.label}</span>
-                <span className={`font-medium ${r.value >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-                  {currency(r.value)}
-                </span>
+          <CardContent>
+            <div className="flex items-center gap-5">
+              <div className="relative h-[160px] w-[160px] shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={cfBreakdown}
+                      dataKey="abs"
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={74}
+                      paddingAngle={2}
+                      stroke="none"
+                      isAnimationActive={false}
+                    >
+                      {cfBreakdown.map((d) => (
+                        <Cell key={d.label} fill={d.color} />
+                      ))}
+                    </Pie>
+                    <RTooltip
+                      formatter={(_v: number, _n, item) => [currency(item.payload.value), item.payload.label]}
+                      contentStyle={TOOLTIP_STYLE}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-base font-bold leading-none ${cashflow.netChange >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    {currency(cashflow.netChange)}
+                  </span>
+                  <span className="mt-1 text-[0.65rem] text-muted-foreground">{t("difference")}</span>
+                </div>
               </div>
-            ))}
-            <div className="h-[120px] pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={cashflow.series}>
-                  <defs>
-                    <linearGradient id="grad-cf-operating" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={NAVY} stopOpacity={0.26} />
-                      <stop offset="100%" stopColor={NAVY} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="operating" stroke={NAVY} fill="url(#grad-cf-operating)" strokeWidth={2.5} dot={false} />
-                  <XAxis dataKey="month" hide />
-                  <RTooltip formatter={(v: number) => currency(v)} contentStyle={TOOLTIP_STYLE} cursor={{ stroke: CHART.grid }} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div className="min-w-0 flex-1 space-y-3">
+                {cfBreakdown.map((d) => (
+                  <div key={d.label} className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
+                      <span className="truncate text-sm text-muted-foreground">{d.label}</span>
+                    </span>
+                    <span className={`shrink-0 text-sm font-medium ${d.value >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      {currency(d.value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
