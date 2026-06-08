@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RiskBadge, statusLabel } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
+import { QuickAccess } from "@/components/shared/QuickAccess";
 import type { GlossaryKey } from "@/data";
 import {
   getFinance,
@@ -163,6 +164,8 @@ export default function Dashboard() {
           </p>
         </div>
       </div>
+
+      <QuickAccess />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Kpi glossary="umsatz" title={t("kpi_revenue")} value={compact(f.revenue)} change={f.revenueChange} spark={spark("revenue")} color={NAVY} icon={<DollarSign className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />

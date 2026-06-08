@@ -25,6 +25,13 @@ export const de = {
   "worst_case": "Worst Case",
   "my_tasks": "Meine Aufgaben",
   "no_tasks": "Keine offenen Aufgaben",
+  "quick_access": "Schnellzugriff",
+  "quick_finanzen_desc": "Kennzahlen, GuV & Budget",
+  "quick_einkauf_desc": "Kaufanfragen & Lieferanten",
+  "quick_inventar_desc": "Geräte & Buchwerte",
+  "quick_risiko_desc": "Risiken & Pre-Mortem",
+  "quick_freigaben_desc": "Offene Genehmigungen",
+  "quick_copilot_desc": "Daten per KI analysieren",
 };
 
 export const en = {
@@ -51,6 +58,13 @@ export const en = {
   "best_case": "Best Case",
   "realistic": "Realistic",
   "worst_case": "Worst Case",
+  "quick_access": "Quick access",
+  "quick_finanzen_desc": "Metrics, P&L & budget",
+  "quick_einkauf_desc": "Purchase requests & suppliers",
+  "quick_inventar_desc": "Devices & book values",
+  "quick_risiko_desc": "Risks & pre-mortem",
+  "quick_freigaben_desc": "Pending approvals",
+  "quick_copilot_desc": "Analyze data with AI",
   "my_tasks": "My Tasks",
   "no_tasks": "No open tasks",
 };
@@ -79,6 +93,13 @@ export const es = {
   "best_case": "Mejor Caso",
   "realistic": "Realista",
   "worst_case": "Peor Caso",
+  "quick_access": "Acceso rápido",
+  "quick_finanzen_desc": "Métricas, P&G y presupuesto",
+  "quick_einkauf_desc": "Solicitudes de compra y proveedores",
+  "quick_inventar_desc": "Equipos y valores contables",
+  "quick_risiko_desc": "Riesgos y pre-mortem",
+  "quick_freigaben_desc": "Aprobaciones pendientes",
+  "quick_copilot_desc": "Analizar datos con IA",
   "my_tasks": "Mis Tareas",
   "no_tasks": "Sin tareas abiertas",
 };
