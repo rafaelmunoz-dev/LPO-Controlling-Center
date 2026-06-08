@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { buildCopilotContext, getCopilotSuggestions, defaultFirmForView } from "@/data";
+import { buildCopilotContext, getCopilotSuggestions, defaultFirmForView, labelForView } from "@/data";
 import { chatCopilot, type CopilotChatMessage } from "@/lib/ai";
 import { can } from "@/data/governance";
 import type { EntityCode, Risk } from "@/data/types";
@@ -143,7 +143,7 @@ export function CopilotPanel() {
         <div className="space-y-3">
           {messages.length === 0 && (
             <div className="rounded-2xl bg-muted/50 border border-slate-200/70 p-3 text-sm">
-              {t("copilot_subtitle")}. {selectedEntity}.
+              {t("copilot_subtitle")}. {labelForView(selectedEntity)}.
             </div>
           )}
           {messages.map((m, i) => (
