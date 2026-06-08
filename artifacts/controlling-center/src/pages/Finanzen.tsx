@@ -15,7 +15,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PageHeader } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { SampleDataBanner } from "@/components/shared/SimNotice";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import type { GlossaryKey } from "@/data";
 import type { BalanceLineItem, BalanceSide } from "@/data/types";
@@ -330,8 +329,6 @@ export default function Finanzen() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("finanzen")} subtitle={t("key_figures")} icon={<PieIcon className="h-5 w-5" />} />
-
-      <SampleDataBanner />
 
       <Tabs value={tab} onValueChange={changeTab}>
         <TabsList className="flex-wrap h-auto">

@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader, RiskBadge, statusLabel } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
-import { SampleDataBanner } from "@/components/shared/SimNotice";
 import type { GlossaryKey } from "@/data";
 import {
   getFinance,
@@ -139,8 +138,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("dashboard")} subtitle={t("financial_development")} icon={<LayoutDashboard className="h-5 w-5" />} />
-
-      <SampleDataBanner />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Kpi glossary="umsatz" title={t("kpi_revenue")} value={compact(f.revenue)} change={f.revenueChange} spark={spark("revenue")} color={NAVY} icon={<DollarSign className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
