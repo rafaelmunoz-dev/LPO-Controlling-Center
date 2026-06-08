@@ -4,7 +4,7 @@ import { useAppStore } from "@/hooks/use-app-context";
 import { useFormat } from "@/hooks/use-format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader, RiskBadge, statusLabel } from "@/components/shared/page";
+import { RiskBadge, statusLabel } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import type { GlossaryKey } from "@/data";
@@ -32,6 +32,7 @@ import {
   Line,
   AreaChart,
   Area,
+  ComposedChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -42,9 +43,17 @@ import {
 
 import { CHART } from "@/lib/chart";
 
+const AXIS_TICK = { fontSize: 12, fill: CHART.grey } as const;
+const TOOLTIP_STYLE = {
+  borderRadius: 16,
+  border: `1px solid ${CHART.grid}`,
+  boxShadow: "0 8px 32px rgba(30,58,95,0.12)",
+  fontSize: 12,
+  padding: "8px 12px",
+} as const;
+
 const NAVY = CHART.navy;
 const BRASS = CHART.gold;
-const GREY = CHART.grey;
 const RED = CHART.red;
 const BLUE = CHART.blue;
 const AMBER = CHART.amber;
@@ -92,8 +101,8 @@ function Kpi({
           <Term k={glossary}>{title}</Term>
         </CardTitle>
         <span
-          className="flex h-10 w-10 items-center justify-center rounded-2xl"
-          style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, white)` }}
+          className="flex h-11 w-11 items-center justify-center rounded-full"
+          style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, white)` }}
         >
           {icon}
         </span>
@@ -125,7 +134,7 @@ function Kpi({
 }
 
 export default function Dashboard() {
-  const { selectedEntity, risks: allRisks } = useAppStore();
+  const { selectedEntity, risks: allRisks, currentUser } = useAppStore();
   const { t } = useTranslation();
   const { compact, currency, number } = useFormat();
   const [, navigate] = useLocation();
@@ -135,9 +144,29 @@ export default function Dashboard() {
   const risks = scopeByEntity(allRisks, selectedEntity).filter((r) => r.status !== "Geschlossen");
   const spark = (key: "revenue" | "ebitda" | "profit") => f.series.map((m) => ({ v: m[key] }));
 
+  const hour = new Date().getHours();
+  const greetingKey = hour < 12 ? "greeting_morning" : hour < 18 ? "greeting_day" : "greeting_evening";
+  const firstName = (currentUser.name || "").trim().split(" ")[0];
+
   return (
     <div className="space-y-6">
-      <PageHeader title={t("dashboard")} subtitle={t("financial_development")} icon={<LayoutDashboard className="h-5 w-5" />} />
+      <div className="relative overflow-hidden rounded-3xl border border-card-border bg-card px-6 py-7 sm:px-8">
+        <div className="pointer-events-none absolute -right-16 -top-24 h-60 w-60 rounded-full bg-brass/15 blur-3xl" />
+        <div className="pointer-events-none absolute -left-12 bottom-[-70px] h-52 w-52 rounded-full bg-primary/5 blur-3xl" />
+        <div className="relative flex items-start gap-3">
+          <div className="rounded-2xl bg-primary/10 text-primary p-2.5 hidden sm:flex">
+            <LayoutDashboard className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary" data-testid="text-page-title">
+              {t(greetingKey)}{firstName ? `, ${firstName}` : ""} <span aria-hidden>👋</span>
+            </h1>
+            <p className="mt-1.5 max-w-2xl text-sm sm:text-base text-muted-foreground">
+              {t("greeting_subtitle")}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Kpi glossary="umsatz" title={t("kpi_revenue")} value={compact(f.revenue)} change={f.revenueChange} spark={spark("revenue")} color={NAVY} icon={<DollarSign className="h-4 w-4" />} onClick={() => navigate("/finanzen")} />
@@ -160,16 +189,22 @@ export default function Dashboard() {
           <CardContent className="pl-0">
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={f.series}>
+                <ComposedChart data={f.series}>
+                  <defs>
+                    <linearGradient id="grad-revenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={NAVY} stopOpacity={0.28} />
+                      <stop offset="100%" stopColor={NAVY} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
-                  <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => compact(v)} width={60} />
-                  <RTooltip formatter={(v: number) => currency(v)} />
-                  <Legend />
-                  <Line type="monotone" name={t("kpi_revenue")} dataKey="revenue" stroke={NAVY} strokeWidth={2} dot={false} />
-                  <Line type="monotone" name={t("cogs")} dataKey="costs" stroke={RED} strokeWidth={2} dot={false} />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={AXIS_TICK} dy={6} />
+                  <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={(v) => compact(v)} width={60} />
+                  <RTooltip formatter={(v: number) => currency(v)} contentStyle={TOOLTIP_STYLE} cursor={{ stroke: CHART.grid }} />
+                  <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                  <Area type="monotone" name={t("kpi_revenue")} dataKey="revenue" stroke={NAVY} strokeWidth={2.5} fill="url(#grad-revenue)" dot={false} activeDot={{ r: 4 }} />
                   <Line type="monotone" name={t("kpi_ebitda")} dataKey="ebitda" stroke={BRASS} strokeWidth={2} dot={false} />
-                </LineChart>
+                  <Line type="monotone" name={t("cogs")} dataKey="costs" stroke={RED} strokeWidth={2} dot={false} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -196,9 +231,15 @@ export default function Dashboard() {
             <div className="h-[120px] pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={cashflow.series}>
-                  <Area type="monotone" dataKey="operating" stroke={NAVY} fill={NAVY} fillOpacity={0.12} strokeWidth={2} />
+                  <defs>
+                    <linearGradient id="grad-cf-operating" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={NAVY} stopOpacity={0.26} />
+                      <stop offset="100%" stopColor={NAVY} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="operating" stroke={NAVY} fill="url(#grad-cf-operating)" strokeWidth={2.5} dot={false} />
                   <XAxis dataKey="month" hide />
-                  <RTooltip formatter={(v: number) => currency(v)} />
+                  <RTooltip formatter={(v: number) => currency(v)} contentStyle={TOOLTIP_STYLE} cursor={{ stroke: CHART.grid }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -214,14 +255,28 @@ export default function Dashboard() {
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={liquidity}>
+                <defs>
+                  <linearGradient id="grad-liq-best" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={BRASS} stopOpacity={0.22} />
+                    <stop offset="100%" stopColor={BRASS} stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="grad-liq-real" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={NAVY} stopOpacity={0.26} />
+                    <stop offset="100%" stopColor={NAVY} stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="grad-liq-worst" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={RED} stopOpacity={0.18} />
+                    <stop offset="100%" stopColor={RED} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
-                <XAxis dataKey="week" axisLine={false} tickLine={false} fontSize={11} interval={1} />
-                <YAxis axisLine={false} tickLine={false} fontSize={11} tickFormatter={(v) => compact(v)} width={60} />
-                <RTooltip formatter={(v: number) => currency(v)} />
-                <Legend />
-                <Area type="monotone" name={t("best_case")} dataKey="best" stroke={BRASS} fill={BRASS} fillOpacity={0.1} strokeWidth={2} />
-                <Area type="monotone" name={t("realistic")} dataKey="realistic" stroke={NAVY} fill={NAVY} fillOpacity={0.15} strokeWidth={2} />
-                <Area type="monotone" name={t("worst_case")} dataKey="worst" stroke={RED} fill={RED} fillOpacity={0.08} strokeWidth={2} />
+                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={AXIS_TICK} interval={1} dy={6} />
+                <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={(v) => compact(v)} width={60} />
+                <RTooltip formatter={(v: number) => currency(v)} contentStyle={TOOLTIP_STYLE} cursor={{ stroke: CHART.grid }} />
+                <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                <Area type="monotone" name={t("best_case")} dataKey="best" stroke={BRASS} fill="url(#grad-liq-best)" strokeWidth={2} dot={false} />
+                <Area type="monotone" name={t("realistic")} dataKey="realistic" stroke={NAVY} fill="url(#grad-liq-real)" strokeWidth={2.5} dot={false} />
+                <Area type="monotone" name={t("worst_case")} dataKey="worst" stroke={RED} fill="url(#grad-liq-worst)" strokeWidth={2} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
