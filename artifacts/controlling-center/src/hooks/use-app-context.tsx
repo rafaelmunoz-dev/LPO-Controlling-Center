@@ -216,6 +216,15 @@ function firstActiveView(groups: CompanyGroup[], entities: EntityMeta[]): ViewKe
   return e ? e.code : groupViewKey(DEFAULT_GROUP_ID);
 }
 
+// True when the view points to a still-existing, non-archived group or firm.
+// Used to self-heal a stale selection (e.g. the seed "group:migu" left over when
+// an empty org loads) after the first real group/firm is created.
+function viewIsActive(view: ViewKey, groups: CompanyGroup[], entities: EntityMeta[]): boolean {
+  const gid = groupIdFromView(view);
+  if (gid) return groups.some((g) => g.id === gid && !g.archived);
+  return entities.some((e) => e.code === view && !e.archived);
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -294,7 +303,14 @@ export const useAppStore = create<AppState>()(
   },
 
   entities: [],
-  addEntity: (meta) => set((s) => ({ entities: [...s.entities, meta] })),
+  addEntity: (meta) =>
+    set((s) => {
+      const entities = [...s.entities, meta];
+      const selectedEntity = viewIsActive(s.selectedEntity, s.groups, entities)
+        ? s.selectedEntity
+        : meta.code;
+      return { entities, selectedEntity };
+    }),
   updateEntity: (code, patch) =>
     set((s) => ({ entities: s.entities.map((e) => (e.code === code ? { ...e, ...patch } : e)) })),
   archiveEntity: (code) =>
@@ -313,7 +329,15 @@ export const useAppStore = create<AppState>()(
   groups: [],
   addGroup: (name) => {
     const id = `g-${Date.now()}`;
-    set((s) => ({ groups: [...s.groups, { id, name }] }));
+    set((s) => {
+      const groups = [...s.groups, { id, name }];
+      // Heal a stale/orphaned selection (e.g. leftover "group:migu" in an empty
+      // org) by switching to the freshly created group.
+      const selectedEntity = viewIsActive(s.selectedEntity, groups, s.entities)
+        ? s.selectedEntity
+        : groupViewKey(id);
+      return { groups, selectedEntity };
+    });
     return id;
   },
   renameGroup: (id, name) =>

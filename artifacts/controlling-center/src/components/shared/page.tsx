@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useAppStore } from "@/hooks/use-app-context";
 import { useTranslation } from "react-i18next";
+import { groupIdFromView } from "@/data";
 import { Badge } from "@/components/ui/badge";
 
 export function PageHeader({
@@ -14,8 +15,12 @@ export function PageHeader({
   icon?: ReactNode;
   actions?: ReactNode;
 }) {
-  const { selectedEntity } = useAppStore();
+  const { selectedEntity, groups, entities } = useAppStore();
   const { t } = useTranslation();
+  const gid = groupIdFromView(selectedEntity);
+  const viewLabel = gid
+    ? groups.find((g) => g.id === gid)?.name ?? t("grp_label")
+    : entities.find((e) => e.code === selectedEntity)?.code ?? selectedEntity;
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3">
@@ -29,7 +34,7 @@ export function PageHeader({
           <p className="text-sm text-muted-foreground mt-0.5">
             {subtitle ? `${subtitle} · ` : ""}
             {t("view_for")}{" "}
-            <span className="font-medium text-foreground">{selectedEntity}</span>
+            <span className="font-medium text-foreground">{viewLabel}</span>
           </p>
         </div>
       </div>
