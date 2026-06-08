@@ -125,6 +125,7 @@ export type Capability =
   | "inventar:create" | "inventar:edit" | "inventar:delete"
   | "strategie:create" | "strategie:edit" | "strategie:delete"
   | "bilanz:create" | "bilanz:edit" | "bilanz:delete"
+  | "finanzdaten:edit"
   | "assignment:create" | "reports:create" | "tasks:create";
 
 const ALL_CAPS: Capability[] = [
@@ -134,6 +135,7 @@ const ALL_CAPS: Capability[] = [
   "inventar:create", "inventar:edit", "inventar:delete",
   "strategie:create", "strategie:edit", "strategie:delete",
   "bilanz:create", "bilanz:edit", "bilanz:delete",
+  "finanzdaten:edit",
   "assignment:create", "reports:create", "tasks:create",
 ];
 

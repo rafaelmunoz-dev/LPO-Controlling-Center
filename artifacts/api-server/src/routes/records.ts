@@ -15,6 +15,7 @@ const KINDS: Record<string, DomainKind> = {
   "bank-transactions": "bankTransactions",
   inventory: "inventory",
   "balance-items": "balanceItems",
+  "finance-inputs": "financeInputs",
   risks: "risks",
   premortems: "premortems",
   "strategy-decisions": "strategyDecisions",
@@ -35,7 +36,7 @@ function entityCodeOf(kind: DomainKind, data: unknown): string | null {
   if (kind === "entities") {
     return typeof d.code === "string" ? d.code : null;
   }
-  if (kind === "balanceItems") {
+  if (kind === "balanceItems" || kind === "financeInputs") {
     const v = d.view;
     return typeof v === "string" && !v.startsWith("group:") ? v : null;
   }

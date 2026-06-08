@@ -6,6 +6,7 @@ import type {
   EntityCode,
   EntityFinance,
   EntityMeta,
+  FinanceInput,
   ForecastSeries,
   LiquidityPoint,
   MonthPoint,
@@ -15,12 +16,11 @@ import type {
 } from "./types";
 import {
   DEFAULT_GROUP_ID,
-  GROUPS,
-  firmsInGroup,
+  entityCodesForView,
+  firmCodesInGroup,
   groupIdFromView,
   groupViewKey,
-  isGroupView,
-  setRegistry,
+  registryEntities,
 } from "./groups";
 
 export const ENTITY_CODES: EntityCode[] = ["IMP", "C&A", "MKT", "CPE", "COSM"];
@@ -36,140 +36,199 @@ export const ENTITIES: EntityMeta[] = [
 // NOTE: the live registry is owned by the store (see use-app-context). It is
 // seeded empty and populated from the org's DB-backed data after sign-in.
 
-interface EntityProfile {
-  revenue: number;
-  ebitdaMargin: number;
-  netMargin: number;
-  cash: number;
-  cashRunway: number;
-  openInvoices: number;
-  openInvoicesCount: number;
-  riskLevel: RiskLevel;
-  revenueChange: number;
-  ebitdaChange: number;
-  marginChange: number;
-  netChange: number;
-  cashChange: number;
+// ---------------------------------------------------------------------------
+// Real financial data. Figures are entered and maintained by the user per firm
+// and reporting period (FinanceInput records, persisted org-scoped in the DB).
+// Every KPI below is DERIVED from these inputs — there are no sample profiles.
+// The store keeps this registry in sync (see use-app-context); getFinance and
+// the derived helpers read it without threading state through every call site.
+// Group views are never stored: they aggregate from their member firms.
+// ---------------------------------------------------------------------------
+let financeInputs: FinanceInput[] = [];
+let activePeriod = "Mai 2026";
+
+export function setFinanceData(inputs: FinanceInput[], period: string): void {
+  financeInputs = inputs;
+  activePeriod = period;
 }
 
-const PROFILES: Record<EntityCode, EntityProfile> = {
-  IMP: { revenue: 42_000_000, ebitdaMargin: 0.12, netMargin: 0.055, cash: 6_200_000, cashRunway: 9.4, openInvoices: 3_120_000, openInvoicesCount: 64, riskLevel: "Mittel", revenueChange: 5.2, ebitdaChange: 3.1, marginChange: -0.4, netChange: 2.8, cashChange: -2.1 },
-  "C&A": { revenue: 31_500_000, ebitdaMargin: 0.135, netMargin: 0.07, cash: 5_100_000, cashRunway: 11.2, openInvoices: 2_480_000, openInvoicesCount: 51, riskLevel: "Hoch", revenueChange: 8.4, ebitdaChange: 6.7, marginChange: 0.6, netChange: 5.9, cashChange: 3.4 },
-  MKT: { revenue: 14_200_000, ebitdaMargin: 0.16, netMargin: 0.09, cash: 3_400_000, cashRunway: 14.8, openInvoices: 940_000, openInvoicesCount: 28, riskLevel: "Niedrig", revenueChange: 11.3, ebitdaChange: 9.8, marginChange: 1.1, netChange: 8.2, cashChange: 6.1 },
-  CPE: { revenue: 22_750_000, ebitdaMargin: 0.15, netMargin: 0.065, cash: 5_300_000, cashRunway: 10.6, openInvoices: 1_870_000, openInvoicesCount: 39, riskLevel: "Mittel", revenueChange: 2.1, ebitdaChange: -1.4, marginChange: -0.9, netChange: -2.2, cashChange: 1.2 },
-  COSM: { revenue: 18_000_000, ebitdaMargin: 0.21, netMargin: 0.12, cash: 4_300_000, cashRunway: 16.1, openInvoices: 760_000, openInvoicesCount: 22, riskLevel: "Niedrig", revenueChange: 14.7, ebitdaChange: 13.2, marginChange: 1.4, netChange: 12.5, cashChange: 8.9 },
-};
+export function financeRegistry(): FinanceInput[] {
+  return financeInputs;
+}
+
+// Deterministic id so a firm/period record upserts in place.
+export function financeInputId(view: ViewKey, period: string): string {
+  return `FIN-${period}-${view}`;
+}
+
+// Editable numeric fields of a FinanceInput, in entry-form order.
+export const FINANCE_INPUT_FIELDS = [
+  "revenue",
+  "cogs",
+  "personnel",
+  "marketing",
+  "itSoftware",
+  "otherOpex",
+  "depreciation",
+  "interest",
+  "tax",
+  "cash",
+  "openInvoices",
+  "openInvoicesCount",
+  "cfInvesting",
+  "cfFinancing",
+] as const;
+export type FinanceInputField = (typeof FINANCE_INPUT_FIELDS)[number];
+
+// A blank record (all zeros) for a firm/period with no data entered yet.
+export function emptyFinanceInput(view: EntityCode, period: string): FinanceInput {
+  return {
+    id: financeInputId(view, period),
+    view,
+    period,
+    revenue: 0,
+    cogs: 0,
+    personnel: 0,
+    marketing: 0,
+    itSoftware: 0,
+    otherOpex: 0,
+    depreciation: 0,
+    interest: 0,
+    tax: 0,
+    cash: 0,
+    openInvoices: 0,
+    openInvoicesCount: 0,
+    cfInvesting: 0,
+    cfFinancing: 0,
+    riskLevel: "Niedrig",
+  };
+}
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const SEASON = [0.82, 0.86, 0.95, 0.98, 1.02, 1.05, 0.99, 0.93, 1.04, 1.12, 1.15, 1.09];
 const SEASON_SUM = SEASON.reduce((a, b) => a + b, 0);
 
-function buildSeries(profile: EntityProfile): MonthPoint[] {
+// Reporting periods that have a comparable predecessor, used to derive the
+// period-over-period change KPIs from real data (no comparator → 0 % change).
+const PREVIOUS_PERIOD: Record<string, string> = {
+  "Mai 2026": "April 2026",
+  "Q2 2026": "Q1 2026",
+};
+
+// Months covered by a period, used to annualise the monthly burn / cash runway.
+function periodMonths(period: string): number {
+  if (period.startsWith("Q")) return 3;
+  if (period.startsWith("GJ") || period.startsWith("Geschäftsjahr")) return 12;
+  return 1;
+}
+
+const RISK_RANK: Record<RiskLevel, number> = { Niedrig: 0, Mittel: 1, Hoch: 2 };
+const RANK_RISK: RiskLevel[] = ["Niedrig", "Mittel", "Hoch"];
+
+function rawInputFor(code: EntityCode, period: string): FinanceInput | undefined {
+  return financeInputs.find((i) => i.view === code && i.period === period);
+}
+
+// Roll several firms' inputs up into one aggregate (group total). Numeric fields
+// sum; the risk level takes the highest among contributing firms.
+function aggregateInputs(codes: EntityCode[], period: string): FinanceInput {
+  const sum = emptyFinanceInput("__group__" as EntityCode, period);
+  let rank = 0;
+  for (const code of codes) {
+    const i = rawInputFor(code, period);
+    if (!i) continue;
+    sum.revenue += i.revenue;
+    sum.cogs += i.cogs;
+    sum.personnel += i.personnel;
+    sum.marketing += i.marketing;
+    sum.itSoftware += i.itSoftware;
+    sum.otherOpex += i.otherOpex;
+    sum.depreciation += i.depreciation;
+    sum.interest += i.interest;
+    sum.tax += i.tax;
+    sum.cash += i.cash;
+    sum.openInvoices += i.openInvoices;
+    sum.openInvoicesCount += i.openInvoicesCount;
+    sum.cfInvesting += i.cfInvesting;
+    sum.cfFinancing += i.cfFinancing;
+    rank = Math.max(rank, RISK_RANK[i.riskLevel]);
+  }
+  sum.riskLevel = RANK_RISK[rank];
+  return sum;
+}
+
+// The effective input for any view+period: a firm reads its own record (or an
+// empty one); a group view aggregates its non-archived member firms.
+function resolveInput(view: ViewKey, period: string): FinanceInput {
+  const gid = groupIdFromView(view);
+  if (gid) return aggregateInputs(firmCodesInGroup(gid), period);
+  return rawInputFor(view as EntityCode, period) ?? emptyFinanceInput(view as EntityCode, period);
+}
+
+function operatingCosts(i: FinanceInput): number {
+  return i.cogs + i.personnel + i.marketing + i.itSoftware + i.otherOpex;
+}
+
+function ebitdaOf(i: FinanceInput): number {
+  return i.revenue - operatingCosts(i);
+}
+
+function netProfitOf(i: FinanceInput): number {
+  return ebitdaOf(i) - i.depreciation - i.interest - i.tax;
+}
+
+function pctChange(curr: number, prev: number): number {
+  if (!prev) return 0;
+  return ((curr - prev) / Math.abs(prev)) * 100;
+}
+
+function buildSeries(revenue: number, ebitdaMargin: number, netMargin: number): MonthPoint[] {
   return MONTHS.map((month, i) => {
-    const revenue = Math.round((profile.revenue * SEASON[i]) / SEASON_SUM);
-    const ebitda = Math.round(revenue * profile.ebitdaMargin);
-    const profit = Math.round(revenue * profile.netMargin);
-    const costs = revenue - ebitda;
-    return { month, revenue, costs, ebitda, profit };
+    const r = Math.round((revenue * SEASON[i]) / SEASON_SUM);
+    const ebitda = Math.round(r * ebitdaMargin);
+    const profit = Math.round(r * netMargin);
+    return { month, revenue: r, costs: r - ebitda, ebitda, profit };
   });
 }
 
-function profileToFinance(view: ViewKey, p: EntityProfile): EntityFinance {
+export function computeFinance(view: ViewKey, input: FinanceInput, prev?: FinanceInput): EntityFinance {
+  const ebitda = ebitdaOf(input);
+  const netProfit = netProfitOf(input);
+  const ebitdaMargin = input.revenue ? (ebitda / input.revenue) * 100 : 0;
+  const netMargin = input.revenue ? (netProfit / input.revenue) * 100 : 0;
+  const totalCosts = operatingCosts(input) + input.depreciation + input.interest + input.tax;
+  const monthlyBurn = totalCosts / periodMonths(input.period);
+  const cashRunway = monthlyBurn > 0 ? input.cash / monthlyBurn : 0;
+
+  const prevEbitda = prev ? ebitdaOf(prev) : 0;
+  const prevNet = prev ? netProfitOf(prev) : 0;
+  const prevMargin = prev && prev.revenue ? (prevEbitda / prev.revenue) * 100 : 0;
+
   return {
     view,
-    revenue: p.revenue,
-    ebitda: Math.round(p.revenue * p.ebitdaMargin),
-    ebitdaMargin: p.ebitdaMargin * 100,
-    netProfit: Math.round(p.revenue * p.netMargin),
-    cash: p.cash,
-    cashRunway: p.cashRunway,
-    openInvoices: p.openInvoices,
-    openInvoicesCount: p.openInvoicesCount,
-    riskLevel: p.riskLevel,
-    series: buildSeries(p),
-    revenueChange: p.revenueChange,
-    ebitdaChange: p.ebitdaChange,
-    marginChange: p.marginChange,
-    netChange: p.netChange,
-    cashChange: p.cashChange,
+    revenue: input.revenue,
+    ebitda,
+    ebitdaMargin,
+    netProfit,
+    cash: input.cash,
+    cashRunway: Math.round(cashRunway * 10) / 10,
+    openInvoices: input.openInvoices,
+    openInvoicesCount: input.openInvoicesCount,
+    riskLevel: input.riskLevel,
+    series: buildSeries(input.revenue, ebitdaMargin / 100, netMargin / 100),
+    revenueChange: prev ? pctChange(input.revenue, prev.revenue) : 0,
+    ebitdaChange: prev ? pctChange(ebitda, prevEbitda) : 0,
+    marginChange: prev ? ebitdaMargin - prevMargin : 0,
+    netChange: prev ? pctChange(netProfit, prevNet) : 0,
+    cashChange: prev ? pctChange(input.cash, prev.cash) : 0,
   };
 }
 
-const ZERO_PROFILE: EntityProfile = {
-  revenue: 0, ebitdaMargin: 0, netMargin: 0, cash: 0, cashRunway: 0,
-  openInvoices: 0, openInvoicesCount: 0, riskLevel: "Niedrig",
-  revenueChange: 0, ebitdaChange: 0, marginChange: 0, netChange: 0, cashChange: 0,
-};
-
-// Aggregate the (non-archived) firms of a single group into one total profile.
-// Empty groups return zeros so weighted averages never divide by zero.
-function groupProfile(groupId: string): EntityProfile {
-  const codes = firmsInGroup(groupId).map((e) => e.code);
-  if (codes.length === 0) return { ...ZERO_PROFILE };
-  const sum = (sel: (p: EntityProfile) => number) => codes.reduce((a, c) => a + sel(profileFor(c)), 0);
-  const revenue = sum((p) => p.revenue);
-  if (revenue === 0) return { ...ZERO_PROFILE };
-  const ebitda = sum((p) => p.revenue * p.ebitdaMargin);
-  const net = sum((p) => p.revenue * p.netMargin);
-  const cash = sum((p) => p.cash);
-  const wAvg = (sel: (p: EntityProfile) => number) => sum((p) => sel(p) * p.revenue) / revenue;
-  return {
-    revenue,
-    ebitdaMargin: ebitda / revenue,
-    netMargin: net / revenue,
-    cash,
-    cashRunway: 12.4,
-    openInvoices: sum((p) => p.openInvoices),
-    openInvoicesCount: sum((p) => p.openInvoicesCount),
-    riskLevel: "Mittel",
-    revenueChange: wAvg((p) => p.revenueChange),
-    ebitdaChange: wAvg((p) => p.ebitdaChange),
-    marginChange: wAvg((p) => p.marginChange),
-    netChange: wAvg((p) => p.netChange),
-    cashChange: wAvg((p) => p.cashChange),
-  };
-}
-
-function hashString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-// Deterministic placeholder financials for entities created at runtime that
-// have no curated profile, so dashboards stay populated instead of crashing.
-function fallbackProfile(code: string): EntityProfile {
-  const h = hashString(code || "new");
-  const pick = (min: number, max: number, salt: number) => {
-    const v = ((h >> (salt % 24)) & 0xff) / 255;
-    return min + v * (max - min);
-  };
-  const revenue = Math.round(pick(4, 18, 1)) * 1_000_000;
-  return {
-    revenue,
-    ebitdaMargin: pick(0.08, 0.18, 3),
-    netMargin: pick(0.04, 0.1, 5),
-    cash: Math.round(pick(1, 4, 7) * 1_000_000),
-    cashRunway: pick(8, 16, 9),
-    openInvoices: Math.round(revenue * pick(0.04, 0.09, 11)),
-    openInvoicesCount: Math.round(pick(10, 40, 13)),
-    riskLevel: "Niedrig",
-    revenueChange: pick(-2, 12, 15),
-    ebitdaChange: pick(-3, 10, 17),
-    marginChange: pick(-1, 1.5, 19),
-    netChange: pick(-3, 9, 21),
-    cashChange: pick(-2, 7, 23),
-  };
-}
-
-function profileFor(code: ViewKey): EntityProfile {
-  return PROFILES[code] ?? fallbackProfile(code);
-}
-
-export function getFinance(view: ViewKey): EntityFinance {
-  const gid = groupIdFromView(view);
-  if (gid) return profileToFinance(view, groupProfile(gid));
-  return profileToFinance(view, profileFor(view));
+export function getFinance(view: ViewKey, period: string = activePeriod): EntityFinance {
+  const input = resolveInput(view, period);
+  const prevKey = PREVIOUS_PERIOD[period];
+  const prev = prevKey ? resolveInput(view, prevKey) : undefined;
+  return computeFinance(view, input, prev);
 }
 
 export interface EntityComparisonRow {
@@ -184,10 +243,12 @@ export interface EntityComparisonRow {
   trend: number;
 }
 
-export function getEntityComparison(entities: EntityMeta[] = ENTITIES): EntityComparisonRow[] {
+export function getEntityComparison(
+  entities: EntityMeta[] = registryEntities(),
+  period: string = activePeriod,
+): EntityComparisonRow[] {
   return entities.filter((e) => !e.archived).map((e) => {
-    const p = profileFor(e.code);
-    const f = profileToFinance(e.code, p);
+    const f = getFinance(e.code, period);
     return {
       code: e.code,
       name: e.name,
@@ -214,16 +275,19 @@ export const EXPENSE_BUDGET_CATEGORIES = [
 ] as const;
 export type ExpenseBudgetCategory = (typeof EXPENSE_BUDGET_CATEGORIES)[number];
 
-export function getBudget(view: ViewKey): BudgetRow[] {
-  const f = getFinance(view);
-  const r = f.revenue;
+export function getBudget(view: ViewKey, period: string = activePeriod): BudgetRow[] {
+  const i = resolveInput(view, period);
+  const r = i.revenue;
+  // Actuals are the real entered figures (bank bookings overlay later via
+  // applyBookingsToBudget). The plan/target is a revenue-proportional benchmark
+  // — deviations between plan and actual surface over/under-spend per category.
   return [
     { category: "Umsatzerlöse", budget: Math.round(r * 1.03), actual: r },
-    { category: "Warenkosten", budget: Math.round(r * 0.58), actual: Math.round(r * 0.6) },
-    { category: "Personalkosten", budget: Math.round(r * 0.19), actual: Math.round(r * 0.185) },
-    { category: "Marketing", budget: Math.round(r * 0.05), actual: Math.round(r * 0.054) },
-    { category: "IT & Software", budget: Math.round(r * 0.03), actual: Math.round(r * 0.029) },
-    { category: "Sonstige Op. Kosten", budget: Math.round(r * 0.04), actual: Math.round(r * 0.043) },
+    { category: "Warenkosten", budget: Math.round(r * 0.58), actual: i.cogs },
+    { category: "Personalkosten", budget: Math.round(r * 0.19), actual: i.personnel },
+    { category: "Marketing", budget: Math.round(r * 0.05), actual: i.marketing },
+    { category: "IT & Software", budget: Math.round(r * 0.03), actual: i.itSoftware },
+    { category: "Sonstige Op. Kosten", budget: Math.round(r * 0.04), actual: i.otherOpex },
   ];
 }
 
@@ -239,27 +303,30 @@ export function applyBookingsToBudget(
   });
 }
 
-export function getCashflow(view: ViewKey): CashflowBlock {
-  const f = getFinance(view);
-  const operating = Math.round(f.ebitda * 0.82);
-  const investing = -Math.round(f.revenue * 0.06);
-  const financing = -Math.round(f.revenue * 0.025);
+export function getCashflow(view: ViewKey, period: string = activePeriod): CashflowBlock {
+  const i = resolveInput(view, period);
+  // Operating cashflow via the indirect method: net result + depreciation
+  // (a non-cash expense). Investing/financing are entered directly.
+  const operating = netProfitOf(i) + i.depreciation;
+  const investing = i.cfInvesting;
+  const financing = i.cfFinancing;
+  const w = (v: number, idx: number) => Math.round((v * SEASON[idx]) / SEASON_SUM);
   return {
     operating,
     investing,
     financing,
     netChange: operating + investing + financing,
-    series: f.series.map((m) => ({
-      month: m.month,
-      operating: Math.round(m.ebitda * 0.82),
-      investing: -Math.round(m.revenue * 0.06),
-      financing: -Math.round(m.revenue * 0.025),
+    series: MONTHS.map((month, idx) => ({
+      month,
+      operating: w(operating, idx),
+      investing: w(investing, idx),
+      financing: w(financing, idx),
     })),
   };
 }
 
-export function getLiquidity(view: ViewKey): LiquidityPoint[] {
-  const f = getFinance(view);
+export function getLiquidity(view: ViewKey, period: string = activePeriod): LiquidityPoint[] {
+  const f = getFinance(view, period);
   const base = f.cash;
   const weekly = (f.revenue / 52) * 0.05;
   return Array.from({ length: 13 }, (_, i) => {
@@ -273,19 +340,19 @@ export function getLiquidity(view: ViewKey): LiquidityPoint[] {
   });
 }
 
-export function getProfitLoss(view: ViewKey): PLRow[] {
-  const f = getFinance(view);
-  const r = f.revenue;
-  const cogs = Math.round(r * 0.6);
+export function getProfitLoss(view: ViewKey, period: string = activePeriod): PLRow[] {
+  const i = resolveInput(view, period);
+  const r = i.revenue;
+  const cogs = i.cogs;
   const gross = r - cogs;
-  const personnel = Math.round(r * 0.185);
-  const other = Math.round(r * 0.115);
+  const personnel = i.personnel;
+  const other = i.marketing + i.itSoftware + i.otherOpex;
   const ebitda = gross - personnel - other;
-  const depreciation = Math.round(r * 0.035);
+  const depreciation = i.depreciation;
   const ebit = ebitda - depreciation;
-  const interest = Math.round(r * 0.012);
+  const interest = i.interest;
   const ebt = ebit - interest;
-  const tax = Math.round(ebt * 0.28);
+  const tax = i.tax;
   const net = ebt - tax;
   return [
     { label: "Umsatzerlöse", value: r, explain: "Gesamte Einnahmen aus Verkäufen und Leistungen.", bold: true },
@@ -321,29 +388,31 @@ export interface PLOverview {
   costBreakdown: { name: string; value: number }[];
 }
 
-export function getPLOverview(view: ViewKey): PLOverview {
-  const f = getFinance(view);
-  const r = f.revenue;
-  const cogs = Math.round(r * 0.6);
+export function getPLOverview(view: ViewKey, period: string = activePeriod): PLOverview {
+  const f = getFinance(view, period);
+  const i = resolveInput(view, period);
+  const r = i.revenue;
+  const cogs = i.cogs;
   const gross = r - cogs;
-  const personnel = Math.round(r * 0.185);
-  const other = Math.round(r * 0.115);
+  const personnel = i.personnel;
+  const other = i.marketing + i.itSoftware + i.otherOpex;
   const ebitda = gross - personnel - other;
-  const depreciation = Math.round(r * 0.035);
+  const depreciation = i.depreciation;
   const ebit = ebitda - depreciation;
-  const interest = Math.round(r * 0.012);
+  const interest = i.interest;
   const ebt = ebit - interest;
-  const tax = Math.round(ebt * 0.28);
+  const tax = i.tax;
   const net = ebt - tax;
+  const margin = (num: number) => (r ? (num / r) * 100 : 0);
   return {
     revenue: r,
     grossProfit: gross,
-    grossMargin: (gross / r) * 100,
+    grossMargin: margin(gross),
     ebitda,
-    ebitdaMargin: (ebitda / r) * 100,
+    ebitdaMargin: margin(ebitda),
     ebit,
     netProfit: net,
-    netMargin: (net / r) * 100,
+    netMargin: margin(net),
     cogs,
     personnel,
     otherCosts: other,
@@ -399,8 +468,13 @@ export function buildBalanceSeed(): BalanceLineItem[] {
   return items;
 }
 
-export function getForecasts(view: ViewKey): ForecastSeries[] {
-  const f = getFinance(view);
+export function getForecasts(view: ViewKey, period: string = activePeriod): ForecastSeries[] {
+  const f = getFinance(view, period);
+  // Headcount-based forecasts use the real employee counts of the covered firms.
+  const headcount = entityCodesForView(view).reduce((sum, code) => {
+    const e = registryEntities().find((x) => x.code === code);
+    return sum + (e?.employees ?? 0);
+  }, 0);
   const periods = ["Q1", "Q2", "Q3", "Q4"];
   const mk = (
     kind: ForecastSeries["kind"],
@@ -420,13 +494,14 @@ export function getForecasts(view: ViewKey): ForecastSeries[] {
       };
     }),
   });
+  const input = resolveInput(view, period);
   return [
     mk("Umsatz", "€", f.revenue / 4, 0.08),
     mk("Kosten", "€", (f.revenue - f.ebitda) / 4, 0.05),
     mk("Liquidität", "€", f.cash, 0.04),
-    mk("Personalbedarf", "FTE", isGroupView(view) ? 392 : 60, 0.06),
-    mk("Einkauf", "€", (f.revenue * 0.6) / 4, 0.07),
-    mk("Inventarbedarf", "Stück", isGroupView(view) ? 240 : 48, 0.05),
-    mk("Investitionen", "€", (f.revenue * 0.06) / 4, 0.03),
+    mk("Personalbedarf", "FTE", headcount, 0.06),
+    mk("Einkauf", "€", input.cogs / 4, 0.07),
+    mk("Inventarbedarf", "Stück", headcount, 0.05),
+    mk("Investitionen", "€", Math.abs(input.cfInvesting) / 4, 0.03),
   ];
 }

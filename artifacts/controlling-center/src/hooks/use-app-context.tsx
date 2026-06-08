@@ -11,6 +11,7 @@ import type {
   Employee,
   EntityCode,
   EntityMeta,
+  FinanceInput,
   InventoryItem,
   PreMortem,
   PurchaseRequest,
@@ -28,6 +29,7 @@ import {
   groupViewKey,
   groupIdFromView,
   setRegistry,
+  setFinanceData,
 } from "@/data";
 import { learnMapping, heuristicCategory } from "@/data/bank";
 import type { CopilotContext } from "@/data/copilot";
@@ -80,6 +82,7 @@ export interface HydratePayload {
   bankTransactions: BankTransaction[];
   inventory: InventoryItem[];
   balanceItems: BalanceLineItem[];
+  financeInputs: FinanceInput[];
   risks: Risk[];
   premortems: PreMortem[];
   strategyDecisions: StrategyDecision[];
@@ -192,6 +195,11 @@ interface AppState {
   updateBalanceItem: (id: string, patch: Partial<Omit<BalanceLineItem, "id">>) => void;
   removeBalanceItem: (id: string) => void;
 
+  // Real per-firm/per-period financial inputs (KPIs are derived from these).
+  // Keyed by the deterministic id so a firm/period edit upserts in place.
+  financeInputs: FinanceInput[];
+  upsertFinanceInput: (input: FinanceInput) => void;
+
   auditLog: AuditEntry[];
   logAction: (action: string, detail: string) => void;
 
@@ -248,6 +256,7 @@ export const useAppStore = create<AppState>()(
   },
   hydrate: (payload) => {
     setRegistry(payload.entities, payload.groups);
+    setFinanceData(payload.financeInputs, get().period);
     set((s) => {
       const allViews: ViewKey[] = [
         ...payload.groups.filter((g) => !g.archived).map((g) => groupViewKey(g.id)),
@@ -262,6 +271,7 @@ export const useAppStore = create<AppState>()(
         bankTransactions: payload.bankTransactions,
         inventory: payload.inventory,
         balanceItems: payload.balanceItems,
+        financeInputs: payload.financeInputs,
         risks: payload.risks,
         premortems: payload.premortems,
         strategyDecisions: payload.strategyDecisions,
@@ -276,6 +286,7 @@ export const useAppStore = create<AppState>()(
   },
   resetData: () => {
     setRegistry([], []);
+    setFinanceData([], get().period);
     set({
       currentUser: EMPTY_USER,
       isAuthenticated: false,
@@ -289,6 +300,7 @@ export const useAppStore = create<AppState>()(
       bankTransactions: [],
       inventory: [],
       balanceItems: [],
+      financeInputs: [],
       uploads: [],
       approvals: [],
       deviceAssignments: [],
@@ -550,6 +562,17 @@ export const useAppStore = create<AppState>()(
     set((s) => ({ balanceItems: s.balanceItems.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
   removeBalanceItem: (id) => set((s) => ({ balanceItems: s.balanceItems.filter((b) => b.id !== id) })),
 
+  financeInputs: [],
+  upsertFinanceInput: (input) =>
+    set((s) => {
+      const exists = s.financeInputs.some((f) => f.id === input.id);
+      return {
+        financeInputs: exists
+          ? s.financeInputs.map((f) => (f.id === input.id ? input : f))
+          : [...s.financeInputs, input],
+      };
+    }),
+
   auditLog: [],
   logAction: (action, detail) =>
     set((s) => ({
@@ -587,7 +610,12 @@ export const useAppStore = create<AppState>()(
   )
 );
 
-// Keep the data-layer registry (used by finance/scope helpers) in sync with the
-// live store so group totals and scoping always reflect current state.
+// Keep the data-layer registries (used by finance/scope helpers) in sync with
+// the live store so group totals, scoping and derived KPIs always reflect the
+// current state, active period and entered financial inputs.
 setRegistry(useAppStore.getState().entities, useAppStore.getState().groups);
-useAppStore.subscribe((s) => setRegistry(s.entities, s.groups));
+setFinanceData(useAppStore.getState().financeInputs, useAppStore.getState().period);
+useAppStore.subscribe((s) => {
+  setRegistry(s.entities, s.groups);
+  setFinanceData(s.financeInputs, s.period);
+});

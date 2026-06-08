@@ -134,7 +134,7 @@ function Kpi({
 }
 
 export default function Dashboard() {
-  const { selectedEntity, risks: allRisks, currentUser } = useAppStore();
+  const { selectedEntity, risks: allRisks, currentUser, period, financeInputs } = useAppStore();
   const { t } = useTranslation();
   const { compact, currency, number } = useFormat();
   const [, navigate] = useLocation();

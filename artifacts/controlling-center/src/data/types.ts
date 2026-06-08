@@ -65,6 +65,32 @@ export interface BudgetRow {
   actual: number;
 }
 
+// Real, user-maintained financial figures for one firm in one reporting period.
+// All finance KPIs (EBITDA, margins, net result, cashflow, liquidity, runway,
+// budget vs. actual, forecasts) are derived from these entered values. Group
+// views are never stored — they aggregate from their member firms. The id is
+// deterministic (`FIN-<period>-<view>`) so a firm/period upserts in place.
+export interface FinanceInput {
+  id: string;
+  view: EntityCode;
+  period: string;
+  revenue: number;
+  cogs: number;
+  personnel: number;
+  marketing: number;
+  itSoftware: number;
+  otherOpex: number;
+  depreciation: number;
+  interest: number;
+  tax: number;
+  cash: number;
+  openInvoices: number;
+  openInvoicesCount: number;
+  cfInvesting: number;
+  cfFinancing: number;
+  riskLevel: RiskLevel;
+}
+
 export type ExpenseStatus = "needs-assignment" | "booked";
 export type SuggestionSource = "learned" | "ai" | "heuristic";
 

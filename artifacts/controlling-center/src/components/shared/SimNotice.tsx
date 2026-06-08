@@ -5,18 +5,6 @@ import { Badge } from "@/components/ui/badge";
 const WRAP =
   "flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700";
 
-export function SampleDataBanner() {
-  const { t } = useTranslation();
-  return (
-    <div className={WRAP} data-testid="notice-sample-data">
-      <FlaskConical className="h-3.5 w-3.5 shrink-0" />
-      <span>
-        <span className="font-semibold">{t("sim_sample_data")}</span> — {t("sim_sample_note")}
-      </span>
-    </div>
-  );
-}
-
 export function SimulatedNotice({ text }: { text: string }) {
   return (
     <div className={WRAP} data-testid="notice-simulated">

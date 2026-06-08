@@ -6,6 +6,7 @@ import type {
   CompanyGroup,
   Employee,
   EntityMeta,
+  FinanceInput,
   InventoryItem,
   PreMortem,
   PurchaseRequest,
@@ -152,6 +153,7 @@ export type DomainKind =
   | "bankTransactions"
   | "inventory"
   | "balanceItems"
+  | "financeInputs"
   | "risks"
   | "premortems"
   | "strategyDecisions"
@@ -168,6 +170,7 @@ const KIND_PATH: Record<DomainKind, string> = {
   bankTransactions: "bank-transactions",
   inventory: "inventory",
   balanceItems: "balance-items",
+  financeInputs: "finance-inputs",
   risks: "risks",
   premortems: "premortems",
   strategyDecisions: "strategy-decisions",
@@ -185,6 +188,7 @@ export interface DomainMap {
   bankTransactions: BankTransaction;
   inventory: InventoryItem;
   balanceItems: BalanceLineItem;
+  financeInputs: FinanceInput;
   risks: Risk;
   premortems: PreMortem;
   strategyDecisions: StrategyDecision;

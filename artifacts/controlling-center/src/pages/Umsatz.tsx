@@ -26,7 +26,7 @@ const NAVY = CHART.navy;
 
 export function UmsatzView() {
   const { t } = useTranslation();
-  const { selectedEntity, entities } = useAppStore();
+  const { selectedEntity, entities, period, financeInputs } = useAppStore();
   const comparison = getEntityComparison(entities);
   const finance = getFinance(selectedEntity);
 

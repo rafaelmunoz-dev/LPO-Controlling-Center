@@ -46,7 +46,7 @@ function KpiCard({ label, value, sub, tone }: { label: string; value: string; su
 
 export function GuVView() {
   const { t } = useTranslation();
-  const { selectedEntity, entities } = useAppStore();
+  const { selectedEntity, entities, period, financeInputs } = useAppStore();
   const pl = getPLOverview(selectedEntity);
   const statement = getProfitLoss(selectedEntity);
   const comparison = getEntityComparison(entities);

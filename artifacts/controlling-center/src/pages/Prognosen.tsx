@@ -17,7 +17,7 @@ const RED = CHART.red;
 
 export function PrognosenView() {
   const { t } = useTranslation();
-  const { selectedEntity } = useAppStore();
+  const { selectedEntity, period, financeInputs } = useAppStore();
   const forecasts = getForecasts(selectedEntity);
   const [kind, setKind] = useState<ForecastSeries["kind"]>("Umsatz");
   const [growth, setGrowth] = useState([100]);

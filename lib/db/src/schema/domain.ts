@@ -39,6 +39,7 @@ export const purchaseRequests = domainTable("purchase_requests");
 export const bankTransactions = domainTable("bank_transactions");
 export const inventory = domainTable("inventory");
 export const balanceItems = domainTable("balance_items");
+export const financeInputs = domainTable("finance_inputs");
 export const risks = domainTable("risks");
 export const premortems = domainTable("premortems");
 export const strategyDecisions = domainTable("strategy_decisions");
@@ -55,6 +56,7 @@ export const DOMAIN_TABLES = {
   bankTransactions,
   inventory,
   balanceItems,
+  financeInputs,
   risks,
   premortems,
   strategyDecisions,

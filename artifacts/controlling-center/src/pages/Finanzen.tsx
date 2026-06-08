@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/shared/page";
 import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import type { GlossaryKey } from "@/data";
-import type { BalanceLineItem, BalanceSide } from "@/data/types";
+import type { BalanceLineItem, BalanceSide, EntityCode, FinanceInput, RiskLevel } from "@/data/types";
 import {
   getPLOverview,
   getCashflow,
@@ -29,6 +30,11 @@ import {
   groupViewKey,
   labelForView,
   DEFAULT_GROUP_ID,
+  financeInputId,
+  emptyFinanceInput,
+  computeFinance,
+  FINANCE_INPUT_FIELDS,
+  type FinanceInputField,
 } from "@/data";
 import { can } from "@/data/governance";
 import type { NavKey } from "@/data/governance";
@@ -56,6 +62,7 @@ import { BelegeView } from "./Belege";
 
 const TAB_DEFS = [
   { value: "overview", navKey: "finanzen", labelKey: "tab_overview", testid: "tab-overview" },
+  { value: "data", navKey: "finanzen", labelKey: "tab_finance_data", testid: "tab-finance-data" },
   { value: "gv", navKey: "gewinnverlust", labelKey: "gewinnverlust", testid: "tab-gv" },
   { value: "umsatz", navKey: "umsatz", labelKey: "umsatz", testid: "tab-umsatz" },
   { value: "belege", navKey: "belege", labelKey: "belege", testid: "tab-belege" },
@@ -284,8 +291,166 @@ function BilanzTab() {
   );
 }
 
+function FinanzdatenTab() {
+  const { t } = useTranslation();
+  const { currency, number } = useFormat();
+  const selectedEntity = useAppStore((s) => s.selectedEntity);
+  const period = useAppStore((s) => s.period);
+  const entities = useAppStore((s) => s.entities);
+  const financeInputs = useAppStore((s) => s.financeInputs);
+  const upsertFinanceInput = useAppStore((s) => s.upsertFinanceInput);
+  const logAction = useAppStore((s) => s.logAction);
+  const role = useAppStore((s) => s.currentUser.role);
+  const canEdit = can(role, "finanzdaten:edit");
+
+  const isGroup = isGroupView(selectedEntity);
+  // Real figures are always entered per firm; a group view lets the user pick
+  // which member firm to maintain (the group itself is derived, never stored).
+  const memberFirms = entities.filter(
+    (e) => !e.archived && (isGroup ? groupViewKey(e.groupId) === selectedEntity : e.code === selectedEntity),
+  );
+
+  const [firm, setFirm] = useState<EntityCode | "">("");
+  const activeFirm: EntityCode | "" = memberFirms.some((e) => e.code === firm)
+    ? firm
+    : memberFirms[0]?.code ?? "";
+
+  const [form, setForm] = useState<Record<FinanceInputField, string>>(
+    () => Object.fromEntries(FINANCE_INPUT_FIELDS.map((f) => [f, "0"])) as Record<FinanceInputField, string>,
+  );
+  const [risk, setRisk] = useState<RiskLevel>("Niedrig");
+
+  // Load the existing record for the selected firm/period (or a blank one) into
+  // the form whenever the firm, period, or synced data changes.
+  useEffect(() => {
+    if (!activeFirm) return;
+    const existing =
+      financeInputs.find((i) => i.id === financeInputId(activeFirm, period)) ??
+      emptyFinanceInput(activeFirm, period);
+    setForm(
+      Object.fromEntries(FINANCE_INPUT_FIELDS.map((f) => [f, String(existing[f])])) as Record<
+        FinanceInputField,
+        string
+      >,
+    );
+    setRisk(existing.riskLevel);
+  }, [activeFirm, period, financeInputs]);
+
+  if (!activeFirm) {
+    return (
+      <Card className="glass-card">
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          {t("fd_no_firms")}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const draft: FinanceInput = {
+    ...emptyFinanceInput(activeFirm, period),
+    ...(Object.fromEntries(
+      FINANCE_INPUT_FIELDS.map((f) => [f, Number(form[f]) || 0]),
+    ) as Record<FinanceInputField, number>),
+    riskLevel: risk,
+  };
+  const preview = computeFinance(activeFirm, draft);
+
+  const save = () => {
+    if (!canEdit) {
+      toast.error(t("no_permission"));
+      return;
+    }
+    upsertFinanceInput(draft);
+    logAction(t("fd_log_save"), `${activeFirm} · ${period}`);
+    toast.success(t("fd_saved"));
+  };
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <Card className="glass-card lg:col-span-2">
+        <CardHeader>
+          <CardTitle>{t("fd_title")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("fd_subtitle")}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>{t("fd_firm")}</Label>
+              <Select value={activeFirm} onValueChange={(v) => setFirm(v as EntityCode)} disabled={memberFirms.length <= 1}>
+                <SelectTrigger data-testid="select-finance-firm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {memberFirms.map((e) => (
+                    <SelectItem key={e.code} value={e.code}>{e.code} · {e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("fd_period")}</Label>
+              <Input value={period} disabled data-testid="input-finance-period" />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {FINANCE_INPUT_FIELDS.map((f) => (
+              <div key={f} className="space-y-1.5">
+                <Label>{t(`fd_${f}`)}</Label>
+                <Input
+                  type="number"
+                  value={form[f]}
+                  disabled={!canEdit}
+                  onChange={(e) => setForm({ ...form, [f]: e.target.value })}
+                  data-testid={`input-finance-${f}`}
+                />
+              </div>
+            ))}
+            <div className="space-y-1.5">
+              <Label>{t("fd_riskLevel")}</Label>
+              <Select value={risk} onValueChange={(v) => setRisk(v as RiskLevel)} disabled={!canEdit}>
+                <SelectTrigger data-testid="select-finance-risk"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Niedrig">{t("low")}</SelectItem>
+                  <SelectItem value="Mittel">{t("medium")}</SelectItem>
+                  <SelectItem value="Hoch">{t("high")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={save} disabled={!canEdit} data-testid="button-save-finance">{t("common_save")}</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card h-fit">
+        <CardHeader><CardTitle>{t("fd_preview")}</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <PreviewRow label={t("kpi_revenue")} value={currency(preview.revenue)} />
+          <PreviewRow label={t("kpi_ebitda")} value={currency(preview.ebitda)} sub={`${number(Math.round(preview.ebitdaMargin * 10) / 10)} %`} />
+          <PreviewRow label={t("kpi_net")} value={currency(preview.netProfit)} />
+          <PreviewRow label={t("kpi_cash")} value={currency(preview.cash)} sub={`${number(Math.round(preview.cashRunway * 10) / 10)} ${t("fd_months")}`} />
+          <PreviewRow label={t("kpi_open_invoices")} value={currency(preview.openInvoices)} sub={`${number(preview.openInvoicesCount)}`} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PreviewRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="flex items-baseline justify-between border-b border-border/40 pb-2 last:border-0 last:pb-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-semibold">
+        {value}
+        {sub && <span className="ml-1.5 text-xs font-normal text-muted-foreground">{sub}</span>}
+      </span>
+    </div>
+  );
+}
+
 export default function Finanzen() {
-  const { selectedEntity, entities, bankTransactions, allowedNav } = useAppStore();
+  const { selectedEntity, entities, bankTransactions, allowedNav, period, financeInputs } = useAppStore();
   const { t } = useTranslation();
   const { currency, compact, number } = useFormat();
   const plo = getPLOverview(selectedEntity);
@@ -413,6 +578,10 @@ export default function Finanzen() {
 
         <TabsContent value="belege">
           <BelegeView />
+        </TabsContent>
+
+        <TabsContent value="data">
+          <FinanzdatenTab />
         </TabsContent>
 
         <TabsContent value="bs">

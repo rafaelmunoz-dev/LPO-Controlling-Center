@@ -19,3 +19,4 @@
 - [Structure quick-create surfaces](structure-quick-create.md) — group/entity creation is Admin-only and exists in BOTH Einstellungen and the Topbar entity dropdown; the dropdown uses a separate shared StructureCreateDialogs by design.
 - [DB declaration rebuild](db-declaration-rebuild.md) — lib/db is a composite emitDeclarationOnly project; after editing src/schema, run `tsc -b lib/db --force` or api-server typecheck fails TS2322 on stale DomainKind.
 - [Microsoft Forms via OneDrive](microsoft-forms-onedrive.md) — no Forms connector exists; Forms responses live in OneDrive Excel workbooks read via Graph Excel API using the onedrive connector token.
+- [Controlling Center finance registry](controlling-center-finance-registry.md) — finance KPIs derive from a module-level registry synced via a store subscription; pages showing KPIs MUST destructure period+financeInputs or they won't re-render.

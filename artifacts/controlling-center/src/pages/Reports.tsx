@@ -34,7 +34,7 @@ const SECTIONS: { key: string; labelKey: string }[] = [
 
 export function BerichteView() {
   const { t } = useTranslation();
-  const { selectedEntity, reportDrafts, addReportDraft, currentUser, groups, entities } = useAppStore();
+  const { selectedEntity, reportDrafts, addReportDraft, currentUser, groups, entities, financeInputs } = useAppStore();
   const canCreate = can(currentUser.role, "reports:create");
   const entityViews: ViewKey[] = groups
     .filter((g) => !g.archived)
