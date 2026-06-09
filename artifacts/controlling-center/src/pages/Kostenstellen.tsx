@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/shared/page";
 import {
   costCenterReport, costCentersForView, emptyCostCenter,
-  defaultFirmForView, entityCodesForView, labelForView,
+  defaultFirmForView, entityCodesForView,
 } from "@/data";
 import { can } from "@/data/governance";
 import type { CostCenter, EntityCode } from "@/data/types";
-import { Layers, Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type CCForm = { id: string; entity: EntityCode; code: string; name: string; responsible: string; monthlyBudget: string };
@@ -104,13 +103,6 @@ export default function Kostenstellen() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t("kostenstellen")}
-        subtitle={`${t("cc_subtitle")} · ${labelForView(selectedEntity)} · ${period}`}
-        icon={<Layers className="h-5 w-5" />}
-        actions={canCreate && <Button onClick={openCreate} data-testid="button-new-cc"><Plus className="h-4 w-4 mr-1.5" /> {t("cc_new")}</Button>}
-      />
-
       <div className="grid gap-4 sm:grid-cols-4">
         <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary" data-testid="text-cc-count">{number(visible.length)}</div><div className="text-sm text-muted-foreground mt-1">{t("cc_count")}</div></CardContent></Card>
         <Card className="glass-card"><CardContent className="pt-6"><div className="text-2xl font-bold text-primary">{currency(report.totals.budget)}</div><div className="text-sm text-muted-foreground mt-1">{t("cc_total_budget")}</div></CardContent></Card>

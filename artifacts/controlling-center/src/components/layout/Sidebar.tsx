@@ -5,7 +5,6 @@ import type { NavKey } from "@/data/governance";
 import {
   LayoutDashboard,
   PieChart,
-  Layers,
   ShoppingCart,
   Package,
   Users,
@@ -39,7 +38,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/", key: "dashboard", label: "dashboard", icon: LayoutDashboard },
       { href: "/finanzen", key: "finanzen", label: "finanzen", icon: PieChart },
-      { href: "/kostenstellen", key: "kostenstellen", label: "kostenstellen", icon: Layers },
     ],
   },
   {

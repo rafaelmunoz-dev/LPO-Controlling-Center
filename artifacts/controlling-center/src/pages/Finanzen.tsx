@@ -79,6 +79,7 @@ import { GuVView } from "./GewinnVerlust";
 import { PrognosenView } from "./Prognosen";
 import { BerichteView } from "./Reports";
 import { BelegeView } from "./Belege";
+import Kostenstellen from "./Kostenstellen";
 
 const TAB_DEFS = [
   { value: "overview", navKey: "finanzen", labelKey: "tab_overview", testid: "tab-overview" },
@@ -88,6 +89,7 @@ const TAB_DEFS = [
   { value: "belege", navKey: "belege", labelKey: "belege", testid: "tab-belege" },
   { value: "bs", navKey: "finanzen", labelKey: "tab_balance", testid: "tab-balance" },
   { value: "wc", navKey: "finanzen", labelKey: "tab_working_capital", testid: "tab-working-capital" },
+  { value: "kostenstellen", navKey: "kostenstellen", labelKey: "kostenstellen", testid: "tab-kostenstellen" },
   { value: "konsol", navKey: "finanzen", labelKey: "tab_consolidation", testid: "tab-consolidation" },
   { value: "prognosen", navKey: "prognosen", labelKey: "prognosen", testid: "tab-prognosen" },
   { value: "berichte", navKey: "reports", labelKey: "reports", testid: "tab-berichte" },
@@ -1256,6 +1258,10 @@ export default function Finanzen() {
 
         <TabsContent value="wc">
           <WorkingCapitalTab />
+        </TabsContent>
+
+        <TabsContent value="kostenstellen">
+          <Kostenstellen />
         </TabsContent>
 
         <TabsContent value="konsol" className="space-y-4">
