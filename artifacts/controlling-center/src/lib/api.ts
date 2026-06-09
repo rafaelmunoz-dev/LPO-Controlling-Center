@@ -3,11 +3,17 @@ import type {
   AuditEntry,
   BalanceLineItem,
   BankTransaction,
+  BudgetPlan,
   CompanyGroup,
+  CostCenter,
+  IntercompanyFlow,
+  LiquidityLine,
+  KpiTarget,
   Employee,
   EntityMeta,
   FinanceInput,
   InventoryItem,
+  Invoice,
   PreMortem,
   PurchaseRequest,
   Risk,
@@ -154,6 +160,12 @@ export type DomainKind =
   | "inventory"
   | "balanceItems"
   | "financeInputs"
+  | "budgetPlans"
+  | "invoices"
+  | "costCenters"
+  | "intercompanyFlows"
+  | "liquidityLines"
+  | "kpiTargets"
   | "risks"
   | "premortems"
   | "strategyDecisions"
@@ -171,6 +183,12 @@ const KIND_PATH: Record<DomainKind, string> = {
   inventory: "inventory",
   balanceItems: "balance-items",
   financeInputs: "finance-inputs",
+  budgetPlans: "budget-plans",
+  invoices: "invoices",
+  costCenters: "cost-centers",
+  intercompanyFlows: "intercompany-flows",
+  liquidityLines: "liquidity-lines",
+  kpiTargets: "kpi-targets",
   risks: "risks",
   premortems: "premortems",
   strategyDecisions: "strategy-decisions",
@@ -189,6 +207,12 @@ export interface DomainMap {
   inventory: InventoryItem;
   balanceItems: BalanceLineItem;
   financeInputs: FinanceInput;
+  budgetPlans: BudgetPlan;
+  invoices: Invoice;
+  costCenters: CostCenter;
+  intercompanyFlows: IntercompanyFlow;
+  liquidityLines: LiquidityLine;
+  kpiTargets: KpiTarget;
   risks: Risk;
   premortems: PreMortem;
   strategyDecisions: StrategyDecision;

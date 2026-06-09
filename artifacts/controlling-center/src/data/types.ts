@@ -65,6 +65,23 @@ export interface BudgetRow {
   actual: number;
 }
 
+// User-entered plan/budget figures for one firm in one reporting period. The
+// Plan-Ist (budget vs. actual) comparison reads these; when none exist for a
+// view the app falls back to a revenue-proportional benchmark. Group views are
+// never stored — they aggregate from their member firms. The id is
+// deterministic (`BUD-<period>-<view>`) so a firm/period upserts in place.
+export interface BudgetPlan {
+  id: string;
+  view: EntityCode;
+  period: string;
+  revenue: number;
+  cogs: number;
+  personnel: number;
+  marketing: number;
+  itSoftware: number;
+  otherOpex: number;
+}
+
 // Real, user-maintained financial figures for one firm in one reporting period.
 // All finance KPIs (EBITDA, margins, net result, cashflow, liquidity, runway,
 // budget vs. actual, forecasts) are derived from these entered values. Group
@@ -91,6 +108,101 @@ export interface FinanceInput {
   riskLevel: RiskLevel;
 }
 
+// Open-item accounting. A single receivable (Debitor) or payable (Kreditor)
+// invoice for one firm. Aging buckets, DSO/DPO and working capital are derived
+// from these records (see data/working-capital.ts). Persisted org-scoped in the
+// DB; group views aggregate their member firms' invoices.
+export type InvoiceKind = "receivable" | "payable";
+
+export interface Invoice {
+  id: string;
+  entity: EntityCode; // owning firm (never a group)
+  kind: InvoiceKind; // receivable = Debitor, payable = Kreditor
+  counterparty: string; // customer (receivable) or supplier (payable)
+  invoiceNumber: string;
+  issueDate: string; // ISO yyyy-mm-dd
+  dueDate: string; // ISO yyyy-mm-dd
+  amount: number; // gross invoice amount in EUR
+  paidAmount: number; // already settled in EUR (open = amount - paidAmount)
+}
+
+// A cost center (Kostenstelle) is an organizational unit costs are attributed
+// to, so spend can be analysed by responsibility area independently of the
+// budget category. Each belongs to one firm; the optional monthlyBudget drives
+// the per-period budget-vs-actual comparison. Bank transactions and purchase
+// requests reference a cost center by its `code`.
+export interface CostCenter {
+  id: string;
+  entity: EntityCode; // owning firm (never a group)
+  code: string; // short unique code per firm, e.g. "VERTRIEB"
+  name: string;
+  responsible: string;
+  monthlyBudget: number; // planned monthly spend in EUR (0 = none)
+  archived?: boolean;
+}
+
+// An intercompany flow records value moving between two firms of the same group
+// (intra-group revenue/cost). On consolidation these are eliminated so the
+// Konzern total isn't grossed up by internal trade. `fromEntity` is the seller/
+// lender (books revenue); `toEntity` is the buyer/borrower (books cost).
+export type IntercompanyType = "lieferung" | "leistung" | "darlehen" | "umlage";
+
+export interface IntercompanyFlow {
+  id: string;
+  period: string; // picker period label, e.g. "Mai 2026"
+  fromEntity: EntityCode; // seller / lender (recognises revenue)
+  toEntity: EntityCode; // buyer / borrower (recognises cost)
+  type: IntercompanyType;
+  amount: number; // intra-group amount in EUR
+  note?: string;
+}
+
+// Rolling direct liquidity planning. Each line is one expected cash movement in
+// a future week of the rolling horizon, kept per view. Inflow categories add
+// cash, outflow categories subtract; opening cash rolls forward week to week.
+export type LiquidityCategory =
+  | "receipts"
+  | "other_in"
+  | "suppliers"
+  | "payroll"
+  | "tax"
+  | "rent"
+  | "financing"
+  | "capex"
+  | "other_out";
+
+export interface LiquidityLine {
+  id: string;
+  view: EntityCode; // firm code or group:<id>
+  week: number; // 1..13 within the rolling horizon
+  category: LiquidityCategory;
+  amount: number; // expected gross cash movement in EUR (always positive)
+  note?: string;
+}
+
+// KPI targets ("Ziele") with traffic-light (Ampel) status. One standing target
+// per metric per view; actuals come from the computed finance for the selected
+// period. Direction is intrinsic to the metric (see KPI_METRICS).
+export type KpiMetric =
+  | "revenue"
+  | "ebitda"
+  | "ebitdaMargin"
+  | "netProfit"
+  | "cash"
+  | "cashRunway"
+  | "openInvoices";
+
+export type KpiStatus = "green" | "amber" | "red";
+
+export interface KpiTarget {
+  id: string; // deterministic KPI-<view>-<metric>
+  view: EntityCode; // firm code or group:<id>
+  metric: KpiMetric;
+  target: number;
+  tolerance: number; // amber band in percent around the target
+  note?: string;
+}
+
 export type ExpenseStatus = "needs-assignment" | "booked";
 export type SuggestionSource = "learned" | "ai" | "heuristic";
 
@@ -102,6 +214,7 @@ export interface BankTransaction {
   amount: number; // positive expense amount in EUR
   entity?: EntityCode;
   category?: string; // budget category
+  costCenter?: string; // CostCenter.code (optional dimension)
   status: ExpenseStatus;
   suggestionSource?: SuggestionSource | null;
   suggestionReason?: string;
@@ -243,6 +356,7 @@ export interface PurchaseRequest {
   amount: number;
   entity: EntityCode;
   category: string;
+  costCenter?: string; // CostCenter.code (optional dimension)
   justification: string;
   status: PRStatus;
   requestedBy: string;

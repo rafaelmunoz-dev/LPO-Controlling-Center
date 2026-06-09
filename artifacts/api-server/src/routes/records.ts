@@ -16,6 +16,12 @@ const KINDS: Record<string, DomainKind> = {
   inventory: "inventory",
   "balance-items": "balanceItems",
   "finance-inputs": "financeInputs",
+  "budget-plans": "budgetPlans",
+  invoices: "invoices",
+  "cost-centers": "costCenters",
+  "intercompany-flows": "intercompanyFlows",
+  "liquidity-lines": "liquidityLines",
+  "kpi-targets": "kpiTargets",
   risks: "risks",
   premortems: "premortems",
   "strategy-decisions": "strategyDecisions",
@@ -36,7 +42,14 @@ function entityCodeOf(kind: DomainKind, data: unknown): string | null {
   if (kind === "entities") {
     return typeof d.code === "string" ? d.code : null;
   }
-  if (kind === "balanceItems" || kind === "financeInputs") {
+  if (kind === "balanceItems" || kind === "financeInputs" || kind === "budgetPlans") {
+    const v = d.view;
+    return typeof v === "string" && !v.startsWith("group:") ? v : null;
+  }
+  if (kind === "intercompanyFlows") {
+    return typeof d.fromEntity === "string" ? d.fromEntity : null;
+  }
+  if (kind === "liquidityLines" || kind === "kpiTargets") {
     const v = d.view;
     return typeof v === "string" && !v.startsWith("group:") ? v : null;
   }

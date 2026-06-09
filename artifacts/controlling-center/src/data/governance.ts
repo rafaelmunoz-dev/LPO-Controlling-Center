@@ -72,6 +72,7 @@ export const REPORTS: ReportDef[] = [
 export const NAV_KEYS = [
   "dashboard",
   "finanzen",
+  "kostenstellen",
   "belege",
   "umsatz",
   "entitaeten",
@@ -125,7 +126,8 @@ export type Capability =
   | "inventar:create" | "inventar:edit" | "inventar:delete"
   | "strategie:create" | "strategie:edit" | "strategie:delete"
   | "bilanz:create" | "bilanz:edit" | "bilanz:delete"
-  | "finanzdaten:edit"
+  | "kostenstelle:create" | "kostenstelle:edit" | "kostenstelle:delete"
+  | "finanzdaten:edit" | "finanzdaten:delete"
   | "assignment:create" | "reports:create" | "tasks:create";
 
 const ALL_CAPS: Capability[] = [
@@ -135,7 +137,8 @@ const ALL_CAPS: Capability[] = [
   "inventar:create", "inventar:edit", "inventar:delete",
   "strategie:create", "strategie:edit", "strategie:delete",
   "bilanz:create", "bilanz:edit", "bilanz:delete",
-  "finanzdaten:edit",
+  "kostenstelle:create", "kostenstelle:edit", "kostenstelle:delete",
+  "finanzdaten:edit", "finanzdaten:delete",
   "assignment:create", "reports:create", "tasks:create",
 ];
 

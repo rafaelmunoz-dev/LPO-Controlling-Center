@@ -29,7 +29,8 @@ const emptySupplier = (): SupplierForm => ({ name: "", category: "", country: ""
 
 export default function Einkauf() {
   const { t } = useTranslation();
-  const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser, suppliers, addSupplier, updateSupplier, removeSupplier, logAction, entities } = useAppStore();
+  const { selectedEntity, purchaseRequests, addPurchaseRequest, updatePRStatus, currentUser, suppliers, addSupplier, updateSupplier, removeSupplier, logAction, entities, costCenters } = useAppStore();
+  const NO_CC = "__none__";
   const ownPRsOnly = currentUser.role === "Mitarbeiter";
   const prs = scopeByEntity(purchaseRequests, selectedEntity).filter((p) => !ownPRsOnly || p.requestedBy === currentUser.name);
   const canCreatePR = CREATE_PR_ROLES.includes(currentUser.role);
@@ -38,7 +39,8 @@ export default function Einkauf() {
   const canSupEdit = can(currentUser.role, "lieferant:edit");
   const canSupDelete = can(currentUser.role, "lieferant:delete");
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", supplier: suppliers[0]?.name ?? "", amount: "", category: "IT-Hardware", justification: "", entity: (defaultFirmForView(selectedEntity) ?? "IMP") as EntityCode });
+  const [form, setForm] = useState({ title: "", supplier: suppliers[0]?.name ?? "", amount: "", category: "IT-Hardware", costCenter: NO_CC, justification: "", entity: (defaultFirmForView(selectedEntity) ?? "IMP") as EntityCode });
+  const formCostCenters = costCenters.filter((c) => !c.archived && c.entity === form.entity);
   const [offers, setOffers] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +96,7 @@ export default function Einkauf() {
       amount: Number(form.amount),
       entity: form.entity,
       category: form.category,
+      costCenter: form.costCenter === NO_CC ? undefined : form.costCenter,
       justification: form.justification,
       status: "Eingereicht",
       requestedBy: currentUser.name,
@@ -134,9 +137,18 @@ export default function Einkauf() {
                   <div className="space-y-1.5"><Label>{t("einkauf_amount_eur")}</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} data-testid="input-pr-amount" /></div>
                   <div className="space-y-1.5"><Label>{t("category")}</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
                   <div className="space-y-1.5"><Label>{t("entity")}</Label>
-                    <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode })}>
+                    <Select value={form.entity} onValueChange={(v) => setForm({ ...form, entity: v as EntityCode, costCenter: NO_CC })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{entities.filter((e) => !e.archived).map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5"><Label>{t("cc_assign")}</Label>
+                    <Select value={form.costCenter} onValueChange={(v) => setForm({ ...form, costCenter: v })}>
+                      <SelectTrigger data-testid="select-pr-costcenter"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_CC}>{t("cc_none")}</SelectItem>
+                        {formCostCenters.map((c) => <SelectItem key={c.id} value={c.code}>{c.code} · {c.name}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </div>
                 </div>

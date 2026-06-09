@@ -40,6 +40,12 @@ export const bankTransactions = domainTable("bank_transactions");
 export const inventory = domainTable("inventory");
 export const balanceItems = domainTable("balance_items");
 export const financeInputs = domainTable("finance_inputs");
+export const budgetPlans = domainTable("budget_plans");
+export const invoices = domainTable("invoices");
+export const costCenters = domainTable("cost_centers");
+export const intercompanyFlows = domainTable("intercompany_flows");
+export const liquidityLines = domainTable("liquidity_lines");
+export const kpiTargets = domainTable("kpi_targets");
 export const risks = domainTable("risks");
 export const premortems = domainTable("premortems");
 export const strategyDecisions = domainTable("strategy_decisions");
@@ -57,6 +63,12 @@ export const DOMAIN_TABLES = {
   inventory,
   balanceItems,
   financeInputs,
+  budgetPlans,
+  invoices,
+  costCenters,
+  intercompanyFlows,
+  liquidityLines,
+  kpiTargets,
   risks,
   premortems,
   strategyDecisions,

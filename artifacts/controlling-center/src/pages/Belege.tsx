@@ -53,6 +53,7 @@ export function BelegeView() {
     bankTransactions,
     vendorMappings,
     entities,
+    costCenters,
     selectedEntity,
     currentUser,
     importBankTransactions,
@@ -69,6 +70,9 @@ export function BelegeView() {
 
   const entityCodes = entities.filter((e) => !e.archived).map((e) => e.code);
   const defaultEntity: EntityCode | undefined = defaultFirmForView(selectedEntity) ?? entityCodes[0];
+  const NO_CC = "__none__";
+  const costCentersFor = (entity?: EntityCode) =>
+    costCenters.filter((c) => !c.archived && (!entity || c.entity === entity));
 
   const needsAssignment = bankTransactions.filter((t) => t.status === "needs-assignment");
   const booked = bankTransactions.filter((t) => t.status === "booked");
@@ -223,6 +227,7 @@ export function BelegeView() {
                       <TableHead className="text-right">{t("beleg_amount")}</TableHead>
                       <TableHead>{t("entity")}</TableHead>
                       <TableHead>{t("beleg_category")}</TableHead>
+                      <TableHead>{t("cc_assign")}</TableHead>
                       <TableHead>{t("beleg_suggestion")}</TableHead>
                       <TableHead className="text-right">{t("beleg_actions")}</TableHead>
                     </TableRow>
@@ -239,7 +244,7 @@ export function BelegeView() {
                         <TableCell>
                           <Select
                             value={tx.entity ?? ""}
-                            onValueChange={(v) => assignTransaction(tx.id, { entity: v as EntityCode, suggestionSource: null, suggestionReason: undefined })}
+                            onValueChange={(v) => assignTransaction(tx.id, { entity: v as EntityCode, costCenter: undefined, suggestionSource: null, suggestionReason: undefined })}
                           >
                             <SelectTrigger className="h-8 w-[100px]" data-testid={`select-entity-${tx.id}`}><SelectValue placeholder="—" /></SelectTrigger>
                             <SelectContent>
@@ -257,6 +262,24 @@ export function BelegeView() {
                               {EXPENSE_BUDGET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const ccs = costCentersFor(tx.entity);
+                            return (
+                              <Select
+                                value={tx.costCenter ?? NO_CC}
+                                disabled={!tx.entity}
+                                onValueChange={(v) => assignTransaction(tx.id, { costCenter: v === NO_CC ? undefined : v })}
+                              >
+                                <SelectTrigger className="h-8 w-[140px]" data-testid={`select-costcenter-${tx.id}`}><SelectValue placeholder="—" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={NO_CC}>{t("cc_none")}</SelectItem>
+                                  {ccs.map((c) => <SelectItem key={c.id} value={c.code}>{c.code} · {c.name}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
@@ -304,6 +327,7 @@ export function BelegeView() {
                       <TableHead className="text-right">{t("beleg_amount")}</TableHead>
                       <TableHead>{t("entity")}</TableHead>
                       <TableHead>{t("beleg_category")}</TableHead>
+                      <TableHead>{t("cc_assign")}</TableHead>
                       <TableHead>{t("beleg_booked_by")}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -318,6 +342,7 @@ export function BelegeView() {
                         <TableCell className="text-right tabular-nums whitespace-nowrap">{currency(tx.amount)}</TableCell>
                         <TableCell>{tx.entity}</TableCell>
                         <TableCell>{tx.category}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{tx.costCenter || "—"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{tx.bookedBy}{tx.bookedAt ? ` · ${date(tx.bookedAt)}` : ""}</TableCell>
                       </TableRow>
                     ))}

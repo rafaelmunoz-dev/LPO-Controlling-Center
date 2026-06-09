@@ -18,7 +18,7 @@ import { Term } from "@/components/shared/Term";
 import { AiInsight } from "@/components/shared/AiInsight";
 import { UploadPanel } from "@/components/shared/UploadPanel";
 import type { GlossaryKey } from "@/data";
-import type { BalanceLineItem, BalanceSide, EntityCode, FinanceInput, RiskLevel } from "@/data/types";
+import type { BalanceLineItem, BalanceSide, BudgetPlan, EntityCode, FinanceInput, IntercompanyFlow, IntercompanyType, Invoice, InvoiceKind, RiskLevel } from "@/data/types";
 import {
   getPLOverview,
   getCashflow,
@@ -35,6 +35,26 @@ import {
   computeFinance,
   FINANCE_INPUT_FIELDS,
   type FinanceInputField,
+  budgetPlanId,
+  emptyBudgetPlan,
+  budgetPlanState,
+  BUDGET_PLAN_FIELDS,
+  type BudgetPlanField,
+  getWorkingCapital,
+  getAging,
+  scopedInvoices,
+  invoiceOpenAmount,
+  invoiceStatus,
+  emptyInvoice,
+  AGING_BUCKETS,
+  type AgingBucket,
+  type InvoiceStatus,
+  formatDate,
+  entityCodesForView,
+  consolidationReport,
+  emptyIntercompanyFlow,
+  intercompanyFlowId,
+  INTERCOMPANY_TYPES,
 } from "@/data";
 import { can } from "@/data/governance";
 import type { NavKey } from "@/data/governance";
@@ -67,6 +87,7 @@ const TAB_DEFS = [
   { value: "umsatz", navKey: "umsatz", labelKey: "umsatz", testid: "tab-umsatz" },
   { value: "belege", navKey: "belege", labelKey: "belege", testid: "tab-belege" },
   { value: "bs", navKey: "finanzen", labelKey: "tab_balance", testid: "tab-balance" },
+  { value: "wc", navKey: "finanzen", labelKey: "tab_working_capital", testid: "tab-working-capital" },
   { value: "konsol", navKey: "finanzen", labelKey: "tab_consolidation", testid: "tab-consolidation" },
   { value: "prognosen", navKey: "prognosen", labelKey: "prognosen", testid: "tab-prognosen" },
   { value: "berichte", navKey: "reports", labelKey: "reports", testid: "tab-berichte" },
@@ -437,6 +458,234 @@ function FinanzdatenTab() {
   );
 }
 
+// Plan/budget entry dialog. Plans are kept per firm and period; a group view
+// lets the user pick which member firm's plan to maintain (groups aggregate).
+function BudgetEditDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { t } = useTranslation();
+  const selectedEntity = useAppStore((s) => s.selectedEntity);
+  const period = useAppStore((s) => s.period);
+  const entities = useAppStore((s) => s.entities);
+  const budgetPlans = useAppStore((s) => s.budgetPlans);
+  const upsertBudgetPlan = useAppStore((s) => s.upsertBudgetPlan);
+  const logAction = useAppStore((s) => s.logAction);
+  const role = useAppStore((s) => s.currentUser.role);
+  const canEdit = can(role, "finanzdaten:edit");
+
+  const isGroup = isGroupView(selectedEntity);
+  const memberFirms = entities.filter(
+    (e) => !e.archived && (isGroup ? groupViewKey(e.groupId) === selectedEntity : e.code === selectedEntity),
+  );
+
+  const [firm, setFirm] = useState<EntityCode | "">("");
+  const activeFirm: EntityCode | "" = memberFirms.some((e) => e.code === firm)
+    ? firm
+    : memberFirms[0]?.code ?? "";
+
+  const [form, setForm] = useState<Record<BudgetPlanField, string>>(
+    () => Object.fromEntries(BUDGET_PLAN_FIELDS.map((f) => [f, "0"])) as Record<BudgetPlanField, string>,
+  );
+
+  // Load the existing plan for the selected firm/period (or a blank one) into the
+  // form whenever the firm, period, synced data, or open state changes.
+  useEffect(() => {
+    if (!activeFirm) return;
+    const existing =
+      budgetPlans.find((p) => p.id === budgetPlanId(activeFirm, period)) ??
+      emptyBudgetPlan(activeFirm, period);
+    setForm(
+      Object.fromEntries(BUDGET_PLAN_FIELDS.map((f) => [f, String(existing[f])])) as Record<
+        BudgetPlanField,
+        string
+      >,
+    );
+  }, [activeFirm, period, budgetPlans, open]);
+
+  const save = () => {
+    if (!canEdit) {
+      toast.error(t("no_permission"));
+      return;
+    }
+    if (!activeFirm) return;
+    const draft: BudgetPlan = {
+      ...emptyBudgetPlan(activeFirm, period),
+      ...(Object.fromEntries(
+        BUDGET_PLAN_FIELDS.map((f) => [f, Number(form[f]) || 0]),
+      ) as Record<BudgetPlanField, number>),
+    };
+    upsertBudgetPlan(draft);
+    logAction(t("budget_log_save"), `${activeFirm} · ${period}`);
+    toast.success(t("budget_saved"));
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t("budget_plan_title")}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{t("budget_plan_subtitle")}</p>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>{t("fd_firm")}</Label>
+              <Select value={activeFirm} onValueChange={(v) => setFirm(v as EntityCode)} disabled={memberFirms.length <= 1}>
+                <SelectTrigger data-testid="select-budget-firm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {memberFirms.map((e) => (
+                    <SelectItem key={e.code} value={e.code}>{e.code} · {e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("fd_period")}</Label>
+              <Input value={period} disabled data-testid="input-budget-period" />
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {BUDGET_PLAN_FIELDS.map((f) => (
+              <div key={f} className="space-y-1.5">
+                <Label>{t(`fd_${f}`)}</Label>
+                <Input
+                  type="number"
+                  value={form[f]}
+                  disabled={!canEdit}
+                  onChange={(e) => setForm({ ...form, [f]: e.target.value })}
+                  data-testid={`input-budget-${f}`}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
+          <Button onClick={save} disabled={!canEdit || !activeFirm} data-testid="button-save-budget">{t("common_save")}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Intercompany flow editor. Flows are kept per group + period; the consolidation
+// view eliminates those whose both ends sit inside the active group.
+function IntercompanyEditDialog({
+  open,
+  onOpenChange,
+  groupView,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  groupView: string;
+}) {
+  const { t } = useTranslation();
+  const { currency } = useFormat();
+  const period = useAppStore((s) => s.period);
+  const entities = useAppStore((s) => s.entities);
+  const flows = useAppStore((s) => s.intercompanyFlows);
+  const addFlow = useAppStore((s) => s.addIntercompanyFlow);
+  const updateFlow = useAppStore((s) => s.updateIntercompanyFlow);
+  const removeFlow = useAppStore((s) => s.removeIntercompanyFlow);
+  const logAction = useAppStore((s) => s.logAction);
+  const role = useAppStore((s) => s.currentUser.role);
+  const canEdit = can(role, "finanzdaten:edit");
+
+  const codes = new Set(entityCodesForView(groupView as EntityCode));
+  const memberFirms = entities.filter((e) => !e.archived && codes.has(e.code));
+  const rows = flows.filter((f) => f.period === period && codes.has(f.fromEntity) && codes.has(f.toEntity));
+
+  const addRow = () => {
+    if (!canEdit) {
+      toast.error(t("no_permission"));
+      return;
+    }
+    const from = memberFirms[0]?.code;
+    const to = memberFirms[1]?.code ?? memberFirms[0]?.code;
+    if (!from || !to) return;
+    addFlow({ id: intercompanyFlowId(), ...emptyIntercompanyFlow(period, from, to) });
+  };
+
+  const del = (f: IntercompanyFlow) => {
+    removeFlow(f.id);
+    logAction(t("ic_log_delete"), `${f.fromEntity}→${f.toEntity} · ${period}`);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t("ic_title")}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{t("ic_subtitle")} · {labelForView(groupView)} · {period}</p>
+        </DialogHeader>
+        <div className="space-y-3">
+          {memberFirms.length < 2 && (
+            <p className="rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">{t("ic_need_two_firms")}</p>
+          )}
+          {rows.length === 0 && memberFirms.length >= 2 && (
+            <p className="text-sm text-muted-foreground">{t("ic_empty")}</p>
+          )}
+          {rows.map((f) => (
+            <div key={f.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-end gap-2" data-testid={`ic-row-${f.id}`}>
+              <div className="space-y-1">
+                <Label className="text-xs">{t("ic_from")}</Label>
+                <Select value={f.fromEntity} onValueChange={(v) => updateFlow(f.id, { fromEntity: v as EntityCode })} disabled={!canEdit}>
+                  <SelectTrigger className="h-9" data-testid={`select-ic-from-${f.id}`}><SelectValue /></SelectTrigger>
+                  <SelectContent>{memberFirms.map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{t("ic_to")}</Label>
+                <Select value={f.toEntity} onValueChange={(v) => updateFlow(f.id, { toEntity: v as EntityCode })} disabled={!canEdit}>
+                  <SelectTrigger className="h-9" data-testid={`select-ic-to-${f.id}`}><SelectValue /></SelectTrigger>
+                  <SelectContent>{memberFirms.map((e) => <SelectItem key={e.code} value={e.code}>{e.code}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{t("ic_type")}</Label>
+                <Select value={f.type} onValueChange={(v) => updateFlow(f.id, { type: v as IntercompanyType })} disabled={!canEdit}>
+                  <SelectTrigger className="h-9" data-testid={`select-ic-type-${f.id}`}><SelectValue /></SelectTrigger>
+                  <SelectContent>{INTERCOMPANY_TYPES.map((ty) => <SelectItem key={ty} value={ty}>{t(`ic_type_${ty}`)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{t("ic_amount")}</Label>
+                <Input
+                  type="number"
+                  className="h-9"
+                  value={String(f.amount)}
+                  disabled={!canEdit}
+                  min={0}
+                  onChange={(e) => updateFlow(f.id, { amount: Math.max(0, Number(e.target.value) || 0) })}
+                  data-testid={`input-ic-amount-${f.id}`}
+                />
+              </div>
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" disabled={!canEdit} onClick={() => del(f)} data-testid={`button-ic-delete-${f.id}`}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              {f.fromEntity === f.toEntity && (
+                <p className="col-span-full -mt-1 text-xs text-destructive">{t("ic_same_firm_warning")}</p>
+              )}
+            </div>
+          ))}
+          {rows.length > 0 && (
+            <div className="flex justify-between border-t border-border/50 pt-2 text-sm font-medium">
+              <span>{t("ic_elimination_total")}</span>
+              <span className="tabular-nums">{currency(rows.filter((f) => f.fromEntity !== f.toEntity).reduce((a, f) => a + f.amount, 0))}</span>
+            </div>
+          )}
+        </div>
+        <DialogFooter className="sm:justify-between">
+          <Button variant="outline" onClick={addRow} disabled={!canEdit || memberFirms.length < 2} data-testid="button-ic-add">
+            <Plus className="mr-1.5 h-4 w-4" />
+            {t("ic_add_flow")}
+          </Button>
+          <Button onClick={() => onOpenChange(false)} data-testid="button-ic-done">{t("ic_done")}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PreviewRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="flex items-baseline justify-between border-b border-border/40 pb-2 last:border-0 last:pb-0">
@@ -449,10 +698,415 @@ function PreviewRow({ label, value, sub }: { label: string; value: string; sub?:
   );
 }
 
+const INVOICE_KINDS: InvoiceKind[] = ["receivable", "payable"];
+
+const STATUS_BADGE: Record<InvoiceStatus, string> = {
+  bezahlt: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  teilbezahlt: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  offen: "bg-muted text-muted-foreground",
+  ueberfaellig: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+};
+
+// Create/edit dialog for a single receivable or payable invoice (Beleg). A group
+// view lets the user pick which member firm the invoice belongs to.
+function InvoiceDialog({
+  open,
+  onOpenChange,
+  editing,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  editing: Invoice | null;
+}) {
+  const { t } = useTranslation();
+  const selectedEntity = useAppStore((s) => s.selectedEntity);
+  const entities = useAppStore((s) => s.entities);
+  const addInvoice = useAppStore((s) => s.addInvoice);
+  const updateInvoice = useAppStore((s) => s.updateInvoice);
+  const logAction = useAppStore((s) => s.logAction);
+  const role = useAppStore((s) => s.currentUser.role);
+  const canEdit = can(role, "finanzdaten:edit");
+
+  const isGroup = isGroupView(selectedEntity);
+  const memberFirms = entities.filter(
+    (e) => !e.archived && (isGroup ? groupViewKey(e.groupId) === selectedEntity : e.code === selectedEntity),
+  );
+
+  const [form, setForm] = useState<Invoice>(() => emptyInvoice("receivable", memberFirms[0]?.code ?? ""));
+
+  // Load the invoice being edited (or a fresh blank one scoped to the first
+  // member firm) whenever the dialog opens or the target changes.
+  useEffect(() => {
+    if (!open) return;
+    setForm(editing ? { ...editing } : emptyInvoice("receivable", memberFirms[0]?.code ?? ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editing]);
+
+  const set = (patch: Partial<Invoice>) => setForm((f) => ({ ...f, ...patch }));
+
+  const save = () => {
+    if (!canEdit) {
+      toast.error(t("no_permission"));
+      return;
+    }
+    if (!form.entity) {
+      toast.error(t("inv_need_firm"));
+      return;
+    }
+    if (!form.counterparty.trim() || !form.invoiceNumber.trim()) {
+      toast.error(t("inv_need_fields"));
+      return;
+    }
+    const draft: Invoice = {
+      ...form,
+      amount: Number(form.amount) || 0,
+      paidAmount: Number(form.paidAmount) || 0,
+    };
+    if (editing) {
+      const { id, ...patch } = draft;
+      updateInvoice(id, patch);
+      logAction(t("inv_log_update"), `${draft.entity} · ${draft.invoiceNumber}`);
+    } else {
+      addInvoice(draft);
+      logAction(t("inv_log_create"), `${draft.entity} · ${draft.invoiceNumber}`);
+    }
+    toast.success(t("inv_saved"));
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{editing ? t("inv_edit_title") : t("inv_new_title")}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{t("inv_dialog_subtitle")}</p>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>{t("inv_kind")}</Label>
+              <Select value={form.kind} onValueChange={(v) => set({ kind: v as InvoiceKind })}>
+                <SelectTrigger data-testid="select-invoice-kind"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {INVOICE_KINDS.map((k) => (
+                    <SelectItem key={k} value={k}>{t(`inv_kind_${k}`)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("fd_firm")}</Label>
+              <Select
+                value={form.entity}
+                onValueChange={(v) => set({ entity: v as EntityCode })}
+                disabled={memberFirms.length <= 1}
+              >
+                <SelectTrigger data-testid="select-invoice-firm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {memberFirms.map((e) => (
+                    <SelectItem key={e.code} value={e.code}>{e.code} · {e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>{t("inv_counterparty")}</Label>
+              <Input
+                value={form.counterparty}
+                disabled={!canEdit}
+                onChange={(e) => set({ counterparty: e.target.value })}
+                data-testid="input-invoice-counterparty"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("inv_number")}</Label>
+              <Input
+                value={form.invoiceNumber}
+                disabled={!canEdit}
+                onChange={(e) => set({ invoiceNumber: e.target.value })}
+                data-testid="input-invoice-number"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("inv_issue_date")}</Label>
+              <Input
+                type="date"
+                value={form.issueDate}
+                disabled={!canEdit}
+                onChange={(e) => set({ issueDate: e.target.value })}
+                data-testid="input-invoice-issue"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("inv_due_date")}</Label>
+              <Input
+                type="date"
+                value={form.dueDate}
+                disabled={!canEdit}
+                onChange={(e) => set({ dueDate: e.target.value })}
+                data-testid="input-invoice-due"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("inv_amount")}</Label>
+              <Input
+                type="number"
+                value={String(form.amount)}
+                disabled={!canEdit}
+                onChange={(e) => set({ amount: Number(e.target.value) })}
+                data-testid="input-invoice-amount"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("inv_paid_amount")}</Label>
+              <Input
+                type="number"
+                value={String(form.paidAmount)}
+                disabled={!canEdit}
+                onChange={(e) => set({ paidAmount: Number(e.target.value) })}
+                data-testid="input-invoice-paid"
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
+          <Button onClick={save} disabled={!canEdit} data-testid="button-save-invoice">{t("common_save")}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AgingCard({ kind }: { kind: InvoiceKind }) {
+  const { t } = useTranslation();
+  const { currency } = useFormat();
+  const selectedEntity = useAppStore((s) => s.selectedEntity);
+  // Re-read invoices so the report recomputes when the store changes.
+  useAppStore((s) => s.invoices);
+  const report = getAging(selectedEntity, kind);
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">
+          {kind === "receivable" ? t("inv_aging_receivable") : t("inv_aging_payable")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("inv_aging_bucket")}</TableHead>
+              <TableHead className="text-right">{t("inv_aging_count")}</TableHead>
+              <TableHead className="text-right">{t("inv_aging_amount")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {report.buckets.map((b) => (
+              <TableRow key={b.bucket} data-testid={`aging-${kind}-${b.bucket}`}>
+                <TableCell className={b.bucket === "d90plus" && b.amount > 0 ? "font-medium text-rose-600 dark:text-rose-400" : ""}>
+                  {t(`aging_${b.bucket}` as const)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{b.count}</TableCell>
+                <TableCell className="text-right tabular-nums">{currency(b.amount)}</TableCell>
+              </TableRow>
+            ))}
+            <TableRow className="border-t-2">
+              <TableCell className="font-semibold">{t("inv_aging_total")}</TableCell>
+              <TableCell />
+              <TableCell className="text-right font-semibold tabular-nums">{currency(report.total)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WorkingCapitalTab() {
+  const { t } = useTranslation();
+  const { currency } = useFormat();
+  const selectedEntity = useAppStore((s) => s.selectedEntity);
+  const period = useAppStore((s) => s.period);
+  const invoices = useAppStore((s) => s.invoices);
+  const removeInvoice = useAppStore((s) => s.removeInvoice);
+  const logAction = useAppStore((s) => s.logAction);
+  const role = useAppStore((s) => s.currentUser.role);
+  const canEdit = can(role, "finanzdaten:edit");
+  // Delete is Admin-only, mirroring the server-side policy (Mitarbeiter never
+  // delete) so a Mitarbeiter never sees an action that the API would reject.
+  const canDelete = can(role, "finanzdaten:delete");
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Invoice | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const wc = getWorkingCapital(selectedEntity, period);
+  // Both kinds in scope, open items first then most overdue, for the register.
+  const list = [...scopedInvoices(selectedEntity, "receivable"), ...scopedInvoices(selectedEntity, "payable")].sort(
+    (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+  );
+  // Referenced so the register recomputes on store changes.
+  void invoices;
+
+  const openCreate = () => {
+    setEditing(null);
+    setDialogOpen(true);
+  };
+  const openEdit = (inv: Invoice) => {
+    setEditing(inv);
+    setDialogOpen(true);
+  };
+  const confirmDelete = () => {
+    if (!deleteId) return;
+    const inv = list.find((i) => i.id === deleteId);
+    removeInvoice(deleteId);
+    if (inv) logAction(t("inv_log_delete"), `${inv.entity} · ${inv.invoiceNumber}`);
+    toast.success(t("inv_deleted"));
+    setDeleteId(null);
+  };
+
+  const kpis: { key: string; label: string; value: string; sub?: string; danger?: boolean }[] = [
+    { key: "dso", label: t("inv_dso"), value: t("inv_days", { n: wc.dso }) },
+    { key: "dpo", label: t("inv_dpo"), value: t("inv_days", { n: wc.dpo }) },
+    { key: "ccc", label: t("inv_ccc"), value: t("inv_days", { n: wc.ccc }) },
+    { key: "wc", label: t("inv_working_capital"), value: currency(wc.workingCapital) },
+    {
+      key: "ar",
+      label: t("inv_open_receivables"),
+      value: currency(wc.openReceivables),
+      sub: wc.overdueReceivables > 0 ? t("inv_overdue_sub", { amount: currency(wc.overdueReceivables) }) : undefined,
+      danger: wc.overdueReceivables > 0,
+    },
+    {
+      key: "ap",
+      label: t("inv_open_payables"),
+      value: currency(wc.openPayables),
+      sub: wc.overduePayables > 0 ? t("inv_overdue_sub", { amount: currency(wc.overduePayables) }) : undefined,
+      danger: wc.overduePayables > 0,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {kpis.map((k) => (
+          <Card key={k.key} data-testid={`wc-kpi-${k.key}`}>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">{k.label}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{k.value}</p>
+              {k.sub && (
+                <p className={`mt-1 text-xs ${k.danger ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"}`}>
+                  {k.sub}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <AgingCard kind="receivable" />
+        <AgingCard kind="payable" />
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base">{t("inv_register")}</CardTitle>
+          {canEdit && (
+            <Button size="sm" onClick={openCreate} data-testid="button-new-invoice">
+              <Plus className="mr-1.5 h-4 w-4" />
+              {t("inv_new")}
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {list.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("inv_empty")}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("inv_kind")}</TableHead>
+                  <TableHead>{t("fd_firm")}</TableHead>
+                  <TableHead>{t("inv_counterparty")}</TableHead>
+                  <TableHead>{t("inv_number")}</TableHead>
+                  <TableHead>{t("inv_due_date")}</TableHead>
+                  <TableHead className="text-right">{t("inv_amount")}</TableHead>
+                  <TableHead className="text-right">{t("inv_open")}</TableHead>
+                  <TableHead>{t("inv_status")}</TableHead>
+                  {(canEdit || canDelete) && <TableHead className="text-right">{t("actions")}</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.map((inv) => {
+                  const status = invoiceStatus(inv);
+                  return (
+                    <TableRow key={inv.id} data-testid={`invoice-row-${inv.id}`}>
+                      <TableCell>{t(`inv_kind_${inv.kind}`)}</TableCell>
+                      <TableCell>{inv.entity}</TableCell>
+                      <TableCell>{inv.counterparty}</TableCell>
+                      <TableCell className="text-muted-foreground">{inv.invoiceNumber}</TableCell>
+                      <TableCell>{formatDate(inv.dueDate)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{currency(inv.amount)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{currency(invoiceOpenAmount(inv))}</TableCell>
+                      <TableCell>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[status]}`}>
+                          {t(`inv_status_${status}` as const)}
+                        </span>
+                      </TableCell>
+                      {(canEdit || canDelete) && (
+                        <TableCell className="text-right">
+                          {canEdit && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(inv)} data-testid={`button-edit-invoice-${inv.id}`}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600" onClick={() => setDeleteId(inv.id)} data-testid={`button-delete-invoice-${inv.id}`}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+          <p className="mt-3 text-xs text-muted-foreground">{t("inv_disclaimer")}</p>
+        </CardContent>
+      </Card>
+
+      <InvoiceDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} />
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("inv_delete_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("inv_delete_confirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} data-testid="button-confirm-delete-invoice">{t("delete")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 export default function Finanzen() {
-  const { selectedEntity, entities, bankTransactions, allowedNav, period, financeInputs } = useAppStore();
+  const { selectedEntity, entities, bankTransactions, allowedNav, period, financeInputs, currentUser, intercompanyFlows } = useAppStore();
   const { t } = useTranslation();
   const { currency, compact, number } = useFormat();
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [icOpen, setIcOpen] = useState(false);
+  const canEditBudget = can(currentUser.role, "finanzdaten:edit");
+  const planState = budgetPlanState(selectedEntity, period);
   const plo = getPLOverview(selectedEntity);
   const cf = getCashflow(selectedEntity);
   const isGroup = isGroupView(selectedEntity);
@@ -469,6 +1123,18 @@ export default function Finanzen() {
     ? selectedEntity
     : groupViewKey(entities.find((e) => e.code === selectedEntity)?.groupId ?? DEFAULT_GROUP_ID);
   const group = getFinance(groupView);
+  // Consolidation: gross member sums vs. Konzern after eliminating intra-group
+  // trade. Operating costs = revenue − EBITDA (both drop by the same amount).
+  const consol = consolidationReport(
+    intercompanyFlows,
+    groupView,
+    period,
+    group.revenue,
+    group.revenue - group.ebitda,
+  );
+  // Only the active group's firms belong in the consolidation reconciliation.
+  const groupCodes = new Set(entityCodesForView(groupView));
+  const groupComparison = comparison.filter((c) => groupCodes.has(c.code));
 
   const visibleTabs = TAB_DEFS.filter((d) => allowedNav().includes(d.navKey));
   const [tab, setTab] = useState<string>(() => {
@@ -588,6 +1254,10 @@ export default function Finanzen() {
           <BilanzTab />
         </TabsContent>
 
+        <TabsContent value="wc">
+          <WorkingCapitalTab />
+        </TabsContent>
+
         <TabsContent value="konsol" className="space-y-4">
           <Card className="glass-card">
             <CardHeader>
@@ -606,7 +1276,7 @@ export default function Finanzen() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {comparison.map((c) => (
+                  {groupComparison.map((c) => (
                     <TableRow key={c.code}>
                       <TableCell className="font-medium">{c.code}</TableCell>
                       <TableCell className="text-right">{compact(c.revenue)}</TableCell>
@@ -615,9 +1285,23 @@ export default function Finanzen() {
                       <TableCell className="text-right">{compact(c.liquidity)}</TableCell>
                     </TableRow>
                   ))}
+                  <TableRow className="font-medium text-muted-foreground">
+                    <TableCell>{t("ic_member_sum")}</TableCell>
+                    <TableCell className="text-right">{compact(consol.grossRevenue)}</TableCell>
+                    <TableCell className="text-right">{compact(group.ebitda)}</TableCell>
+                    <TableCell className="text-right">{compact(group.netProfit)}</TableCell>
+                    <TableCell className="text-right">{compact(group.cash)}</TableCell>
+                  </TableRow>
+                  <TableRow className="text-destructive">
+                    <TableCell>{t("ic_elimination")}</TableCell>
+                    <TableCell className="text-right">−{compact(consol.eliminationTotal)}</TableCell>
+                    <TableCell className="text-right">0</TableCell>
+                    <TableCell className="text-right">0</TableCell>
+                    <TableCell className="text-right">0</TableCell>
+                  </TableRow>
                   <TableRow className="bg-primary/5 font-semibold">
                     <TableCell>{labelForView(groupView)}</TableCell>
-                    <TableCell className="text-right">{compact(group.revenue)}</TableCell>
+                    <TableCell className="text-right">{compact(consol.consolidatedRevenue)}</TableCell>
                     <TableCell className="text-right">{compact(group.ebitda)}</TableCell>
                     <TableCell className="text-right">{compact(group.netProfit)}</TableCell>
                     <TableCell className="text-right">{compact(group.cash)}</TableCell>
@@ -628,25 +1312,118 @@ export default function Finanzen() {
           </Card>
 
           <Card className="glass-card">
-            <CardHeader><CardTitle><Term k="budget_ist">{t("budget_vs_actual")}</Term></CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <div className="space-y-1">
+                <CardTitle><Term k="konsolidierung">{t("ic_title")}</Term></CardTitle>
+                <p className="text-sm text-muted-foreground">{t("ic_card_subtitle")}</p>
+              </div>
+              {canEditBudget && (
+                <Button size="sm" variant="outline" onClick={() => setIcOpen(true)} data-testid="button-edit-intercompany">
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                  {t("ic_manage")}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {consol.internal.length === 0 ? (
+                <p className="text-sm text-muted-foreground" data-testid="ic-empty-state">{t("ic_none_for_period")}</p>
+              ) : (
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("ic_from")}</TableHead>
+                        <TableHead>{t("ic_to")}</TableHead>
+                        <TableHead>{t("ic_type")}</TableHead>
+                        <TableHead className="text-right">{t("ic_amount")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {consol.internal.map((f) => (
+                        <TableRow key={f.id} data-testid={`ic-flow-${f.id}`}>
+                          <TableCell className="font-medium">{f.fromEntity}</TableCell>
+                          <TableCell>{f.toEntity}</TableCell>
+                          <TableCell>{t(`ic_type_${f.type}`)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{currency(f.amount)}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-primary/5 font-semibold">
+                        <TableCell colSpan={3}>{t("ic_elimination_total")}</TableCell>
+                        <TableCell className="text-right tabular-nums">{currency(consol.eliminationTotal)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  {consol.byType.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {consol.byType.map((b) => (
+                        <span key={b.type} className="rounded-full bg-muted/60 px-3 py-1 text-xs text-muted-foreground">
+                          {t(`ic_type_${b.type}`)}: <span className="font-medium text-foreground tabular-nums">{compact(b.amount)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <div className="space-y-1">
+                <CardTitle><Term k="budget_ist">{t("budget_vs_actual")}</Term></CardTitle>
+                {planState === "none" && (
+                  <p className="text-xs text-muted-foreground">{t("budget_benchmark_hint")}</p>
+                )}
+                {planState === "partial" && (
+                  <p className="text-xs text-muted-foreground">{t("budget_partial_hint")}</p>
+                )}
+              </div>
+              {canEditBudget && (
+                <Button size="sm" variant="outline" onClick={() => setBudgetOpen(true)} data-testid="button-edit-budget">
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                  {t("budget_plan_edit")}
+                </Button>
+              )}
+            </CardHeader>
             <CardContent className="space-y-5">
+              <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <span>{t("budget_plan_col")} / {t("budget_actual_col")}</span>
+                <span className="text-right">{t("budget_variance")}</span>
+                <span className="text-right">%</span>
+              </div>
               {budget.map((b) => {
-                const pct = Math.min(150, Math.round((b.actual / b.budget) * 100));
-                const over = b.actual > b.budget;
+                const pct = b.budget > 0 ? Math.min(150, Math.round((b.actual / b.budget) * 100)) : 0;
+                const variance = b.actual - b.budget;
+                const variancePct = b.budget > 0 ? Math.round((variance / b.budget) * 100) : 0;
+                const isRevenue = b.category === "Umsatzerlöse";
+                // Revenue above plan is good; costs above plan are bad.
+                const good = isRevenue ? variance >= 0 : variance <= 0;
+                const toneText = good ? "text-emerald-600" : "text-destructive";
+                const barTone = good ? "[&>div]:bg-emerald-500" : "[&>div]:bg-destructive";
+                const sign = variance > 0 ? "+" : "";
                 return (
                   <div key={b.category} className="space-y-1.5" data-testid={`budget-${b.category}`}>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 text-sm">
                       <span className="font-medium">{b.category}</span>
-                      <span className={over ? "text-destructive" : "text-emerald-600"}>
-                        {currency(b.actual)} / {currency(b.budget)}
+                      <span className={`text-right tabular-nums ${toneText}`} data-testid={`budget-variance-${b.category}`}>
+                        {sign}{currency(variance)}
+                      </span>
+                      <span className={`text-right tabular-nums ${toneText}`}>
+                        {sign}{variancePct}%
                       </span>
                     </div>
-                    <Progress value={pct} className={over ? "[&>div]:bg-destructive" : "[&>div]:bg-emerald-500"} />
+                    <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+                      <span>{currency(b.actual)} {t("budget_actual_col")}</span>
+                      <span>{currency(b.budget)} {t("budget_plan_col")}</span>
+                    </div>
+                    <Progress value={pct} className={barTone} />
                   </div>
                 );
               })}
             </CardContent>
           </Card>
+          <BudgetEditDialog open={budgetOpen} onOpenChange={setBudgetOpen} />
+          <IntercompanyEditDialog open={icOpen} onOpenChange={setIcOpen} groupView={groupView} />
         </TabsContent>
 
         <TabsContent value="prognosen">

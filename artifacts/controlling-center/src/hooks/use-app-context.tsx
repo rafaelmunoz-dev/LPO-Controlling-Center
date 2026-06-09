@@ -6,13 +6,19 @@ import type {
   AuditEntry,
   BalanceLineItem,
   BankTransaction,
+  BudgetPlan,
   CompanyGroup,
+  CostCenter,
+  IntercompanyFlow,
+  LiquidityLine,
+  KpiTarget,
   DeviceAssignment,
   Employee,
   EntityCode,
   EntityMeta,
   FinanceInput,
   InventoryItem,
+  Invoice,
   PreMortem,
   PurchaseRequest,
   Risk,
@@ -30,6 +36,8 @@ import {
   groupIdFromView,
   setRegistry,
   setFinanceData,
+  setBudgetData,
+  setInvoiceData,
 } from "@/data";
 import { learnMapping, heuristicCategory } from "@/data/bank";
 import type { CopilotContext } from "@/data/copilot";
@@ -83,6 +91,12 @@ export interface HydratePayload {
   inventory: InventoryItem[];
   balanceItems: BalanceLineItem[];
   financeInputs: FinanceInput[];
+  budgetPlans: BudgetPlan[];
+  invoices: Invoice[];
+  costCenters: CostCenter[];
+  intercompanyFlows: IntercompanyFlow[];
+  liquidityLines: LiquidityLine[];
+  kpiTargets: KpiTarget[];
   risks: Risk[];
   premortems: PreMortem[];
   strategyDecisions: StrategyDecision[];
@@ -140,7 +154,7 @@ interface AppState {
 
   bankTransactions: BankTransaction[];
   importBankTransactions: (txs: BankTransaction[]) => void;
-  assignTransaction: (id: string, patch: { entity?: EntityCode; category?: string; suggestionSource?: BankTransaction["suggestionSource"]; suggestionReason?: string }) => void;
+  assignTransaction: (id: string, patch: { entity?: EntityCode; category?: string; costCenter?: string; suggestionSource?: BankTransaction["suggestionSource"]; suggestionReason?: string }) => void;
   bookTransaction: (id: string) => void;
   removeBankTransaction: (id: string) => void;
 
@@ -200,6 +214,44 @@ interface AppState {
   financeInputs: FinanceInput[];
   upsertFinanceInput: (input: FinanceInput) => void;
 
+  // User-entered plan/budget figures per firm/period (Plan-Ist comparison reads
+  // these; keyed by deterministic id so a firm/period edit upserts in place).
+  budgetPlans: BudgetPlan[];
+  upsertBudgetPlan: (plan: BudgetPlan) => void;
+
+  // Open-item receivable/payable invoices per firm (Debitoren/Kreditoren).
+  // Aging, DSO/DPO and working capital derive from these.
+  invoices: Invoice[];
+  addInvoice: (invoice: Invoice) => void;
+  updateInvoice: (id: string, patch: Partial<Omit<Invoice, "id">>) => void;
+  removeInvoice: (id: string) => void;
+
+  // Cost centers (Kostenstellen): the cost dimension bank transactions and
+  // purchase requests are attributed to. Master data, CRUD by the active org.
+  costCenters: CostCenter[];
+  addCostCenter: (cc: CostCenter) => void;
+  updateCostCenter: (id: string, patch: Partial<Omit<CostCenter, "id">>) => void;
+  removeCostCenter: (id: string) => void;
+
+  // Intercompany flows (Konzern-Konsolidierung): intra-group revenue/cost
+  // eliminated when a group view is consolidated. CRUD by the active org.
+  intercompanyFlows: IntercompanyFlow[];
+  addIntercompanyFlow: (flow: IntercompanyFlow) => void;
+  updateIntercompanyFlow: (id: string, patch: Partial<Omit<IntercompanyFlow, "id">>) => void;
+  removeIntercompanyFlow: (id: string) => void;
+
+  // Rolling direct liquidity planning: weekly expected cash movements per view.
+  liquidityLines: LiquidityLine[];
+  addLiquidityLine: (line: LiquidityLine) => void;
+  updateLiquidityLine: (id: string, patch: Partial<Omit<LiquidityLine, "id">>) => void;
+  removeLiquidityLine: (id: string) => void;
+
+  // KPI targets ("Ziele") with traffic-light status; one standing target per metric per view.
+  kpiTargets: KpiTarget[];
+  addKpiTarget: (target: KpiTarget) => void;
+  updateKpiTarget: (id: string, patch: Partial<Omit<KpiTarget, "id">>) => void;
+  removeKpiTarget: (id: string) => void;
+
   auditLog: AuditEntry[];
   logAction: (action: string, detail: string) => void;
 
@@ -257,6 +309,8 @@ export const useAppStore = create<AppState>()(
   hydrate: (payload) => {
     setRegistry(payload.entities, payload.groups);
     setFinanceData(payload.financeInputs, get().period);
+    setBudgetData(payload.budgetPlans);
+    setInvoiceData(payload.invoices);
     set((s) => {
       const allViews: ViewKey[] = [
         ...payload.groups.filter((g) => !g.archived).map((g) => groupViewKey(g.id)),
@@ -272,6 +326,12 @@ export const useAppStore = create<AppState>()(
         inventory: payload.inventory,
         balanceItems: payload.balanceItems,
         financeInputs: payload.financeInputs,
+        budgetPlans: payload.budgetPlans,
+        invoices: payload.invoices,
+        costCenters: payload.costCenters,
+        intercompanyFlows: payload.intercompanyFlows,
+        liquidityLines: payload.liquidityLines,
+        kpiTargets: payload.kpiTargets,
         risks: payload.risks,
         premortems: payload.premortems,
         strategyDecisions: payload.strategyDecisions,
@@ -287,6 +347,8 @@ export const useAppStore = create<AppState>()(
   resetData: () => {
     setRegistry([], []);
     setFinanceData([], get().period);
+    setBudgetData([]);
+    setInvoiceData([]);
     set({
       currentUser: EMPTY_USER,
       isAuthenticated: false,
@@ -301,6 +363,12 @@ export const useAppStore = create<AppState>()(
       inventory: [],
       balanceItems: [],
       financeInputs: [],
+      budgetPlans: [],
+      invoices: [],
+      costCenters: [],
+      intercompanyFlows: [],
+      liquidityLines: [],
+      kpiTargets: [],
       uploads: [],
       approvals: [],
       deviceAssignments: [],
@@ -573,6 +641,50 @@ export const useAppStore = create<AppState>()(
       };
     }),
 
+  budgetPlans: [],
+  upsertBudgetPlan: (plan) =>
+    set((s) => {
+      const exists = s.budgetPlans.some((p) => p.id === plan.id);
+      return {
+        budgetPlans: exists
+          ? s.budgetPlans.map((p) => (p.id === plan.id ? plan : p))
+          : [...s.budgetPlans, plan],
+      };
+    }),
+
+  invoices: [],
+  addInvoice: (invoice) => set((s) => ({ invoices: [...s.invoices, invoice] })),
+  updateInvoice: (id, patch) =>
+    set((s) => ({ invoices: s.invoices.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
+  removeInvoice: (id) => set((s) => ({ invoices: s.invoices.filter((i) => i.id !== id) })),
+
+  costCenters: [],
+  addCostCenter: (cc) => set((s) => ({ costCenters: [...s.costCenters, cc] })),
+  updateCostCenter: (id, patch) =>
+    set((s) => ({ costCenters: s.costCenters.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
+  removeCostCenter: (id) => set((s) => ({ costCenters: s.costCenters.filter((c) => c.id !== id) })),
+
+  intercompanyFlows: [],
+  addIntercompanyFlow: (flow) => set((s) => ({ intercompanyFlows: [...s.intercompanyFlows, flow] })),
+  updateIntercompanyFlow: (id, patch) =>
+    set((s) => ({ intercompanyFlows: s.intercompanyFlows.map((f) => (f.id === id ? { ...f, ...patch } : f)) })),
+  removeIntercompanyFlow: (id) =>
+    set((s) => ({ intercompanyFlows: s.intercompanyFlows.filter((f) => f.id !== id) })),
+
+  liquidityLines: [],
+  addLiquidityLine: (line) => set((s) => ({ liquidityLines: [...s.liquidityLines, line] })),
+  updateLiquidityLine: (id, patch) =>
+    set((s) => ({ liquidityLines: s.liquidityLines.map((l) => (l.id === id ? { ...l, ...patch } : l)) })),
+  removeLiquidityLine: (id) =>
+    set((s) => ({ liquidityLines: s.liquidityLines.filter((l) => l.id !== id) })),
+
+  kpiTargets: [],
+  addKpiTarget: (target) => set((s) => ({ kpiTargets: [...s.kpiTargets, target] })),
+  updateKpiTarget: (id, patch) =>
+    set((s) => ({ kpiTargets: s.kpiTargets.map((k) => (k.id === id ? { ...k, ...patch } : k)) })),
+  removeKpiTarget: (id) =>
+    set((s) => ({ kpiTargets: s.kpiTargets.filter((k) => k.id !== id) })),
+
   auditLog: [],
   logAction: (action, detail) =>
     set((s) => ({
@@ -615,7 +727,11 @@ export const useAppStore = create<AppState>()(
 // current state, active period and entered financial inputs.
 setRegistry(useAppStore.getState().entities, useAppStore.getState().groups);
 setFinanceData(useAppStore.getState().financeInputs, useAppStore.getState().period);
+setBudgetData(useAppStore.getState().budgetPlans);
+setInvoiceData(useAppStore.getState().invoices);
 useAppStore.subscribe((s) => {
   setRegistry(s.entities, s.groups);
   setFinanceData(s.financeInputs, s.period);
+  setBudgetData(s.budgetPlans);
+  setInvoiceData(s.invoices);
 });

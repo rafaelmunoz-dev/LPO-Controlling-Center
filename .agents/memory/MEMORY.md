@@ -3,6 +3,12 @@
 - [Controlling Center entities](controlling-center-entities.md) — entities are mutable store state; every list/compare/search/select consumer must read the store, not static ENTITIES/ENTITY_CODES.
 - [Controlling Center groups](controlling-center-groups.md) — "group" is first-class (ViewKey group:<id>); use data/groups.ts helpers + registry; soft-archive only; exclude archived everywhere.
 - [Radix Select avatar gotcha](radix-select-value-rendering.md) — SelectValue re-renders the selected SelectItem's full children; don't also render an icon in the trigger or it doubles.
+- [CC domains + RBAC](controlling-center-domains.md) — add a DB-backed domain by editing 5 files in lockstep (db schema, api records, api.ts, data-sync, store) or bootstrap 404s unknown_kind; model "clear" as edit (persist 0) not delete when role has :edit but not :delete.
+- [Consolidation scoping](consolidation-scoping.md) — konsol member rows must filter to entityCodesForView(groupView); IC eliminations need both ends in-group + amount>0, guarded at compute layer.
+- [Cost-center attribution](cost-center-attribution.md) — dimension codes are unique only per entity; join aggregations on (entity, code), bucket unassigned actuals AND commitments.
+- [api-server db dist typecheck](api-server-db-project-references.md) — api-server tsc resolves @workspace/db from dist via project refs; rebuild `tsc -b` in lib/db after any db type change.
+- [Delete-capability symmetry](delete-capability-symmetry.md) — delete UI must use a dedicated `<domain>:delete` cap (Mitarbeiter never deletes server-side); never reuse `:edit`.
+- [Group aggregation fallback](group-aggregation-fallback.md) — group-view metrics must sum each member's effective value (entered-or-fallback), not just entered records; expose full/partial/none state.
 - [Data-layer i18n strings](data-layer-i18n.md) — copy built in src/data/* (e.g. getInsights) won't translate; thread TFunction in and t() every string. Use `n` not `count`.
 - [Freigaben unified review](freigaben-unified-review.md) — approvals + PRs merged; dedup PRs referenced in approval subject (/PR-\d+/); decide() syncs linkedPR.
 - [CC persistence model](controlling-center-persistence.md) — store mutations are local-only; data-sync.ts diffs snapshots & PUTs to /api/records. Empty domain table usually means "none created", not "save broken".

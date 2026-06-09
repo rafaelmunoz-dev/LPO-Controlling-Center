@@ -1,6 +1,7 @@
 import type {
   BalanceLineItem,
   BalanceRow,
+  BudgetPlan,
   BudgetRow,
   CashflowBlock,
   EntityCode,
@@ -59,6 +60,121 @@ export function financeRegistry(): FinanceInput[] {
 // Deterministic id so a firm/period record upserts in place.
 export function financeInputId(view: ViewKey, period: string): string {
   return `FIN-${period}-${view}`;
+}
+
+// ---------------------------------------------------------------------------
+// Plan / budget figures. User-entered per firm and period (BudgetPlan records,
+// persisted org-scoped in the DB). The Plan-Ist comparison (getBudget) reads
+// these; when a view has no plan it falls back to a revenue-proportional
+// benchmark so the comparison still works out of the box. Group views are never
+// stored — they aggregate from their member firms.
+// ---------------------------------------------------------------------------
+let budgetPlans: BudgetPlan[] = [];
+
+export function setBudgetData(plans: BudgetPlan[]): void {
+  budgetPlans = plans;
+}
+
+export function budgetRegistry(): BudgetPlan[] {
+  return budgetPlans;
+}
+
+// Deterministic id so a firm/period plan upserts in place.
+export function budgetPlanId(view: ViewKey, period: string): string {
+  return `BUD-${period}-${view}`;
+}
+
+// Editable numeric fields of a BudgetPlan, in entry-form order. They mirror the
+// finance-input field names so the Plan-Ist rows line up category by category.
+export const BUDGET_PLAN_FIELDS = [
+  "revenue",
+  "cogs",
+  "personnel",
+  "marketing",
+  "itSoftware",
+  "otherOpex",
+] as const;
+export type BudgetPlanField = (typeof BUDGET_PLAN_FIELDS)[number];
+
+export function emptyBudgetPlan(view: EntityCode, period: string): BudgetPlan {
+  return {
+    id: budgetPlanId(view, period),
+    view,
+    period,
+    revenue: 0,
+    cogs: 0,
+    personnel: 0,
+    marketing: 0,
+    itSoftware: 0,
+    otherOpex: 0,
+  };
+}
+
+function rawPlanFor(code: EntityCode, period: string): BudgetPlan | undefined {
+  return budgetPlans.find((p) => p.view === code && p.period === period);
+}
+
+// Revenue-proportional benchmark plan for a single firm, used as the fallback
+// when no plan has been entered. Factors mirror the historical getBudget ratios.
+function benchmarkPlanFor(code: EntityCode, period: string): BudgetPlan {
+  const r = (rawInputFor(code, period) ?? emptyFinanceInput(code, period)).revenue;
+  return {
+    id: budgetPlanId(code, period),
+    view: code,
+    period,
+    revenue: Math.round(r * 1.03),
+    cogs: Math.round(r * 0.58),
+    personnel: Math.round(r * 0.19),
+    marketing: Math.round(r * 0.05),
+    itSoftware: Math.round(r * 0.03),
+    otherOpex: Math.round(r * 0.04),
+  };
+}
+
+// The plan a single firm contributes: its entered plan if present, otherwise its
+// own benchmark. This keeps group totals correct even when only some member
+// firms have entered a plan (the rest fall back to their benchmark).
+function effectiveFirmPlan(code: EntityCode, period: string): BudgetPlan {
+  return rawPlanFor(code, period) ?? benchmarkPlanFor(code, period);
+}
+
+// The effective plan for any view+period. A firm reads its own plan-or-benchmark;
+// a group sums each member firm's effective plan.
+function resolvePlan(view: ViewKey, period: string): BudgetPlan {
+  const gid = groupIdFromView(view);
+  if (!gid) return effectiveFirmPlan(view as EntityCode, period);
+  const sum = emptyBudgetPlan("__group__" as EntityCode, period);
+  for (const code of firmCodesInGroup(gid)) {
+    const p = effectiveFirmPlan(code, period);
+    sum.revenue += p.revenue;
+    sum.cogs += p.cogs;
+    sum.personnel += p.personnel;
+    sum.marketing += p.marketing;
+    sum.itSoftware += p.itSoftware;
+    sum.otherOpex += p.otherOpex;
+  }
+  return sum;
+}
+
+// How much of the view's plan is user-entered vs. benchmark fallback:
+//   "full"    – firm has a plan, or every member firm in a group has one
+//   "partial" – some (but not all) member firms have a plan (group only)
+//   "none"    – nothing entered; the comparison runs against the benchmark
+export type BudgetPlanState = "full" | "partial" | "none";
+
+export function budgetPlanState(view: ViewKey, period: string = activePeriod): BudgetPlanState {
+  const gid = groupIdFromView(view);
+  if (!gid) return rawPlanFor(view as EntityCode, period) ? "full" : "none";
+  const codes = firmCodesInGroup(gid);
+  if (codes.length === 0) return "none";
+  const entered = codes.filter((c) => rawPlanFor(c, period)).length;
+  if (entered === 0) return "none";
+  return entered === codes.length ? "full" : "partial";
+}
+
+// True when the view+period has any user-entered plan (vs. pure benchmark).
+export function hasBudgetPlan(view: ViewKey, period: string = activePeriod): boolean {
+  return budgetPlanState(view, period) !== "none";
 }
 
 // Editable numeric fields of a FinanceInput, in entry-form order.
@@ -231,6 +347,12 @@ export function getFinance(view: ViewKey, period: string = activePeriod): Entity
   return computeFinance(view, input, prev);
 }
 
+// Cost of goods sold for a view+period (group views aggregate member firms).
+// Exposed for working-capital DPO, which divides payables by COGS.
+export function getCogs(view: ViewKey, period: string = activePeriod): number {
+  return resolveInput(view, period).cogs;
+}
+
 export interface EntityComparisonRow {
   code: EntityCode;
   name: string;
@@ -277,17 +399,20 @@ export type ExpenseBudgetCategory = (typeof EXPENSE_BUDGET_CATEGORIES)[number];
 
 export function getBudget(view: ViewKey, period: string = activePeriod): BudgetRow[] {
   const i = resolveInput(view, period);
-  const r = i.revenue;
   // Actuals are the real entered figures (bank bookings overlay later via
-  // applyBookingsToBudget). The plan/target is a revenue-proportional benchmark
-  // — deviations between plan and actual surface over/under-spend per category.
+  // applyBookingsToBudget). The plan is the user's entered BudgetPlan when one
+  // exists; otherwise a revenue-proportional benchmark so deviations between
+  // plan and actual still surface over/under-spend per category out of the box.
+  // For group views each member contributes its own plan-or-benchmark, so a
+  // partially-planned group is never understated.
+  const plan = resolvePlan(view, period);
   return [
-    { category: "Umsatzerlöse", budget: Math.round(r * 1.03), actual: r },
-    { category: "Warenkosten", budget: Math.round(r * 0.58), actual: i.cogs },
-    { category: "Personalkosten", budget: Math.round(r * 0.19), actual: i.personnel },
-    { category: "Marketing", budget: Math.round(r * 0.05), actual: i.marketing },
-    { category: "IT & Software", budget: Math.round(r * 0.03), actual: i.itSoftware },
-    { category: "Sonstige Op. Kosten", budget: Math.round(r * 0.04), actual: i.otherOpex },
+    { category: "Umsatzerlöse", budget: plan.revenue, actual: i.revenue },
+    { category: "Warenkosten", budget: plan.cogs, actual: i.cogs },
+    { category: "Personalkosten", budget: plan.personnel, actual: i.personnel },
+    { category: "Marketing", budget: plan.marketing, actual: i.marketing },
+    { category: "IT & Software", budget: plan.itSoftware, actual: i.itSoftware },
+    { category: "Sonstige Op. Kosten", budget: plan.otherOpex, actual: i.otherOpex },
   ];
 }
 
@@ -447,6 +572,13 @@ export function getBalanceSheet(view: ViewKey): { assets: BalanceRow[]; liabilit
       { label: "Verbindlichkeiten L&L", value: Math.round(r * 0.14), explain: "Offene Rechnungen an Lieferanten." },
     ],
   };
+}
+
+// Inventory (Vorräte) carrying value for a view, read from the balance sheet.
+// Used by the working-capital calc (working capital = receivables + inventory −
+// payables).
+export function getInventoryValue(view: ViewKey): number {
+  return getBalanceSheet(view).assets.find((a) => a.label === "Vorräte")?.value ?? 0;
 }
 
 // Views that receive seeded, user-editable balance-sheet line items: the group

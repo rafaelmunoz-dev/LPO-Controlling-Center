@@ -5,6 +5,7 @@ import * as aiCopilot from "./namespaces/aiCopilot";
 import * as approvals from "./namespaces/approvals";
 import * as auth from "./namespaces/auth";
 import * as common from "./namespaces/common";
+import * as costCenters from "./namespaces/costCenters";
 import * as dashboard from "./namespaces/dashboard";
 import * as employees from "./namespaces/employees";
 import * as entities from "./namespaces/entities";
@@ -34,6 +35,7 @@ const NAMESPACES = {
   navigation,
   dashboard,
   finance,
+  costCenters,
   entities,
   purchasing,
   inventory,
