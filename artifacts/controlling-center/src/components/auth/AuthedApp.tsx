@@ -11,7 +11,7 @@ import type { AppUser } from "@/data/types";
 import { INVITE_TOKEN_KEY } from "@/auth/clerk";
 import * as api from "@/lib/api";
 import { loadOrgData, startSync, stopSync } from "@/lib/data-sync";
-import Onboarding from "@/pages/Onboarding";
+import NoAccess from "@/pages/NoAccess";
 import InvitePrompt from "@/pages/InvitePrompt";
 import Dashboard from "@/pages/Dashboard";
 import Finanzen from "@/pages/Finanzen";
@@ -175,7 +175,11 @@ export function AuthedApp() {
   }
 
   if (state.phase === "no_org") {
-    return <Onboarding onActivated={handleActivated} />;
+    // Single-tenant in practice: an authenticated user with no membership and
+    // no pending invite gets a "no access" screen instead of being able to
+    // self-serve an org. Onboarding stays intact (route + API untouched) and
+    // will be reactivated here once the product goes multi-tenant SaaS.
+    return <NoAccess />;
   }
 
   if (state.phase === "invited") {

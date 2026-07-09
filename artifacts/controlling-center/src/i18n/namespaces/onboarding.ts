@@ -73,6 +73,8 @@ export const de = {
   "team_last_admin": "Mindestens ein Administrator muss erhalten bleiben.",
   "team_admin_badge": "Admin",
   "grp_logo_drop_hint": "Logo hierher ziehen oder klicken zum Auswählen",
+  "noacc_title": "Kein Zugriff",
+  "noacc_subtitle": "Dieses Konto hat derzeit keinen Zugriff auf dieses System. Bitte wenden Sie sich an Ihren Administrator, um freigeschaltet zu werden.",
 };
 
 export const en = {
@@ -149,6 +151,8 @@ export const en = {
   "team_last_admin": "At least one administrator must remain.",
   "team_admin_badge": "Admin",
   "grp_logo_drop_hint": "Drag a logo here or click to choose",
+  "noacc_title": "No access",
+  "noacc_subtitle": "This account currently doesn't have access to this system. Please contact your administrator to get enabled.",
 };
 
 export const es = {
@@ -225,4 +229,6 @@ export const es = {
   "team_last_admin": "Debe permanecer al menos un administrador.",
   "team_admin_badge": "Admin",
   "grp_logo_drop_hint": "Arrastra un logo aquí o haz clic para elegir",
+  "noacc_title": "Sin acceso",
+  "noacc_subtitle": "Esta cuenta no tiene acceso a este sistema por el momento. Contacta a tu administrador para que te habilite el acceso.",
 };
