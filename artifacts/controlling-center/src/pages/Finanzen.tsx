@@ -27,9 +27,10 @@ import {
   getFinance,
   applyBookingsToBudget,
   isGroupView,
+  isAllView,
+  ALL_VIEW,
   groupViewKey,
   labelForView,
-  DEFAULT_GROUP_ID,
   financeInputId,
   emptyFinanceInput,
   computeFinance,
@@ -326,12 +327,11 @@ function FinanzdatenTab() {
   const role = useAppStore((s) => s.currentUser.role);
   const canEdit = can(role, "finanzdaten:edit");
 
-  const isGroup = isGroupView(selectedEntity);
-  // Real figures are always entered per firm; a group view lets the user pick
-  // which member firm to maintain (the group itself is derived, never stored).
-  const memberFirms = entities.filter(
-    (e) => !e.archived && (isGroup ? groupViewKey(e.groupId) === selectedEntity : e.code === selectedEntity),
-  );
+  // Real figures are always entered per firm; a non-firm view (group or
+  // consolidated) lets the user pick which member firm to maintain (the
+  // total itself is derived, never stored).
+  const scopedCodes = new Set(entityCodesForView(selectedEntity));
+  const memberFirms = entities.filter((e) => !e.archived && scopedCodes.has(e.code));
 
   const [firm, setFirm] = useState<EntityCode | "">("");
   const activeFirm: EntityCode | "" = memberFirms.some((e) => e.code === firm)
@@ -473,10 +473,8 @@ function BudgetEditDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   const role = useAppStore((s) => s.currentUser.role);
   const canEdit = can(role, "finanzdaten:edit");
 
-  const isGroup = isGroupView(selectedEntity);
-  const memberFirms = entities.filter(
-    (e) => !e.archived && (isGroup ? groupViewKey(e.groupId) === selectedEntity : e.code === selectedEntity),
-  );
+  const scopedCodes = new Set(entityCodesForView(selectedEntity));
+  const memberFirms = entities.filter((e) => !e.archived && scopedCodes.has(e.code));
 
   const [firm, setFirm] = useState<EntityCode | "">("");
   const activeFirm: EntityCode | "" = memberFirms.some((e) => e.code === firm)
@@ -729,10 +727,8 @@ function InvoiceDialog({
   const role = useAppStore((s) => s.currentUser.role);
   const canEdit = can(role, "finanzdaten:edit");
 
-  const isGroup = isGroupView(selectedEntity);
-  const memberFirms = entities.filter(
-    (e) => !e.archived && (isGroup ? groupViewKey(e.groupId) === selectedEntity : e.code === selectedEntity),
-  );
+  const scopedCodes = new Set(entityCodesForView(selectedEntity));
+  const memberFirms = entities.filter((e) => !e.archived && scopedCodes.has(e.code));
 
   const [form, setForm] = useState<Invoice>(() => emptyInvoice("receivable", memberFirms[0]?.code ?? ""));
 
@@ -1112,18 +1108,24 @@ export default function Finanzen() {
   const plo = getPLOverview(selectedEntity);
   const cf = getCashflow(selectedEntity);
   const isGroup = isGroupView(selectedEntity);
+  const isAll = isAllView(selectedEntity);
   const bookedByCategory = bankTransactions.reduce<Record<string, number>>((acc, tx) => {
     if (tx.status !== "booked" || !tx.category) return acc;
-    if (!isGroup && tx.entity !== selectedEntity) return acc;
+    if (!isGroup && !isAll && tx.entity !== selectedEntity) return acc;
     acc[tx.category] = (acc[tx.category] ?? 0) + tx.amount;
     return acc;
   }, {});
   const budget = applyBookingsToBudget(getBudget(selectedEntity), bookedByCategory);
   const comparison = getEntityComparison(entities);
-  // Consolidation shows the total of the group the current view belongs to.
-  const groupView = isGroup
+  // Consolidation shows the total of the group the current view belongs to
+  // (or the consolidated view itself when already at a group/all-firms scope,
+  // or when the selected firm has no group).
+  const selectedFirmGroupId = entities.find((e) => e.code === selectedEntity)?.groupId;
+  const groupView = isGroup || isAll
     ? selectedEntity
-    : groupViewKey(entities.find((e) => e.code === selectedEntity)?.groupId ?? DEFAULT_GROUP_ID);
+    : selectedFirmGroupId
+      ? groupViewKey(selectedFirmGroupId)
+      : ALL_VIEW;
   const group = getFinance(groupView);
   // Consolidation: gross member sums vs. Konzern after eliminating intra-group
   // trade. Operating costs = revenue − EBITDA (both drop by the same amount).

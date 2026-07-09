@@ -33,7 +33,7 @@ import { useLocation } from "wouter";
 import { useClerk } from "@clerk/react";
 import { basePath } from "@/auth/clerk";
 import { toast } from "sonner";
-import { searchAll, groupViewKey, type SearchResult, type ViewKey, type Role } from "@/data";
+import { searchAll, groupViewKey, ALL_VIEW, type SearchResult, type ViewKey, type Role } from "@/data";
 import { can, isAdmin } from "@/data/governance";
 
 const LANGS: { code: "de" | "en" | "es"; label: string; flag: string }[] = [
@@ -60,6 +60,7 @@ export function Topbar() {
   const { selectedEntity, setEntity, period, setPeriod, language, setLanguage, currentUser, setCurrentUser, tasks, entities, groups, allowedNav } = useAppStore();
   const activeGroups = groups.filter((g) => !g.archived);
   const firmsOfGroup = (groupId: string) => entities.filter((e) => e.groupId === groupId && !e.archived);
+  const ungroupedEntities = entities.filter((e) => !e.archived && !e.groupId);
   const canReports = allowedNav().includes("reports") && can(currentUser.role, "reports:create");
   const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
@@ -112,9 +113,28 @@ export function Topbar() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem
+              value={ALL_VIEW}
+              textValue={currentUser.organisation}
+              data-testid="entity-option-all"
+            >
+              <div className="flex items-center gap-2 font-semibold">
+                <Building2 className="h-[22px] w-[22px] text-primary" />
+                <span>{currentUser.organisation}</span>
+              </div>
+            </SelectItem>
+            {(ungroupedEntities.length > 0 || activeGroups.length > 0) && <SelectSeparator />}
+            {ungroupedEntities.map((e) => (
+              <SelectItem key={e.code} value={e.code} textValue={e.code} data-testid={`entity-option-${e.code}`}>
+                <div className="flex items-center gap-2">
+                  <EntityAvatar entity={e} size={20} />
+                  {e.code}
+                </div>
+              </SelectItem>
+            ))}
             {activeGroups.map((g, gi) => (
               <Fragment key={g.id}>
-                {gi > 0 && <SelectSeparator />}
+                {(gi > 0 || ungroupedEntities.length > 0) && <SelectSeparator />}
                 <SelectItem
                   value={groupViewKey(g.id)}
                   textValue={`${g.name} ${t("group_total")}`}

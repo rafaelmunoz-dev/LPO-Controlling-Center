@@ -31,7 +31,8 @@ import type {
 import { ROLE_PERMISSIONS, type NavKey } from "@/data/governance";
 import {
   setFormatLocale,
-  DEFAULT_GROUP_ID,
+  ALL_VIEW,
+  isAllView,
   groupViewKey,
   groupIdFromView,
   setRegistry,
@@ -267,19 +268,17 @@ setFormatLocale("de");
 
 const nowStamp = () => new Date().toISOString().slice(0, 16).replace("T", " ");
 
-// First non-archived view to fall back to when the current selection is
-// archived: the first active group total, else the first active firm.
-function firstActiveView(groups: CompanyGroup[], entities: EntityMeta[]): ViewKey {
-  const g = groups.find((x) => !x.archived);
-  if (g) return groupViewKey(g.id);
-  const e = entities.find((x) => !x.archived);
-  return e ? e.code : groupViewKey(DEFAULT_GROUP_ID);
+// Fallback view when the current selection is archived: the consolidated
+// view, which always exists (even for a brand-new org with no groups yet).
+function firstActiveView(): ViewKey {
+  return ALL_VIEW;
 }
 
-// True when the view points to a still-existing, non-archived group or firm.
-// Used to self-heal a stale selection (e.g. the seed "group:migu" left over when
-// an empty org loads) after the first real group/firm is created.
+// True when the view points to a still-existing, non-archived group or firm
+// (the consolidated view is always active). Used to self-heal a stale
+// selection after the group/firm it pointed to is archived.
 function viewIsActive(view: ViewKey, groups: CompanyGroup[], entities: EntityMeta[]): boolean {
+  if (isAllView(view)) return true;
   const gid = groupIdFromView(view);
   if (gid) return groups.some((g) => g.id === gid && !g.archived);
   return entities.some((e) => e.code === view && !e.archived);
@@ -288,7 +287,7 @@ function viewIsActive(view: ViewKey, groups: CompanyGroup[], entities: EntityMet
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-  selectedEntity: groupViewKey(DEFAULT_GROUP_ID),
+  selectedEntity: ALL_VIEW,
   setEntity: (entity) => set({ selectedEntity: entity }),
   period: "Mai 2026",
   setPeriod: (period) => set({ period }),
@@ -338,7 +337,7 @@ export const useAppStore = create<AppState>()(
         approvals: payload.approvals,
         uploads: payload.uploads,
         auditLog: payload.auditLog,
-        selectedEntity: firstActiveView(payload.groups, payload.entities),
+        selectedEntity: firstActiveView(),
         currentUser: { ...s.currentUser, entityAccess: allViews },
         dataReady: true,
       };
@@ -353,7 +352,7 @@ export const useAppStore = create<AppState>()(
       currentUser: EMPTY_USER,
       isAuthenticated: false,
       dataReady: false,
-      selectedEntity: groupViewKey(DEFAULT_GROUP_ID),
+      selectedEntity: ALL_VIEW,
       entities: [],
       groups: [],
       employees: [],
@@ -398,7 +397,7 @@ export const useAppStore = create<AppState>()(
       const entities = s.entities.map((e) => (e.code === code ? { ...e, archived: true } : e));
       return {
         entities,
-        selectedEntity: s.selectedEntity === code ? firstActiveView(s.groups, entities) : s.selectedEntity,
+        selectedEntity: s.selectedEntity === code ? firstActiveView() : s.selectedEntity,
       };
     }),
   restoreEntity: (code) =>
@@ -435,7 +434,7 @@ export const useAppStore = create<AppState>()(
       return {
         groups,
         entities,
-        selectedEntity: selInGroup ? firstActiveView(groups, entities) : s.selectedEntity,
+        selectedEntity: selInGroup ? firstActiveView() : s.selectedEntity,
       };
     }),
   restoreGroup: (id) =>

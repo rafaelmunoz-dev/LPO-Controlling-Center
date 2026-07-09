@@ -33,6 +33,10 @@ interface EntityForm {
   groupId: string;
 }
 
+// Sentinel for "no group" in the Select (Radix Select rejects an empty-string
+// value), translated to/from EntityMeta.groupId === null at the store boundary.
+const NO_GROUP = "__none__";
+
 const EMPTY_FORM: EntityForm = {
   code: "",
   name: "",
@@ -40,7 +44,7 @@ const EMPTY_FORM: EntityForm = {
   location: "",
   employees: "0",
   color: "#0ea5e9",
-  groupId: "",
+  groupId: NO_GROUP,
 };
 
 interface Props {
@@ -86,7 +90,7 @@ export function StructureCreateDialogs({
 
   const handleEntityOpenChange = (open: boolean) => {
     if (open) {
-      setForm({ ...EMPTY_FORM, groupId: activeGroups[0]?.id ?? "" });
+      setForm({ ...EMPTY_FORM, groupId: activeGroups[0]?.id ?? NO_GROUP });
       setLocalEntityLogo(null);
     } else {
       resetEntity();
@@ -120,10 +124,6 @@ export function StructureCreateDialogs({
       toast.error(t("ent_code_exists"));
       return;
     }
-    if (!activeGroups.some((g) => g.id === form.groupId)) {
-      toast.error(t("ent_need_group"));
-      return;
-    }
     addEntity({
       code,
       name: form.name.trim(),
@@ -131,7 +131,7 @@ export function StructureCreateDialogs({
       location: form.location.trim(),
       employees: Math.max(0, parseInt(form.employees, 10) || 0),
       color: form.color,
-      groupId: form.groupId,
+      groupId: form.groupId === NO_GROUP ? null : form.groupId,
     });
     if (entityLogo) setEntityLogo(code, entityLogo);
     resetEntity();
@@ -186,13 +186,8 @@ export function StructureCreateDialogs({
             <DialogTitle>{t("ent_create")}</DialogTitle>
             <DialogDescription>{t("ent_create_hint")}</DialogDescription>
           </DialogHeader>
-          {activeGroups.length === 0 ? (
-            <p className="text-sm text-muted-foreground" data-testid="text-qc-need-group">
-              {t("ent_need_group")}
-            </p>
-          ) : (
-            <div className="grid gap-3">
-              <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="qc-code">{t("set_code")}</Label>
                   <Input
@@ -222,6 +217,7 @@ export function StructureCreateDialogs({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={NO_GROUP}>{t("grp_none")}</SelectItem>
                     {activeGroups.map((g) => (
                       <SelectItem key={g.id} value={g.id}>
                         {g.name}
@@ -279,26 +275,13 @@ export function StructureCreateDialogs({
                 />
               </div>
             </div>
-          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => handleEntityOpenChange(false)} data-testid="button-qc-entity-cancel">
               {t("common_cancel")}
             </Button>
-            {activeGroups.length === 0 ? (
-              <Button
-                onClick={() => {
-                  handleEntityOpenChange(false);
-                  onGroupOpenChange(true);
-                }}
-                data-testid="button-qc-entity-needgroup"
-              >
-                {t("grp_create")}
-              </Button>
-            ) : (
-              <Button onClick={saveEntity} data-testid="button-qc-entity-save">
-                {t("ent_create")}
-              </Button>
-            )}
+            <Button onClick={saveEntity} data-testid="button-qc-entity-save">
+              {t("ent_create")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -3,7 +3,11 @@ export type EntityCode = "IMP" | "C&A" | "MKT" | "CPE" | "COSM" | (string & {});
 // entity code. Legacy stores used a literal total label which is
 // migrated to `group:migu`.
 export type GroupViewKey = `group:${string}`;
-export type ViewKey = GroupViewKey | EntityCode;
+// The consolidated view across the whole organization (all groups + ungrouped
+// firms). Always exists, even for a brand-new org with no groups yet.
+export type AllViewKey = "all";
+export const ALL_VIEW: AllViewKey = "all";
+export type ViewKey = GroupViewKey | AllViewKey | EntityCode;
 
 export type RiskLevel = "Niedrig" | "Mittel" | "Hoch";
 export type Trend = "up" | "down" | "flat";
@@ -26,8 +30,9 @@ export interface EntityMeta {
   employees: number;
   color: string;
   logo?: string;
-  // The group this firm belongs to (CompanyGroup.id).
-  groupId: string;
+  // The group this firm belongs to (CompanyGroup.id). Null/undefined when the
+  // firm isn't assigned to any group yet.
+  groupId: string | null;
   // Soft-archived firms are hidden from all live views/lists but never deleted.
   archived?: boolean;
 }

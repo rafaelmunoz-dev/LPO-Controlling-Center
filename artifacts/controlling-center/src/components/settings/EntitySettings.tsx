@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/hooks/use-app-context";
-import { getEntityComparison, DEFAULT_GROUP_ID } from "@/data";
+import { getEntityComparison } from "@/data";
 import { ENTITY_EDIT_ROLES, ENTITY_CREATE_ROLES } from "@/data/governance";
 import type { CompanyGroup, EntityMeta } from "@/data/types";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
@@ -36,11 +36,15 @@ interface EntityForm {
   groupId: string;
 }
 
+// Sentinel for "no group" in the Select (Radix Select rejects an empty-string
+// value), translated to/from EntityMeta.groupId === null at the store boundary.
+const NO_GROUP = "__none__";
+
 function metaToForm(e: EntityMeta): EntityForm {
-  return { code: e.code, name: e.name, description: e.description, location: e.location, employees: String(e.employees), color: e.color, groupId: e.groupId };
+  return { code: e.code, name: e.name, description: e.description, location: e.location, employees: String(e.employees), color: e.color, groupId: e.groupId ?? NO_GROUP };
 }
 
-const EMPTY_FORM: EntityForm = { code: "", name: "", description: "", location: "", employees: "0", color: "#0ea5e9", groupId: DEFAULT_GROUP_ID };
+const EMPTY_FORM: EntityForm = { code: "", name: "", description: "", location: "", employees: "0", color: "#0ea5e9", groupId: NO_GROUP };
 
 export function EntitySettings() {
   const { t } = useTranslation();
@@ -58,8 +62,11 @@ export function EntitySettings() {
 
   const activeGroups = groups.filter((g) => !g.archived);
   const archivedGroups = groups.filter((g) => g.archived);
-  // Firms archived individually (their group is still active) — restorable here.
-  const archivedFirms = entities.filter((e) => e.archived && activeGroups.some((g) => g.id === e.groupId));
+  // Firms archived individually (their group is still active, or they had no
+  // group) — restorable here. Firms whose whole group was archived cascade
+  // instead and are listed under that archived group.
+  const archivedFirms = entities.filter((e) => e.archived && (!e.groupId || activeGroups.some((g) => g.id === e.groupId)));
+  const ungroupedFirms = entities.filter((e) => !e.archived && !e.groupId);
 
   const [editForm, setEditForm] = useState<EntityForm | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -74,8 +81,7 @@ export function EntitySettings() {
   const openEdit = (e: EntityMeta) => { setEditForm(metaToForm(e)); setEditOpen(true); };
 
   const openCreate = () => {
-    if (activeGroups.length === 0) { toast.error(t("ent_need_group")); return; }
-    setCreateForm({ ...EMPTY_FORM, groupId: activeGroups[0].id });
+    setCreateForm({ ...EMPTY_FORM, groupId: activeGroups[0]?.id ?? NO_GROUP });
     setCreateOpen(true);
   };
 
@@ -89,6 +95,7 @@ export function EntitySettings() {
       location: editForm.location.trim(),
       employees: Math.max(0, parseInt(editForm.employees, 10) || 0),
       color: editForm.color,
+      groupId: editForm.groupId === NO_GROUP ? null : editForm.groupId,
     });
     setEditOpen(false);
     toast.success(t("ent_saved"));
@@ -103,10 +110,6 @@ export function EntitySettings() {
       toast.error(t("ent_code_exists"));
       return;
     }
-    if (!activeGroups.some((g) => g.id === createForm.groupId)) {
-      toast.error(t("ent_need_group"));
-      return;
-    }
     addEntity({
       code,
       name: createForm.name.trim(),
@@ -114,7 +117,7 @@ export function EntitySettings() {
       location: createForm.location.trim(),
       employees: Math.max(0, parseInt(createForm.employees, 10) || 0),
       color: createForm.color,
-      groupId: createForm.groupId,
+      groupId: createForm.groupId === NO_GROUP ? null : createForm.groupId,
     });
     setCreateOpen(false);
     setCreateForm(EMPTY_FORM);
@@ -303,6 +306,21 @@ export function EntitySettings() {
           );
         })}
 
+        {ungroupedFirms.length > 0 && (
+          <div className="space-y-3" data-testid="group-section-none">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 pb-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-6 w-6 text-muted-foreground" />
+                <span className="font-semibold">{t("grp_none_section")}</span>
+                <Badge variant="outline" className="font-normal">{ungroupedFirms.length} {t("set_group_entities")}</Badge>
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {ungroupedFirms.map(renderFirmCard)}
+            </div>
+          </div>
+        )}
+
         {(archivedGroups.length > 0 || archivedFirms.length > 0) && (
           <div className="space-y-3 rounded-xl border border-slate-200/70 bg-slate-50/60 p-4" data-testid="archive-section">
             <div className="flex items-center gap-2">
@@ -364,6 +382,7 @@ export function EntitySettings() {
               <Select value={createForm.groupId} onValueChange={(v) => setCreateForm((f) => ({ ...f, groupId: v }))}>
                 <SelectTrigger data-testid="select-create-group"><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_GROUP}>{t("grp_none")}</SelectItem>
                   {activeGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -445,6 +464,16 @@ export function EntitySettings() {
               <div className="space-y-1.5">
                 <Label htmlFor="edit-desc">{t("ent_description")}</Label>
                 <Textarea id="edit-desc" rows={2} value={editForm.description} onChange={(e) => setEditForm((f) => f && ({ ...f, description: e.target.value }))} data-testid="input-edit-desc" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("grp_assign")}</Label>
+                <Select value={editForm.groupId} onValueChange={(v) => setEditForm((f) => f && ({ ...f, groupId: v }))}>
+                  <SelectTrigger data-testid="select-edit-group"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_GROUP}>{t("grp_none")}</SelectItem>
+                    {activeGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
