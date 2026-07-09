@@ -1,0 +1,17 @@
+﻿services:
+  postgres:
+    image: postgres:16
+    container_name: lpo-postgres
+    environment:
+      POSTGRES_USER: lpo
+      POSTGRES_PASSWORD: lpo_dev_password
+      POSTGRES_DB: lpo_controlling
+    ports:
+      - "5432:5432"
+    volumes:
+      - lpo_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  lpo_postgres_data:
+    name: lpo-controlling-center_lpo_postgres_data
+    external: true
