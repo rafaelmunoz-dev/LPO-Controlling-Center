@@ -1,6 +1,16 @@
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
+import { requireAuth, requireMembership } from "../lib/auth";
 
 const router: IRouter = Router();
+
+const aiRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "too_many_requests" },
+});
 
 // The OpenAI integration library throws at module-load time when its env vars
 // are missing. AI assist is optional here, so we never import it at the top
@@ -38,7 +48,7 @@ function asStringList(value: unknown): string[] {
   return value.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
 }
 
-router.post("/ai/classify-expense", async (req, res) => {
+router.post("/ai/classify-expense", requireAuth, requireMembership, aiRateLimit, async (req, res) => {
   const body = (req.body ?? {}) as ClassifyBody;
   const description = typeof body.description === "string" ? body.description.trim() : "";
   const payee = typeof body.payee === "string" ? body.payee.trim() : "";
@@ -126,7 +136,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   es: "Spanish (Español)",
 };
 
-router.post("/ai/chat", async (req, res) => {
+router.post("/ai/chat", requireAuth, requireMembership, aiRateLimit, async (req, res) => {
   const body = (req.body ?? {}) as ChatBody;
   const question = typeof body.question === "string" ? body.question.trim() : "";
   const context = typeof body.context === "string" ? body.context.trim() : "";

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, memberships, type Membership } from "@workspace/db";
 import type { DomainKind } from "@workspace/db";
 
@@ -62,7 +62,13 @@ export async function requireAuth(
     const [m] = await db
       .select()
       .from(memberships)
-      .where(eq(memberships.clerkUserId, userId))
+      .where(
+        and(
+          eq(memberships.clerkUserId, userId),
+          eq(memberships.status, "active"),
+        )
+      )
+      .orderBy(memberships.createdAt)
       .limit(1);
 
     if (m) m.role = normalizeRole(m.role);
@@ -136,10 +142,20 @@ export function canWriteDomain(opts: {
   action: WriteAction;
 }): boolean {
   const { role, kind, action } = opts;
+
+  // audit_log is append-only via server-side writes only: nobody can
+  // write or delete it through the records API, not even Admin.
+  if (kind === "auditLog") return false;
+
   if (role === "Admin") return true;
   if (role === "Betrachter") return false;
   if (role === "Mitarbeiter") {
     if (STRUCTURAL_DOMAINS.includes(kind)) return false;
+    // approvals: only Admin can update (approve/reject). Mitarbeiter can
+    // create requests but never modify existing ones.
+    if (kind === "approvals") return action === "create";
+    // uploads: Mitarbeiter can add files but not overwrite existing records.
+    if (kind === "uploads") return action === "create";
     return action === "create" || action === "update";
   }
   return false;
