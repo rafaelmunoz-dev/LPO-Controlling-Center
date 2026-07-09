@@ -130,9 +130,10 @@ interface BalanceFormState {
   label: string;
   value: string;
   explain: string;
+  firm: EntityCode | "";
 }
 
-const emptyBalanceForm = (): BalanceFormState => ({ label: "", value: "", explain: "" });
+const emptyBalanceForm = (firm: EntityCode | ""): BalanceFormState => ({ label: "", value: "", explain: "", firm });
 
 function BalanceCard({
   side,
@@ -217,54 +218,64 @@ function BalanceCard({
 
 function BilanzTab() {
   const { t } = useTranslation();
-  const { selectedEntity, balanceItems, currentUser, addBalanceItem, updateBalanceItem, removeBalanceItem, logAction } = useAppStore();
+  const { selectedEntity, balanceItems, currentUser, entities, addBalanceItem, updateBalanceItem, removeBalanceItem, logAction } = useAppStore();
   const canCreate = can(currentUser.role, "bilanz:create");
   const canEdit = can(currentUser.role, "bilanz:edit");
   const canDelete = can(currentUser.role, "bilanz:delete");
 
-  const scoped = balanceItems.filter((b) => b.view === selectedEntity);
+  // Balance items always belong to one firm; a group/consolidated scope lets
+  // the user pick which member firm to file the item under (same pattern as
+  // FinanzdatenTab — the item itself is never tagged with a group/"all" key).
+  const scopedCodes = new Set(entityCodesForView(selectedEntity));
+  const memberFirms = entities.filter((e) => !e.archived && scopedCodes.has(e.code));
+  const defaultFirm: EntityCode | "" = memberFirms.some((e) => e.code === selectedEntity)
+    ? (selectedEntity as EntityCode)
+    : memberFirms[0]?.code ?? "";
+
+  const scoped = balanceItems.filter((b) => scopedCodes.has(b.view));
   const assets = scoped.filter((b) => b.side === "asset");
   const liabilities = scoped.filter((b) => b.side === "liability");
 
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [side, setSide] = useState<BalanceSide>("asset");
-  const [form, setForm] = useState<BalanceFormState>(emptyBalanceForm());
+  const [form, setForm] = useState<BalanceFormState>(emptyBalanceForm(defaultFirm));
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const openCreate = (s: BalanceSide) => {
     setEditId(null);
     setSide(s);
-    setForm(emptyBalanceForm());
+    setForm(emptyBalanceForm(defaultFirm));
     setOpen(true);
   };
   const openEdit = (item: BalanceLineItem) => {
     setEditId(item.id);
     setSide(item.side);
-    setForm({ label: item.label, value: String(item.value), explain: item.explain ?? "" });
+    setForm({ label: item.label, value: String(item.value), explain: item.explain ?? "", firm: item.view as EntityCode });
     setOpen(true);
   };
 
   const save = () => {
     if (editId ? !canEdit : !canCreate) { toast.error(t("no_permission")); return; }
+    if (!form.firm) { toast.error(t("inv_need_firm")); return; }
     if (!form.label.trim()) { toast.error(t("bs_item_label")); return; }
     const value = Number(form.value) || 0;
     const explain = form.explain.trim() || undefined;
     if (editId) {
-      updateBalanceItem(editId, { label: form.label.trim(), value, explain });
-      logAction(t("bs_edit_item"), `${form.label} · ${selectedEntity}`);
+      updateBalanceItem(editId, { label: form.label.trim(), value, explain, view: form.firm });
+      logAction(t("bs_edit_item"), `${form.label} · ${form.firm}`);
       toast.success(t("bs_saved"));
     } else {
       const item: BalanceLineItem = {
         id: `BS-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        view: selectedEntity,
+        view: form.firm,
         side,
         label: form.label.trim(),
         value,
         explain,
       };
       addBalanceItem(item);
-      logAction(t("bs_create_item"), `${form.label} · ${selectedEntity}`);
+      logAction(t("bs_create_item"), `${form.label} · ${form.firm}`);
       toast.success(t("bs_created"));
     }
     setOpen(false);
@@ -291,6 +302,17 @@ function BilanzTab() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editId ? t("bs_edit_item") : t("bs_create_item")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>{t("fd_firm")}</Label>
+              <Select value={form.firm} onValueChange={(v) => setForm({ ...form, firm: v as EntityCode })} disabled={memberFirms.length <= 1}>
+                <SelectTrigger data-testid="select-balance-firm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {memberFirms.map((e) => (
+                    <SelectItem key={e.code} value={e.code}>{e.code} · {e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5"><Label>{t("bs_item_label")}</Label><Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} data-testid="input-balance-label" /></div>
             <div className="space-y-1.5"><Label>{t("bs_item_value")}</Label><Input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} data-testid="input-balance-value" /></div>
             <div className="space-y-1.5"><Label>{t("bs_item_explain")}</Label><Input value={form.explain} onChange={(e) => setForm({ ...form, explain: e.target.value })} data-testid="input-balance-explain" /></div>
