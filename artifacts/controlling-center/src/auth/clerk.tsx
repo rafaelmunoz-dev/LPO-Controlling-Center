@@ -1,6 +1,11 @@
-import { SignIn, SignUp } from "@clerk/react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Redirect } from "wouter";
+import { useSignIn } from "@clerk/react/legacy";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // REQUIRED — copy verbatim. Resolves the key from window.location.hostname so the
 // same build serves multiple Clerk custom domains.
@@ -89,18 +94,68 @@ export const clerkLocalization = {
   },
 };
 
+// Own-brand sign-in: the only active auth method is Microsoft OAuth, so this
+// is a single-button redirect flow (no email/password fields) styled with the
+// app's own design tokens instead of Clerk's prebuilt <SignIn> UI.
 export function SignInPage() {
+  const { t } = useTranslation();
+  const clerkSignIn = useSignIn();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleMicrosoftSignIn = async () => {
+    if (!clerkSignIn.isLoaded || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await clerkSignIn.signIn.authenticateWithRedirect({
+        strategy: "oauth_microsoft",
+        redirectUrl: `${basePath}/sso-callback`,
+        redirectUrlComplete: basePath || "/",
+      });
+    } catch (err) {
+      console.error("[auth] Microsoft sign-in redirect failed", err);
+      setError(t("signin_error"));
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-slate-50 px-4">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200 text-center">
+        <div className="mb-6 flex items-center justify-center gap-3">
+          <img src={`${basePath}/logo.svg`} alt="LPO Controlling Center" className="h-9 w-auto" />
+        </div>
+
+        <h1 className="text-xl font-semibold text-slate-900" data-testid="text-signin-title">{t("signin_title")}</h1>
+        <p className="mt-1.5 text-sm text-slate-500" data-testid="text-signin-subtitle">{t("signin_subtitle")}</p>
+
+        <Button
+          type="button"
+          className="mt-6 w-full"
+          onClick={handleMicrosoftSignIn}
+          disabled={!clerkSignIn.isLoaded || busy}
+          data-testid="button-signin-microsoft"
+        >
+          {busy ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("signin_redirecting")}
+            </>
+          ) : (
+            t("signin_microsoft")
+          )}
+        </Button>
+
+        {error && <p className="mt-4 text-sm text-rose-600" data-testid="text-signin-error">{error}</p>}
+      </div>
     </div>
   );
 }
 
+// Email/password sign-up has no active auth method behind it (Microsoft OAuth
+// only, single-tenant in practice — see NoAccess.tsx). Keep the /sign-up route
+// alive (Clerk's OAuth flow may still reference it) but send visitors to the
+// real sign-in screen.
 export function SignUpPage() {
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-slate-50 px-4">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-    </div>
-  );
+  return <Redirect to="/sign-in" replace />;
 }

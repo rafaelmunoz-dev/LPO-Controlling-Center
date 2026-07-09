@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
-import { ClerkProvider, useAuth, useClerk } from "@clerk/react";
+import { ClerkProvider, useAuth, useClerk, AuthenticateWithRedirectCallback } from "@clerk/react";
 import { Loader2 } from "lucide-react";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -85,6 +85,12 @@ function ClerkProviderWithRoutes() {
           <Switch>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/sso-callback">
+              <div className="flex min-h-[100dvh] items-center justify-center bg-slate-50">
+                <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                <AuthenticateWithRedirectCallback />
+              </div>
+            </Route>
             <Route>
               <RootGate />
             </Route>
